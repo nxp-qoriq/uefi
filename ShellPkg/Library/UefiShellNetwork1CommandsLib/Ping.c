@@ -98,7 +98,7 @@ typedef struct _PING_ICMP_TX_INFO {
   PING_IPX_COMPLETION_TOKEN *Token;
 } PING_ICMPX_TX_INFO;
 
-#define DEFAULT_TIMEOUT       5000
+#define DEFAULT_TIMEOUT       10000
 #define MAX_SEND_NUMBER       10000
 #define MAX_BUFFER_SIZE       32768
 #define DEFAULT_TIMER_PERIOD  358049
@@ -686,6 +686,7 @@ PingSendEchoRequest (
     return EFI_OUT_OF_RESOURCES;
   }
 
+  InsertTailList (&Private->TxList, &TxInfo->Link);
   TxInfo->TimeStamp   = ReadTime ();
   TxInfo->SequenceNum = (UINT16) (Private->TxCount + 1);
   TxInfo->Token       = PingGenerateToken (
@@ -707,7 +708,6 @@ PingSendEchoRequest (
     return Status;
   }
 
-  InsertTailList (&Private->TxList, &TxInfo->Link);
   Private->TxCount++;
 
   return EFI_SUCCESS;
