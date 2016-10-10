@@ -349,7 +349,7 @@ ProcessOptionRom (
       //
       // Load and process the option rom
       //
-      DEBUG ((EFI_D_INFO, "PciBus: LOAD OP ROM $$$$$$$$$$$$$: %llx \n", RomBase));
+      DEBUG ((EFI_D_RELEASE, "LOAD OPTION ROM, RomBase: %llx \n", RomBase));
       LoadOpRomImage (Temp, RomBase);
     }
 

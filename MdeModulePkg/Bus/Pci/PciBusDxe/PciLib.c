@@ -183,7 +183,7 @@ DumpBridgeResource (
 
   if ((BridgeResource != NULL) && (BridgeResource->Length != 0)) {
     DEBUG ((
-      EFI_D_INFO, "Type = %s; Base = 0x%lx;\tLength = 0x%lx;\tAlignment = 0x%lx\n",
+      EFI_D_RELEASE, "Type = %s; Base = 0x%lx;\tLength = 0x%lx;\tAlignment = 0x%lx\n",
       mBarTypeStr[MIN (BridgeResource->ResType, PciBarTypeMaxType)],
       BridgeResource->PciDev->PciBar[BridgeResource->Bar].BaseAddress,
       BridgeResource->Length, BridgeResource->Alignment
@@ -196,7 +196,7 @@ DumpBridgeResource (
       if (Resource->ResourceUsage == PciResUsageTypical) {
         Bar = Resource->Virtual ? Resource->PciDev->VfPciBar : Resource->PciDev->PciBar;
         DEBUG ((
-          EFI_D_INFO, "   Base = 0x%lx;\tLength = 0x%lx;\tAlignment = 0x%lx;\tOwner = %s [%02x|%02x|%02x:",
+          EFI_D_RELEASE, "   Base = 0x%lx;\tLength = 0x%lx;\tAlignment = 0x%lx;\tOwner = %s [%02x|%02x|%02x:",
           Bar[Resource->Bar].BaseAddress, Resource->Length, Resource->Alignment,
           IS_PCI_BRIDGE (&Resource->PciDev->Pci)     ? L"PPB" :
           IS_CARDBUS_BRIDGE (&Resource->PciDev->Pci) ? L"P2C" :
@@ -212,12 +212,12 @@ DumpBridgeResource (
           //
           // The resource requirement comes from the device itself.
           //
-          DEBUG ((EFI_D_INFO, "%02x]", Bar[Resource->Bar].Offset));
+          DEBUG ((EFI_D_RELEASE, "%02x]", Bar[Resource->Bar].Offset));
         } else {
           //
           // The resource requirement comes from the subordinate devices.
           //
-          DEBUG ((EFI_D_INFO, "**]"));
+          DEBUG ((EFI_D_RELEASE, "**]"));
         }
       } else {
         DEBUG ((EFI_D_INFO, "   Base = Padding;\tLength = 0x%lx;\tAlignment = 0x%lx", Resource->Length, Resource->Alignment));
@@ -289,7 +289,7 @@ DumpResourceMap (
   PCI_RESOURCE_NODE    **ChildResources;
   UINTN                ChildResourceCount;
 
-  DEBUG ((EFI_D_INFO, "PciBus: Resource Map for "));
+  DEBUG ((EFI_D_RELEASE, "PciBus: Resource Map for "));
 
   Status = gBS->OpenProtocol (
                   Bridge->Handle,
@@ -301,7 +301,7 @@ DumpResourceMap (
                   );
   if (EFI_ERROR (Status)) {
     DEBUG ((
-      EFI_D_INFO, "Bridge [%02x|%02x|%02x]\n",
+      EFI_D_RELEASE, "Bridge [%02x|%02x|%02x]\n",
       Bridge->BusNumber, Bridge->DeviceNumber, Bridge->FunctionNumber
       ));
   } else {
@@ -310,7 +310,7 @@ DumpResourceMap (
             FALSE,
             FALSE
             );
-    DEBUG ((EFI_D_INFO, "Root Bridge %s\n", Str != NULL ? Str : L""));
+    DEBUG ((EFI_D_RELEASE, "Root Bridge %s\n", Str != NULL ? Str : L""));
     if (Str != NULL) {
       FreePool (Str);
     }

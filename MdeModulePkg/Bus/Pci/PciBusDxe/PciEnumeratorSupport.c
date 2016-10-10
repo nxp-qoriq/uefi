@@ -231,7 +231,7 @@ PciSearchDevice (
   PciIoDevice = NULL;
 
   DEBUG ((
-    EFI_D_INFO,
+    EFI_D_RELEASE,
     "PciBus: Discovered %s @ [%02x|%02x|%02x]\n",
     IS_PCI_BRIDGE (Pci) ?     L"PPB" :
     IS_CARDBUS_BRIDGE (Pci) ? L"P2C" :
@@ -425,7 +425,7 @@ DumpPciBars (
     }
 
     DEBUG ((
-      EFI_D_INFO,
+      EFI_D_RELEASE,
       "   BAR[%d]: Type = %s; Alignment = 0x%lx;\tLength = 0x%lx;\tOffset = 0x%02x\n",
       Index, mBarTypeStr[MIN (PciIoDevice->PciBar[Index].BarType, PciBarTypeMaxType)],
       PciIoDevice->PciBar[Index].Alignment, PciIoDevice->PciBar[Index].Length, PciIoDevice->PciBar[Index].Offset
@@ -444,7 +444,7 @@ DumpPciBars (
       PciIoDevice->VfPciBar[Index].Alignment, PciIoDevice->VfPciBar[Index].Length, PciIoDevice->VfPciBar[Index].Offset
       ));
   }
-  DEBUG ((EFI_D_INFO, "\n"));
+  DEBUG ((EFI_D_RELEASE, "\n"));
 }
 
 /**
