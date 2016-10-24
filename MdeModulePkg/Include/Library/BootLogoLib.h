@@ -20,12 +20,25 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <Protocol/GraphicsOutput.h>
 
 /**
-  Show LOGO returned from Edkii Platform Logo protocol on all consoles.
+  Show LOGO on all consoles.
+
+  @param[in]  ImageFormat Format of the image file.
+  @param[in]  LogoFile    The file name of logo to display.
+  @param[in]  Attribute   The display attributes of the image returned.
+  @param[in]  OffsetX     The X offset of the image regarding the Attribute.
+  @param[in]  OffsetY     The Y offset of the image regarding the Attribute.
+
+  @retval EFI_SUCCESS     Logo was displayed.
+  @retval EFI_UNSUPPORTED Logo was not found or cannot be displayed.
 **/
 EFI_STATUS
 EFIAPI
 BootLogoEnableLogo (
-  VOID
+  IN  IMAGE_FORMAT                          ImageFormat,
+  IN  EFI_GUID                              *Logo,
+  IN  EDKII_PLATFORM_LOGO_DISPLAY_ATTRIBUTE Attribute,
+  IN  INTN                                  OffsetX,
+  IN  INTN                                  OffsetY
   );
 
 

@@ -144,14 +144,14 @@ UINT16 Seq_1024_768_32bpp_60[15] = {
 /// Table of supported video modes
 ///
 QEMU_VIDEO_CIRRUS_MODES  QemuVideoCirrusModes[] = {
-//  {  640, 480, 8, Crtc_640_480_256_60,  Seq_640_480_256_60,  0xe3 },
-//  {  800, 600, 8, Crtc_800_600_256_60,  Seq_800_600_256_60,  0xef },
-  {  640, 480, 32, Crtc_640_480_32bpp_60,  Seq_640_480_32bpp_60,  0xef },
-  {  800, 600, 32, Crtc_800_600_32bpp_60,  Seq_800_600_32bpp_60,  0xef },
-//  { 1024, 768, 8, Crtc_1024_768_256_60, Seq_1024_768_256_60, 0xef }
-  { 1024, 768, 24, Crtc_1024_768_24bpp_60, Seq_1024_768_24bpp_60, 0xef }
-//  { 1024, 768, 32, Crtc_1024_768_32bpp_60, Seq_1024_768_32bpp_60, 0xef }
-//  { 960, 720, 32, Crtc_960_720_32bpp_60, Seq_1024_768_32bpp_60, 0xef }
+//  {  640, 480, 8, 60, Crtc_640_480_256_60,  Seq_640_480_256_60,  0xe3 },
+//  {  800, 600, 8, 60, Crtc_800_600_256_60,  Seq_800_600_256_60,  0xef },
+  {  640, 480, 32, 60, Crtc_640_480_32bpp_60,  Seq_640_480_32bpp_60,  0xef },
+  {  800, 600, 32, 60, Crtc_800_600_32bpp_60,  Seq_800_600_32bpp_60,  0xef },
+//  { 1024, 768, 8, 60, Crtc_1024_768_256_60, Seq_1024_768_256_60, 0xef }
+  { 1024, 768, 24, 60, Crtc_1024_768_24bpp_60, Seq_1024_768_24bpp_60, 0xef }
+//  { 1024, 768, 32, 60, Crtc_1024_768_32bpp_60, Seq_1024_768_32bpp_60, 0xef }
+//  { 960, 720, 32, 60, Crtc_960_720_32bpp_60, Seq_1024_768_32bpp_60, 0xef }
 };
 
 #define QEMU_VIDEO_CIRRUS_MODE_COUNT \
@@ -186,13 +186,15 @@ QemuVideoCirrusModeSetup (
     ModeData->HorizontalResolution          = VideoMode->Width;
     ModeData->VerticalResolution            = VideoMode->Height;
     ModeData->ColorDepth                    = VideoMode->ColorDepth;
+    ModeData->RefreshRate                   = VideoMode->RefreshRate;
     DEBUG ((EFI_D_INFO,
-      "Adding Mode %d as Cirrus Internal Mode %d: %dx%d, %d-bit\n",
+      "Adding Mode %d as Cirrus Internal Mode %d: %dx%d, %d-bit, %d Hz\n",
       (INT32) (ModeData - Private->ModeData),
       ModeData->InternalModeIndex,
       ModeData->HorizontalResolution,
       ModeData->VerticalResolution,
-      ModeData->ColorDepth
+      ModeData->ColorDepth,
+      ModeData->RefreshRate
       ));
 
     ModeData ++ ;
@@ -303,7 +305,7 @@ QemuVideoBochsModeSetup (
     AvailableFbSize  = BochsRead (Private, VBE_DISPI_INDEX_VIDEO_MEMORY_64K);
     AvailableFbSize *= SIZE_64KB;
   }
-  DEBUG ((EFI_D_INFO, "%a: AvailableFbSize=0x%x\n", __FUNCTION__,
+  DEBUG ((EFI_D_VERBOSE, "%a: AvailableFbSize=0x%x\n", __FUNCTION__,
     AvailableFbSize));
 
   //
@@ -328,13 +330,15 @@ QemuVideoBochsModeSetup (
       ModeData->HorizontalResolution = VideoMode->Width;
       ModeData->VerticalResolution   = VideoMode->Height;
       ModeData->ColorDepth           = VideoMode->ColorDepth;
+      ModeData->RefreshRate          = 60;
       DEBUG ((EFI_D_INFO,
-        "Adding Mode %d as Bochs Internal Mode %d: %dx%d, %d-bit\n",
+        "Adding Mode %d as Bochs Internal Mode %d: %dx%d, %d-bit, %d Hz\n",
         (INT32) (ModeData - Private->ModeData),
         ModeData->InternalModeIndex,
         ModeData->HorizontalResolution,
         ModeData->VerticalResolution,
-        ModeData->ColorDepth
+        ModeData->ColorDepth,
+        ModeData->RefreshRate
         ));
 
       ModeData ++ ;

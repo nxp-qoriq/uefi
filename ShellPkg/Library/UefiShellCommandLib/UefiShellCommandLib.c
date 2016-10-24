@@ -128,6 +128,7 @@ ShellCommandLibConstructor (
   @param[in] List     The list to free.
 **/
 VOID
+EFIAPI
 FreeFileHandleList (
   IN BUFFER_LIST *List
   )
@@ -243,6 +244,7 @@ ShellCommandLibDestructor (
   @retval NULL          no dynamic command protocol instance found for name
 **/
 CONST EFI_SHELL_DYNAMIC_COMMAND_PROTOCOL *
+EFIAPI
 ShellCommandFindDynamicCommand (
   IN CONST CHAR16 *CommandString
   )
@@ -291,6 +293,7 @@ ShellCommandFindDynamicCommand (
   @param[in] CommandString        The command string to check for on the list.
 **/
 BOOLEAN
+EFIAPI
 ShellCommandDynamicCommandExists (
   IN CONST CHAR16 *CommandString
   )
@@ -304,6 +307,7 @@ ShellCommandDynamicCommandExists (
   @param[in] CommandString        The command string to check for on the list.
 **/
 BOOLEAN
+EFIAPI
 ShellCommandIsCommandOnInternalList(
   IN CONST  CHAR16 *CommandString
   )
@@ -361,6 +365,7 @@ ShellCommandIsCommandOnList(
   @return       String of help text. Caller required to free.
 **/
 CHAR16*
+EFIAPI
 ShellCommandGetDynamicCommandHelp(
   IN CONST  CHAR16                      *CommandString
   )
@@ -387,6 +392,7 @@ ShellCommandGetDynamicCommandHelp(
   @return       String of help text. Caller reuiqred to free.
 **/
 CHAR16*
+EFIAPI
 ShellCommandGetInternalCommandHelp(
   IN CONST  CHAR16                      *CommandString
   )

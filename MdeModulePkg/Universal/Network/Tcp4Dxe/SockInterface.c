@@ -453,7 +453,7 @@ SockAccept (
       Socket->Parent->ConnCnt--;
 
       DEBUG (
-        (EFI_D_NET,
+        (EFI_D_INFO,
         "SockAccept: Accept a socket, now conncount is %d",
         Socket->Parent->ConnCnt)
         );

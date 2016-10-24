@@ -120,6 +120,19 @@ ValidateFvHeader (
 }
 
 /**
+
+  Check whether go to recovery path
+  @retval TRUE  Go to recovery path
+  @retval FALSE Go to normal path
+
+**/
+BOOLEAN
+OemRecoveryBootMode ()
+{
+  return PlatformIsBootWithRecoveryStage1 ();
+}
+
+/**
   Peform the boot mode determination logic
   If the box is closed, then
     1. If it's first time to boot, it's boot with full config .
@@ -141,35 +154,31 @@ UpdateBootMode (
   EFI_STATUS          Status;
   EFI_BOOT_MODE       NewBootMode;
   PEI_CAPSULE_PPI     *Capsule;
-  UINT32              RegValue;
-
-  NewBootMode = *BootMode;
+  CHAR8               UserSelection;
+  UINT32              Straps32;
 
   //
-  // Read Sticky R/W Bits
+  // Read Straps. Used later if recovery boot.
   //
-  RegValue = QNCAltPortRead (QUARK_SCSS_SOC_UNIT_SB_PORT_ID, QUARK_SCSS_SOC_UNIT_CFG_STICKY_RW);
-  DEBUG ((EFI_D_ERROR, "RegValue = %08x\n", RegValue));
+  Straps32 = QNCAltPortRead (QUARK_SCSS_SOC_UNIT_SB_PORT_ID, QUARK_SCSS_SOC_UNIT_STPDDRCFG);
 
   //
   // Check if we need to boot in recovery mode
   //
-  if ((RegValue & B_CFG_STICKY_RW_FORCE_RECOVERY) != 0) {
+  if ((ValidateFvHeader (BootMode) != EFI_SUCCESS)) {
+    DEBUG ((EFI_D_INFO, "Force Boot mode recovery\n"));
     NewBootMode = BOOT_IN_RECOVERY_MODE;
-    DEBUG ((EFI_D_ERROR, "RECOVERY from sticky bit\n"));;
-
-    //
-    // Clear force recovery sticky bit
-    //
-    QNCAltPortWrite (
-      QUARK_SCSS_SOC_UNIT_SB_PORT_ID,
-      QUARK_SCSS_SOC_UNIT_CFG_STICKY_RW,
-      RegValue &(~B_CFG_STICKY_RW_FORCE_RECOVERY)
-      );
-
-  } else if (ValidateFvHeader (BootMode) != EFI_SUCCESS) {
+    Status = PeiServicesInstallPpi (&mPpiListRecoveryBootMode);
+    ASSERT_EFI_ERROR (Status);
+    if (OemRecoveryBootMode () == FALSE) {
+      DEBUG ((EFI_D_INFO, "Recovery stage1 not Active, reboot to activate recovery stage1 image\n"));
+      OemInitiateRecoveryAndWait ();
+    }
+  } else if (OemRecoveryBootMode ()) {
+    DEBUG ((EFI_D_INFO, "Boot mode recovery\n"));
     NewBootMode = BOOT_IN_RECOVERY_MODE;
-    DEBUG ((EFI_D_ERROR, "RECOVERY from corrupt FV\n"));;
+    Status = PeiServicesInstallPpi (&mPpiListRecoveryBootMode);
+    ASSERT_EFI_ERROR (Status);
   } else if (QNCCheckS3AndClearState ()) {
     //
     // Determine if we're in capsule update mode
@@ -208,17 +217,41 @@ UpdateBootMode (
       NewBootMode = BOOT_WITH_FULL_CONFIGURATION;
     }
   }
-
-  if (NewBootMode == BOOT_IN_RECOVERY_MODE) {
-    DEBUG ((EFI_D_INFO, "Boot mode recovery\n"));
-    Status = PeiServicesInstallPpi (&mPpiListRecoveryBootMode);
-    ASSERT_EFI_ERROR (Status);
-  }
-
+  *BootMode = NewBootMode;
   Status = PeiServicesSetBootMode (NewBootMode);
   ASSERT_EFI_ERROR (Status);
 
-  *BootMode = NewBootMode;
+  //
+  // If Recovery Boot then prompt the user to insert a USB key with recovery nodule and
+  // continue with the recovery. Also give the user a chance to retry a normal boot.
+  //
+  if (NewBootMode == BOOT_IN_RECOVERY_MODE) {
+    if ((Straps32 & B_STPDDRCFG_FORCE_RECOVERY) == 0) {
+      DEBUG ((EFI_D_ERROR, "*****************************************************************\n"));
+      DEBUG ((EFI_D_ERROR, "*****           Force Recovery Jumper Detected.             *****\n"));
+      DEBUG ((EFI_D_ERROR, "*****      Attempting auto recovery of system flash.        *****\n"));
+      DEBUG ((EFI_D_ERROR, "*****   Expecting USB key with recovery module connected.   *****\n"));
+      DEBUG ((EFI_D_ERROR, "*****         PLEASE REMOVE FORCE RECOVERY JUMPER.          *****\n"));
+      DEBUG ((EFI_D_ERROR, "*****************************************************************\n"));
+    } else {
+      DEBUG ((EFI_D_ERROR, "*****************************************************************\n"));
+      DEBUG ((EFI_D_ERROR, "*****           ERROR: System boot failure!!!!!!!           *****\n"));
+      DEBUG ((EFI_D_ERROR, "***** - Press 'R' if you wish to force system recovery      *****\n"));
+      DEBUG ((EFI_D_ERROR, "*****     (connect USB key with recovery module first)      *****\n"));
+      DEBUG ((EFI_D_ERROR, "***** - Press any other key to attempt another boot         *****\n"));
+      DEBUG ((EFI_D_ERROR, "*****************************************************************\n"));
+
+      UserSelection = PlatformDebugPortGetChar8 ();
+      if ((UserSelection != 'R') && (UserSelection != 'r')) {
+        DEBUG ((EFI_D_ERROR, "New boot attempt selected........\n"));
+        //
+        // Initialte the cold reset
+        //
+        ResetCold ();
+      }
+      DEBUG ((EFI_D_ERROR, "Recovery boot selected..........\n"));
+    }
+  }
 
   return EFI_SUCCESS;
 }

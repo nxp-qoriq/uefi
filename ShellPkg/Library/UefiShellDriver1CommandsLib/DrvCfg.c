@@ -30,6 +30,7 @@ STATIC CONST EFI_GUID *CfgGuidList[] = {&gEfiDriverConfigurationProtocolGuid, &g
   @retval EFI_NOT_FOUND   There was no EFI_HII_HANDLE found for that deviec path.
 **/
 EFI_STATUS
+EFIAPI
 FindHiiHandleViaDevPath(
   IN CONST EFI_DEVICE_PATH_PROTOCOL *DevPath1,
   OUT EFI_HII_HANDLE                *HiiHandle,
@@ -123,6 +124,7 @@ FindHiiHandleViaDevPath(
   @retval EFI_SUCCESS   The operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 ConvertHandleToHiiHandle(
   IN CONST EFI_HANDLE           Handle,
   OUT EFI_HII_HANDLE            *HiiHandle,
@@ -157,6 +159,7 @@ ConvertHandleToHiiHandle(
   @param[in] FileName         The filename to rwite the info to.
 **/
 SHELL_STATUS
+EFIAPI
 ConfigToFile(
   IN CONST EFI_HANDLE     Handle,
   IN CONST CHAR16         *FileName
@@ -266,6 +269,7 @@ ConfigToFile(
   @param[in] FileName         The filename to read the info from.
 **/
 SHELL_STATUS
+EFIAPI
 ConfigFromFile(
   IN       EFI_HANDLE     Handle,
   IN CONST CHAR16         *FileName
@@ -482,6 +486,7 @@ ConfigFromFile(
   @retval SHELL_INVALID_PARAMETER   A parameter has a invalid value.
 **/
 EFI_STATUS
+EFIAPI
 ShellCmdDriverConfigurationProcessActionRequired (
   EFI_HANDLE                                DriverImageHandle,
   EFI_HANDLE                                ControllerHandle,
@@ -549,6 +554,7 @@ ShellCmdDriverConfigurationProcessActionRequired (
   @retval SHELL_INVALID_PARAMETER   A parameter has a invalid value.
 **/
 SHELL_STATUS
+EFIAPI
 PreHiiDrvCfg (
   IN CONST CHAR8    *Language,
   IN BOOLEAN        ForceDefaults,
@@ -1056,6 +1062,7 @@ Done:
   @retval SHELL_SUCCESS     The operation was successful.
 **/
 SHELL_STATUS
+EFIAPI
 PrintConfigInfoOnAll(
   IN CONST BOOLEAN ChildrenToo,
   IN CONST CHAR8   *Language,

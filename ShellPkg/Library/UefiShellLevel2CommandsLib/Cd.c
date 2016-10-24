@@ -1,7 +1,6 @@
 /** @file
   Main file for attrib shell level 2 function.
 
-  (C) Copyright 2016 Hewlett Packard Enterprise Development LP<BR>
   (C) Copyright 2015 Hewlett-Packard Development Company, L.P.<BR>
   Copyright (c) 2009 - 2016, Intel Corporation. All rights reserved.<BR>
   This program and the accompanying materials
@@ -165,16 +164,7 @@ ShellCommandRunCd (
               StrCpyS (Cwd, StrSize (Directory) / sizeof (CHAR16) + 1, Directory);
               StrCatS (Cwd, StrSize (Directory) / sizeof (CHAR16) + 1, L"\\");
               Drive = GetFullyQualifiedPath (Cwd);
-              while (PathRemoveLastItem (Drive)) {
-                //
-                // Check if Drive contains 'fsx:\' only or still points to a sub-directory.
-                // Don't remove trailing '\' from Drive if it points to the root directory.
-                //
-                Path = StrStr (Drive, L":\\");
-                if ((Path != NULL) && (*(Path + 2) == CHAR_NULL)) {
-                  break;
-                }
-              }
+              while (PathRemoveLastItem (Drive));
               FreePool (Cwd);
             }
           }

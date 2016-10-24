@@ -24,6 +24,7 @@
   @retval EFI_INVALID_PARAMETER     The handle did not have LoadedImage
 **/
 EFI_STATUS
+EFIAPI
 DumpLoadedImageProtocolInfo (
   IN EFI_HANDLE   TheHandle
   )

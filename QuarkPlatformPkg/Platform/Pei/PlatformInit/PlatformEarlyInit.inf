@@ -88,6 +88,7 @@
   ResetSystemLib
   PrintLib
   TimerLib
+  RecoveryOemHookLib
   PcdLib
   IntelQNCLib
   ReportStatusCodeLib

@@ -221,6 +221,7 @@
   #
   # Quark Platform
   #
+  RecoveryOemHookLib|QuarkPlatformPkg/Library/RecoveryOemHookLib/RecoveryOemHookLib.inf
   PlatformSecLib|QuarkPlatformPkg/Library/PlatformSecLib/PlatformSecLib.inf
   PlatformPcieHelperLib|QuarkPlatformPkg/Library/PlatformPcieHelperLib/PlatformPcieHelperLib.inf
   PlatformHelperLib|QuarkPlatformPkg/Library/PlatformHelperLib/DxePlatformHelperLib.inf
@@ -861,11 +862,6 @@
       FileHandleLib|MdePkg/Library/UefiFileHandleLib/UefiFileHandleLib.inf
   }
 !endif
-
-  #
-  # Force Recovery Application
-  #
-  QuarkPlatformPkg/Application/ForceRecovery/ForceRecovery.inf
 
   ShellPkg/Application/Shell/Shell.inf {
     <LibraryClasses>

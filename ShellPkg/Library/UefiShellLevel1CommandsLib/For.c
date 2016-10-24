@@ -25,6 +25,7 @@
   @retval FALSE   The number is not valid.
 **/
 BOOLEAN
+EFIAPI
 ShellIsValidForNumber (
   IN CONST CHAR16 *Number
   )
@@ -128,6 +129,7 @@ typedef struct {
   @retval EFI_OUT_OF_RESOURCES  There was not enough free memory.
 **/
 EFI_STATUS
+EFIAPI
 InternalUpdateAliasOnList(
   IN CONST CHAR16       *Alias,
   IN CONST CHAR16       *CommandString,
@@ -183,6 +185,7 @@ InternalUpdateAliasOnList(
   @retval FALSE                 The alias is not on the list.
 **/
 BOOLEAN
+EFIAPI
 InternalIsAliasOnList(
   IN CONST CHAR16       *Alias,
   IN CONST LIST_ENTRY   *List
@@ -218,6 +221,7 @@ InternalIsAliasOnList(
   @param[in, out] List           The list to search.
 **/
 BOOLEAN
+EFIAPI
 InternalRemoveAliasFromList(
   IN CONST CHAR16       *Alias,
   IN OUT LIST_ENTRY     *List
@@ -260,6 +264,7 @@ InternalRemoveAliasFromList(
   @retval (UINTN)(-1) An error ocurred.
 **/
 UINTN
+EFIAPI
 ReturnUintn(
   IN CONST CHAR16 *String
   )

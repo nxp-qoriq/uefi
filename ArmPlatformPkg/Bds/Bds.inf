@@ -39,6 +39,7 @@
   ArmPlatformPkg/ArmPlatformPkg.dec
   EmbeddedPkg/EmbeddedPkg.dec
   IntelFrameworkModulePkg/IntelFrameworkModulePkg.dec
+  LS2080aRdbPkg/LS2080aRdbPkg.dec
 
 [Guids]
   gFdtTableGuid
@@ -53,7 +54,8 @@
   PrintLib
   BaseLib
   FdtLib
-  NetLib
+  DdrLib
+  #NetLib
 
 [Guids]
   gEfiEndOfDxeEventGroupGuid
@@ -71,6 +73,7 @@
   gEfiFirmwareVolumeBlock2ProtocolGuid
   gEfiDhcp4ServiceBindingProtocolGuid
   gEfiMtftp4ServiceBindingProtocolGuid
+  gEfiI2cMasterProtocolGuid
 
 [FeaturePcd]
   gArmPlatformTokenSpaceGuid.PcdBdsLinuxSupport
@@ -83,6 +86,7 @@
   gEfiMdePkgTokenSpaceGuid.PcdPlatformBootTimeOut
   gArmPlatformTokenSpaceGuid.PcdDefaultConInPaths
   gArmPlatformTokenSpaceGuid.PcdDefaultConOutPaths
+  gLS2080aRdbTokenSpaceGuid.PcdBootMode
 
   gEfiIntelFrameworkModulePkgTokenSpaceGuid.PcdShellFile
 

@@ -28,7 +28,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <Protocol/SmmVariable.h>
 
 #include <Library/DebugLib.h>
-#include <Library/BaseMemoryLib.h>
 #include <Library/Tcg2PpVendorLib.h>
 #include <Library/SmmServicesTableLib.h>
 
@@ -90,119 +89,6 @@ Tcg2PhysicalPresenceLibReturnOperationResponseToOsFunction (
   This API should be invoked in OS runtime phase to interface with ACPI method.
 
   Caution: This function may receive untrusted input.
-
-  @param[in out]  Pointer to OperationRequest TPM physical presence operation request.
-  @param[in out]  Pointer to RequestParameter TPM physical presence operation request parameter.
-
-  @return Return Code for Submit TPM Operation Request to Pre-OS Environment and
-        Submit TPM Operation Request to Pre-OS Environment 2.
-  **/
-UINT32
-Tcg2PhysicalPresenceLibSubmitRequestToPreOSFunctionEx (
-  IN OUT UINT32               *OperationRequest,
-  IN OUT UINT32               *RequestParameter
-  )
-{
-  EFI_STATUS                        Status;
-  UINT32                            ReturnCode;
-  UINTN                             DataSize;
-  EFI_TCG2_PHYSICAL_PRESENCE        PpData;
-  EFI_TCG2_PHYSICAL_PRESENCE_FLAGS  Flags;
-
-  DEBUG ((EFI_D_INFO, "[TPM2] SubmitRequestToPreOSFunction, Request = %x, %x\n", *OperationRequest, *RequestParameter));
-  ReturnCode = TCG_PP_SUBMIT_REQUEST_TO_PREOS_SUCCESS;
-
-  //
-  // Get the Physical Presence variable
-  //
-  DataSize = sizeof (EFI_TCG2_PHYSICAL_PRESENCE);
-  Status = mTcg2PpSmmVariable->SmmGetVariable (
-                                 TCG2_PHYSICAL_PRESENCE_VARIABLE,
-                                 &gEfiTcg2PhysicalPresenceGuid,
-                                 NULL,
-                                 &DataSize,
-                                 &PpData
-                                 );
-  if (EFI_ERROR (Status)) {
-    DEBUG ((EFI_D_ERROR, "[TPM2] Get PP variable failure! Status = %r\n", Status));
-    ReturnCode = TCG_PP_SUBMIT_REQUEST_TO_PREOS_GENERAL_FAILURE;
-    goto EXIT;
-  }
-
-  if ((*OperationRequest > TCG2_PHYSICAL_PRESENCE_NO_ACTION_MAX) &&
-      (*OperationRequest < TCG2_PHYSICAL_PRESENCE_VENDOR_SPECIFIC_OPERATION) ) {
-    //
-    // This command requires UI to prompt user for Auth data.
-    //
-    ReturnCode = TCG_PP_SUBMIT_REQUEST_TO_PREOS_NOT_IMPLEMENTED;
-    goto EXIT;
-  }
-
-  if ((PpData.PPRequest != *OperationRequest) ||
-      (PpData.PPRequestParameter != *RequestParameter)) {
-    PpData.PPRequest = (UINT8)*OperationRequest;
-    PpData.PPRequestParameter = *RequestParameter;
-    DataSize = sizeof (EFI_TCG2_PHYSICAL_PRESENCE);
-    Status = mTcg2PpSmmVariable->SmmSetVariable (
-                                   TCG2_PHYSICAL_PRESENCE_VARIABLE,
-                                   &gEfiTcg2PhysicalPresenceGuid,
-                                   EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
-                                   DataSize,
-                                   &PpData
-                                   );
-  }
-
-  if (EFI_ERROR (Status)) { 
-    DEBUG ((EFI_D_ERROR, "[TPM2] Set PP variable failure! Status = %r\n", Status));
-    ReturnCode = TCG_PP_SUBMIT_REQUEST_TO_PREOS_GENERAL_FAILURE;
-    goto EXIT;
-  }
-
-  if (*OperationRequest >= TCG2_PHYSICAL_PRESENCE_VENDOR_SPECIFIC_OPERATION) {
-    DataSize = sizeof (EFI_TCG2_PHYSICAL_PRESENCE_FLAGS);
-    Status = mTcg2PpSmmVariable->SmmGetVariable (
-                                   TCG2_PHYSICAL_PRESENCE_FLAGS_VARIABLE,
-                                   &gEfiTcg2PhysicalPresenceGuid,
-                                   NULL,
-                                   &DataSize,
-                                   &Flags
-                                   );
-    if (EFI_ERROR (Status)) {
-      Flags.PPFlags = TCG2_BIOS_TPM_MANAGEMENT_FLAG_DEFAULT;
-    }
-    ReturnCode = Tcg2PpVendorLibSubmitRequestToPreOSFunction (*OperationRequest, Flags.PPFlags, *RequestParameter);
-  }
-
-EXIT:
-  //
-  // Sync PPRQ/PPRM from PP Variable if PP submission fails
-  //
-  if (ReturnCode != TCG_PP_SUBMIT_REQUEST_TO_PREOS_SUCCESS) {
-    DEBUG ((EFI_D_ERROR, "[TPM2] Submit PP Request failure! Sync PPRQ/PPRM with PP variable.\n", Status));
-    DataSize = sizeof (EFI_TCG2_PHYSICAL_PRESENCE);
-    ZeroMem(&PpData, DataSize);
-    Status = mTcg2PpSmmVariable->SmmGetVariable (
-                                   TCG2_PHYSICAL_PRESENCE_VARIABLE,
-                                   &gEfiTcg2PhysicalPresenceGuid,
-                                   NULL,
-                                   &DataSize,
-                                   &PpData
-                                   );
-    *OperationRequest = (UINT32)PpData.PPRequest;
-    *RequestParameter = PpData.PPRequestParameter;
-  }
-
-  return ReturnCode;
-}
-
-/**
-  The handler for TPM physical presence function:
-  Submit TPM Operation Request to Pre-OS Environment and
-  Submit TPM Operation Request to Pre-OS Environment 2.
-
-  This API should be invoked in OS runtime phase to interface with ACPI method.
-
-  Caution: This function may receive untrusted input.
   
   @param[in]      OperationRequest TPM physical presence operation request.
   @param[in]      RequestParameter TPM physical presence operation request parameter.
@@ -217,13 +103,72 @@ Tcg2PhysicalPresenceLibSubmitRequestToPreOSFunction (
   IN UINT32                 RequestParameter
   )
 {
-  UINT32                 TempOperationRequest;
-  UINT32                 TempRequestParameter;
+  EFI_STATUS                        Status;
+  UINTN                             DataSize;
+  EFI_TCG2_PHYSICAL_PRESENCE        PpData;
+  EFI_TCG2_PHYSICAL_PRESENCE_FLAGS  Flags;
 
-  TempOperationRequest = OperationRequest;
-  TempRequestParameter = RequestParameter;
+  DEBUG ((EFI_D_INFO, "[TPM2] SubmitRequestToPreOSFunction, Request = %x, %x\n", OperationRequest, RequestParameter));
 
-  return Tcg2PhysicalPresenceLibSubmitRequestToPreOSFunctionEx(&TempOperationRequest, &TempRequestParameter);
+  //
+  // Get the Physical Presence variable
+  //
+  DataSize = sizeof (EFI_TCG2_PHYSICAL_PRESENCE);
+  Status = mTcg2PpSmmVariable->SmmGetVariable (
+                                 TCG2_PHYSICAL_PRESENCE_VARIABLE,
+                                 &gEfiTcg2PhysicalPresenceGuid,
+                                 NULL,
+                                 &DataSize,
+                                 &PpData
+                                 );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "[TPM2] Get PP variable failure! Status = %r\n", Status));
+    return TCG_PP_SUBMIT_REQUEST_TO_PREOS_GENERAL_FAILURE;
+  }
+
+  if ((OperationRequest > TCG2_PHYSICAL_PRESENCE_NO_ACTION_MAX) &&
+      (OperationRequest < TCG2_PHYSICAL_PRESENCE_VENDOR_SPECIFIC_OPERATION) ) {
+    //
+    // This command requires UI to prompt user for Auth data.
+    //
+    return TCG_PP_SUBMIT_REQUEST_TO_PREOS_NOT_IMPLEMENTED;
+  }
+
+  if ((PpData.PPRequest != OperationRequest) ||
+      (PpData.PPRequestParameter != RequestParameter)) {
+    PpData.PPRequest = (UINT8)OperationRequest;
+    PpData.PPRequestParameter = RequestParameter;
+    DataSize = sizeof (EFI_TCG2_PHYSICAL_PRESENCE);
+    Status = mTcg2PpSmmVariable->SmmSetVariable (
+                                   TCG2_PHYSICAL_PRESENCE_VARIABLE,
+                                   &gEfiTcg2PhysicalPresenceGuid,
+                                   EFI_VARIABLE_NON_VOLATILE | EFI_VARIABLE_BOOTSERVICE_ACCESS | EFI_VARIABLE_RUNTIME_ACCESS,
+                                   DataSize,
+                                   &PpData
+                                   );
+  }
+
+  if (EFI_ERROR (Status)) { 
+    DEBUG ((EFI_D_ERROR, "[TPM2] Set PP variable failure! Status = %r\n", Status));
+    return TCG_PP_SUBMIT_REQUEST_TO_PREOS_GENERAL_FAILURE;
+  }
+
+  if (OperationRequest >= TCG2_PHYSICAL_PRESENCE_VENDOR_SPECIFIC_OPERATION) {
+    DataSize = sizeof (EFI_TCG2_PHYSICAL_PRESENCE_FLAGS);
+    Status = mTcg2PpSmmVariable->SmmGetVariable (
+                                   TCG2_PHYSICAL_PRESENCE_FLAGS_VARIABLE,
+                                   &gEfiTcg2PhysicalPresenceGuid,
+                                   NULL,
+                                   &DataSize,
+                                   &Flags
+                                   );
+    if (EFI_ERROR (Status)) {
+      Flags.PPFlags = TCG2_BIOS_TPM_MANAGEMENT_FLAG_DEFAULT;
+    }
+    return Tcg2PpVendorLibSubmitRequestToPreOSFunction (OperationRequest, Flags.PPFlags, RequestParameter);
+  }
+
+  return TCG_PP_SUBMIT_REQUEST_TO_PREOS_SUCCESS;
 }
 
 /**

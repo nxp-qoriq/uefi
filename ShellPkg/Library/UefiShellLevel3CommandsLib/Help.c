@@ -20,7 +20,7 @@
 #include <Library/ShellLib.h>
 #include <Library/HandleParsingLib.h>
 
-#include <Protocol/ShellDynamicCommand.h>
+#include <Protocol/EfiShellDynamicCommand.h>
 
 /**
    function to insert string items into a list in the correct alphabetical place
@@ -37,6 +37,7 @@
    @retval EFI_SUCCESS        the operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 LexicalInsertIntoList(
   IN OUT   CHAR16 **DestList, 
   IN OUT   UINTN  *DestSize,
@@ -115,6 +116,7 @@ LexicalInsertIntoList(
    @retval EFI_SUCCESS        the operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 CopyListOfCommandNames(
   IN OUT   CHAR16       **DestList, 
   IN OUT   UINTN        *DestSize,
@@ -145,6 +147,7 @@ CopyListOfCommandNames(
 **/
 STATIC
 EFI_STATUS
+EFIAPI
 CopyListOfCommandNamesWithDynamic(
   IN OUT  CHAR16** DestList, 
   IN OUT  UINTN    *DestSize
@@ -202,6 +205,7 @@ CopyListOfCommandNamesWithDynamic(
   @retval EFI_DEVICE_ERROR        The help data format was incorrect.
 **/
 EFI_STATUS
+EFIAPI
 PrintDynamicCommandHelp(
   IN CONST CHAR16  *CommandToGetHelpOn,
   IN CONST CHAR16  *SectionToGetHelpOn,

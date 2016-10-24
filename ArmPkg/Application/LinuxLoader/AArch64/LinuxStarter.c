@@ -121,9 +121,11 @@ StartLinux (
 
   // Register and print out performance information
   PERF_END (NULL, "BDS", NULL, 0);
+#if 0
   if (PerformanceMeasurementEnabled ()) {
     PrintPerformance ();
   }
+#endif
 
   //
   // Start the Linux Kernel

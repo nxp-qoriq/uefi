@@ -75,7 +75,7 @@
   ## CONSUMES
   ## NOTIFY
   gEdkiiFormDisplayEngineProtocolGuid
-  gEdkiiFormBrowserExProtocolGuid               ## PRODUCES
+  gEfiFormBrowserExProtocolGuid                 ## PRODUCES
   gEfiRegularExpressionProtocolGuid             ## CONSUMES
 
 [FeaturePcd]

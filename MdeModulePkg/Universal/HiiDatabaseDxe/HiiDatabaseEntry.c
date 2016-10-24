@@ -39,19 +39,11 @@ HII_DATABASE_PRIVATE_DATA mPrivate = {
     HiiGetFontInfo
   },
   {
-    HiiNewImage,
-    HiiGetImage,
-    HiiSetImage,
-    HiiDrawImage,
-    HiiDrawImageId
-  },
-  {
-    HiiNewImageEx,
-    HiiGetImageEx,
-    HiiSetImageEx,
-    HiiDrawImageEx,
-    HiiDrawImageIdEx,
-    HiiGetImageInfo
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
   },
   {
     HiiNewString,
@@ -102,6 +94,14 @@ HII_DATABASE_PRIVATE_DATA mPrivate = {
     {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
   },
   NULL
+};
+
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_HII_IMAGE_PROTOCOL mImageProtocol = {
+  HiiNewImage,
+  HiiGetImage,
+  HiiSetImage,
+  HiiDrawImage,
+  HiiDrawImageId
 };
 
 /**
@@ -160,7 +160,7 @@ OnReadyToBoot (
   @retval EFI_SUCCESS    The Hii database is setup correctly.
   @return Other value if failed to create the default event for
           gHiiKeyboardLayoutChanged. Check gBS->CreateEventEx for
-          details. Or failed to install the protocols.
+          details. Or failed to insatll the protocols.
           Check gBS->InstallMultipleProtocolInterfaces for details.
           Or failed to create Ready To Boot Event.
           Check EfiCreateEventReadyToBootEx for details.
@@ -230,10 +230,12 @@ InitializeHiiDatabase (
   }
 
   if (FeaturePcdGet (PcdSupportHiiImageProtocol)) {
+    CopyMem (&mPrivate.HiiImage, &mImageProtocol, sizeof (mImageProtocol));
+
     Status = gBS->InstallMultipleProtocolInterfaces (
                     &Handle,
-                    &gEfiHiiImageProtocolGuid, &mPrivate.HiiImage,
-                    &gEfiHiiImageExProtocolGuid, &mPrivate.HiiImageEx,
+                    &gEfiHiiImageProtocolGuid,
+                    &mPrivate.HiiImage,
                     NULL
                     );
 

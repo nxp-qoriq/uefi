@@ -25,6 +25,7 @@
   @param EFI_OUT_OF_RESOURCES   A memory allocation failed.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferInit (
   VOID
   );
@@ -35,6 +36,7 @@ FileBufferInit (
   @retval EFI_SUCCESS   The cleanup was successful.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferCleanup (
   VOID
   );
@@ -46,6 +48,7 @@ FileBufferCleanup (
   @retval EFI_LOAD_ERROR  There was an error finding what to write.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferRefresh (
   VOID
   );
@@ -65,6 +68,7 @@ FileBufferRefresh (
   @retval EFI_OUT_OF_RESOURCES  A memory allocation failed.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferHandleInput (
   IN CONST EFI_INPUT_KEY * Key
   );
@@ -80,6 +84,7 @@ FileBufferHandleInput (
   @retval EFI_SUCCESS           The backup operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferBackup (
   VOID
   );
@@ -90,6 +95,7 @@ FileBufferBackup (
   @retval EFI_SUCCESS           The operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferRestorePosition (
   VOID
   );
@@ -104,6 +110,7 @@ FileBufferRestorePosition (
   @retval EFI_INVALID_PARAMETER Str is not a valid filename.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferSetFileName (
   IN CONST CHAR16 *Str
   );
@@ -120,6 +127,7 @@ FileBufferSetFileName (
   @retval EFI_INVALID_PARAMETER  FileName is a directory.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferRead (
   IN CONST CHAR16  *FileName,
   IN CONST BOOLEAN Recover
@@ -135,6 +143,7 @@ FileBufferRead (
   @retval EFI_OUT_OF_RESOURCES  There were not enough resources to write the file.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferSave (
   CONST CHAR16 *FileName
   );
@@ -146,6 +155,7 @@ FileBufferSave (
   @param[in] NewFilePosCol    The column of file position ( start from 1 ).
 **/
 VOID
+EFIAPI
 FileBufferMovePosition (
   IN CONST UINTN NewFilePosRow,
   IN CONST UINTN NewFilePosCol
@@ -162,6 +172,7 @@ FileBufferMovePosition (
   @retval EFI_OUT_OF_RESOURCES    A memory allocation failed.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferCutLine (
   OUT EFI_EDITOR_LINE **CutLine
   );
@@ -173,6 +184,7 @@ FileBufferCutLine (
   @retval EFI_OUT_OF_RESOURCES    A memory allocation failed.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferPasteLine (
   VOID
   );
@@ -187,6 +199,7 @@ FileBufferPasteLine (
   @retval EFI_NOT_FOUND     The string Str was not found.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferSearch (
   IN CONST CHAR16  *Str,
   IN CONST UINTN Offset
@@ -204,6 +217,7 @@ FileBufferSearch (
   @retval EFI_OUT_OF_RESOURCES    A memory allocation failed.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferReplace (
   IN CONST CHAR16   *Replace,
   IN CONST UINTN    SearchLen
@@ -217,6 +231,7 @@ FileBufferReplace (
   @param[in] Offset       The column to start at.
 **/
 EFI_STATUS
+EFIAPI
 FileBufferReplaceAll (
   IN CHAR16 *SearchStr,
   IN CHAR16 *ReplaceStr,
@@ -230,6 +245,7 @@ FileBufferReplaceAll (
   @param[in] TextY      The new y-coordinate.
 **/
 VOID
+EFIAPI
 FileBufferAdjustMousePosition (
   IN CONST INT32 TextX,
   IN CONST INT32 TextY
@@ -239,6 +255,7 @@ FileBufferAdjustMousePosition (
   Set the modified state to TRUE.
 **/
 VOID
+EFIAPI
 FileBufferSetModified (
   VOID
   );

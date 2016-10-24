@@ -15,8 +15,10 @@
 #ifndef __ARM_SHELL_CMD_RUNAXF__
 #define __ARM_SHELL_CMD_RUNAXF__
 
-#include <Protocol/Shell.h>
-#include <Protocol/ShellDynamicCommand.h>
+#include <ShellBase.h>
+
+#include <Protocol/EfiShell.h>
+#include <Protocol/EfiShellDynamicCommand.h>
 
 #include <Library/HiiLib.h>
 #include <Library/ShellLib.h>

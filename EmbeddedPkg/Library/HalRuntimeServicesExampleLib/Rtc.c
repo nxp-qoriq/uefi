@@ -584,7 +584,7 @@ libGetWakeupTime (
   UINT8           Century;
 
   //
-  // Check parameters for null pointers
+  // Check paramters for null pointers
   //
   if ((Enabled == NULL) || (Pending == NULL) || (Time == NULL)) {
     return EFI_INVALID_PARAMETER;

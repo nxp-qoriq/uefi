@@ -123,24 +123,22 @@ ASM_PFX(InternalMemScanMem8):
 60: // We're here because the fast path found a hit - now we have to track down exactly which word it was
     // r0 points to the start of the double word after the one that was tested
     // r5 has the 00/ff pattern for the first word, r6 has the chained value
-    subs    r0, r0, #3
     cmp     r5, #0
-    it      eq
-    moveq.n r5, r6        // the end is in the 2nd word
-    it      ne
-    subne.n r0, r0, #4    // or 2nd byte of 1st word
+    itte    eq
+    moveq   r5, r6        // the end is in the 2nd word
+    subeq   r0, r0, #3    // Points to 2nd byte of 2nd word
+    subne   r0, r0, #7    // or 2nd byte of 1st word
 
     // r0 currently points to the 3rd byte of the word containing the hit
     tst     r5, #CHARTSTMASK(0)     // 1st character
     bne     61f
     adds    r0, r0, #1
     tst     r5, #CHARTSTMASK(1)     // 2nd character
-    bne     61f
-    adds    r0, r0 ,#1
-    tst     r5, #(3 << 15)          // 2nd & 3rd character
+    ittt    eq
+    addeq   r0, r0 ,#1
+    tsteq   r5, #(3 << 15)          // 2nd & 3rd character
     // If not the 3rd must be the last one
-    it      eq
-    addeq.n r0, r0, #1
+    addeq   r0, r0, #1
 
 61:
     pop     {r4-r7}

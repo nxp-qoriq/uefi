@@ -90,7 +90,7 @@ typedef struct {
   // Produced protocol
   //
   EFI_FORM_BROWSER2_PROTOCOL            FormBrowser2;
-  EDKII_FORM_BROWSER_EXTENSION_PROTOCOL FormBrowserEx;
+  EFI_FORM_BROWSER_EXTENSION_PROTOCOL   FormBrowserEx;
 
   EDKII_FORM_BROWSER_EXTENSION2_PROTOCOL FormBrowserEx2;
 

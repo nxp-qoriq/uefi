@@ -121,6 +121,7 @@ ShellLevel1CommandsLibDestructor (
   @param[in, out] TargetCount  The pointer to the current count.
 **/
 BOOLEAN
+EFIAPI
 TestNodeForMove (
   IN CONST LIST_MANIP_FUNC      Function,
   IN CONST CHAR16               *DecrementerTag,
@@ -245,6 +246,7 @@ TestNodeForMove (
                                searching.
 **/
 BOOLEAN
+EFIAPI
 MoveToTag (
   IN CONST LIST_MANIP_FUNC      Function,
   IN CONST CHAR16               *DecrementerTag,

@@ -29,6 +29,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define ACPI_RECLAIM_SIZE_PAGES           0x20
 #define EDKII_DXE_MEM_SIZE_PAGES          0x20
 
+#define AP_STARTUP_VECTOR                 0x00097000
+
 //
 // Maximum number of "Socket Sets", where a "Socket Set is a set of matching
 // DIMM's from the various channels
@@ -183,6 +185,12 @@ SaveConfig (
   IN      MRCParams_t                      *MrcData
   );
 
+VOID
+RetriveRequiredMemorySize (
+  IN      EFI_PEI_SERVICES                  **PeiServices,
+  OUT     UINTN                             *Size
+  );
+
 EFI_STATUS
 GetMemoryMap (
   IN     EFI_PEI_SERVICES                                    **PeiServices,
@@ -217,7 +225,8 @@ BaseMemoryTest (
 EFI_STATUS
 SetPlatformImrPolicy (
   IN      EFI_PHYSICAL_ADDRESS    PeiMemoryBaseAddress,
-  IN      UINT64                  PeiMemoryLength
+  IN      UINT64                  PeiMemoryLength,
+  IN      UINTN                   RequiredMemSize
   );
 
 VOID

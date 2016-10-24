@@ -97,6 +97,7 @@ HBufferImageBackup (
   @return EFI_SUCCESS     The operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 HBufferImageRead (
   IN CONST CHAR16                   *FileName,
   IN CONST CHAR16                   *DiskName,
@@ -214,6 +215,7 @@ HBufferImageAddCharacterToBuffer (
   @retval EFI_OUT_OF_RESOURCES  A memory allocation failed.
 **/
 EFI_STATUS
+EFIAPI
 HBufferImageBufferToList (
   IN VOID   *Buffer,
   IN UINTN  Bytes
@@ -228,6 +230,7 @@ HBufferImageBufferToList (
   @retval EFI_SUCCESS   The operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 HBufferImageListToBuffer (
   IN VOID   *Buffer,
   IN UINTN  Bytes
@@ -240,6 +243,7 @@ HBufferImageListToBuffer (
   @param[in] TextY    The y-coordinate.
 **/
 VOID
+EFIAPI
 HBufferImageAdjustMousePosition (
   IN INT32 TextX,
   IN INT32 TextY

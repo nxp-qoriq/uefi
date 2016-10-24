@@ -42,6 +42,7 @@
   @retval EFI_INVALID_PARAMETER A parameter was invalid.
 **/
 EFI_STATUS
+EFIAPI
 GetDeviceHandleInfo (
   IN EFI_HANDLE   TheHandle,
   IN OUT CHAR16   *Type,

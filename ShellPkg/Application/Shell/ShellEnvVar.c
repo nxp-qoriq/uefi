@@ -91,6 +91,7 @@ IsVolatileEnv (
   @param[in] List               The pointer to pointer to list.
 **/
 VOID
+EFIAPI
 FreeEnvironmentVariableList(
   IN LIST_ENTRY *List
   )
@@ -127,6 +128,7 @@ FreeEnvironmentVariableList(
   @retval EFI_SUCCESS           the list was created sucessfully.
 **/
 EFI_STATUS
+EFIAPI
 GetEnvironmentVariableList(
   IN OUT LIST_ENTRY *ListHead
   )
@@ -236,6 +238,7 @@ GetEnvironmentVariableList(
   @retval EFI_SUCCESS           the list was Set sucessfully.
 **/
 EFI_STATUS
+EFIAPI
 SetEnvironmentVariableList(
   IN LIST_ENTRY *ListHead
   )
@@ -299,6 +302,7 @@ SetEnvironmentVariableList(
   @sa SetEnvironmentVariableList
 **/
 EFI_STATUS
+EFIAPI
 SetEnvironmentVariables(
   IN CONST CHAR16 **Environment
   )

@@ -56,6 +56,7 @@ typedef struct {
   @param[in] Option Whether to print the additional information.
 **/
 VOID
+EFIAPI
 DisplaySELAccessMethod (
   IN CONST UINT8 Key,
   IN CONST UINT8 Option
@@ -68,6 +69,7 @@ DisplaySELAccessMethod (
   @param[in] Option Whether to print the additional information.
 **/
 VOID
+EFIAPI
 DisplaySELLogStatus (
   UINT8 Key,
   UINT8 Option
@@ -80,6 +82,7 @@ DisplaySELLogStatus (
   @param[in] Option Whether to print the additional information.
 **/
 VOID
+EFIAPI
 DisplaySysEventLogHeaderFormat (
   UINT8 Key,
   UINT8 Option
@@ -92,6 +95,7 @@ DisplaySysEventLogHeaderFormat (
   @param[in] LogHeader        Format informcation.
 **/
 VOID
+EFIAPI
 DisplaySysEventLogHeader (
   UINT8 LogHeaderFormat,
   UINT8 *LogHeader
@@ -104,6 +108,7 @@ DisplaySysEventLogHeader (
   @param[in] LogAreaLength  Length of the data.
 **/
 VOID
+EFIAPI
 DisplaySysEventLogData (
   UINT8   *LogData,
   UINT16  LogAreaLength

@@ -2,7 +2,7 @@
   Provides interface to shell functionality for shell commands and applications.
 
   (C) Copyright 2016 Hewlett Packard Enterprise Development LP<BR>
-  Copyright (c) 2006 - 2016, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2006 - 2014, Intel Corporation. All rights reserved.<BR>
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -24,8 +24,8 @@
 #include <Protocol/LoadedImage.h>
 #include <Protocol/EfiShellInterface.h>
 #include <Protocol/EfiShellEnvironment2.h>
-#include <Protocol/Shell.h>
-#include <Protocol/ShellParameters.h>
+#include <Protocol/EfiShell.h>
+#include <Protocol/EfiShellParameters.h>
 #include <Protocol/UnicodeCollation.h>
 
 #include <Library/UefiBootServicesTableLib.h>
@@ -68,6 +68,7 @@ typedef struct  {
   @retval FALSE       There is a non-numeric character.
 **/
 BOOLEAN
+EFIAPI
 InternalShellIsHexOrDecimalNumber (
   IN CONST CHAR16   *String,
   IN CONST BOOLEAN  ForceHex,
@@ -86,6 +87,7 @@ InternalShellIsHexOrDecimalNumber (
   @retval EFI_SUCCESS   The operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 InternalShellStripQuotes (
   IN  CONST CHAR16     *OriginalString,
   OUT CHAR16           **CleanString

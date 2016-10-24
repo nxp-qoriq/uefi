@@ -1,5 +1,5 @@
 /** @file
-  EFI Multicast Trivial File Transfer Protocol Definition
+  EFI Multicast Trivial File Tranfer Protocol Definition
 
 Copyright (c) 2006 - 2011, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials are licensed and made available under 
@@ -212,7 +212,7 @@ EFI_STATUS
   );
 
 /**
-  Timeout callback function.
+  Timeout callback funtion.
 
   @param  This           The pointer to the EFI_MTFTP4_PROTOCOL instance.
   @param  Token          The token that is provided in the

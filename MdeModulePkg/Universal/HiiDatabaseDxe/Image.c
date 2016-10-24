@@ -24,44 +24,51 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
   This is a internal function.
 
-  @param ImageBlocks     Points to the beginning of a series of image blocks stored in order.
+  @param ImageBlock      Points to the beginning of a series of image blocks stored in order.
   @param ImageId         If input ImageId is 0, output the image id of the EFI_HII_IIBT_END_BLOCK;
                          else use this id to find its corresponding image block address.
 
   @return The image block address when input ImageId is not zero; otherwise return NULL.
 
 **/
-EFI_HII_IMAGE_BLOCK *
+UINT8*
 GetImageIdOrAddress (
-  IN EFI_HII_IMAGE_BLOCK *ImageBlocks,
-  IN OUT EFI_IMAGE_ID    *ImageId
+  IN  UINT8           *ImageBlock,
+  IN OUT EFI_IMAGE_ID *ImageId
   )
 {
   EFI_IMAGE_ID                   ImageIdCurrent;
-  EFI_HII_IMAGE_BLOCK            *CurrentImageBlock;
-  UINTN                          Length;
+  UINT8                          *ImageBlockHdr;
+  UINT8                          Length8;
+  UINT16                         Length16;
+  UINT32                         Length32;
+  EFI_HII_IIBT_IMAGE_1BIT_BLOCK  Iibt1bit;
+  EFI_HII_IIBT_IMAGE_4BIT_BLOCK  Iibt4bit;
+  EFI_HII_IIBT_IMAGE_8BIT_BLOCK  Iibt8bit;
+  UINT16                         Width;
+  UINT16                         Height;
 
-  ASSERT (ImageBlocks != NULL && ImageId != NULL);
-  CurrentImageBlock = ImageBlocks;
-  ImageIdCurrent    = 1;
+  ASSERT (ImageBlock != NULL && ImageId != NULL);
 
-  while (CurrentImageBlock->BlockType != EFI_HII_IIBT_END) {
-    if (*ImageId != 0) {
+  ImageBlockHdr  = ImageBlock;
+  ImageIdCurrent = 1;
+
+  while (((EFI_HII_IMAGE_BLOCK *) ImageBlock)->BlockType != EFI_HII_IIBT_END) {
+    if (*ImageId > 0) {
       if (*ImageId == ImageIdCurrent) {
         //
         // If the found image block is a duplicate block, update the ImageId to
         // find the previous defined image block.
         //
-        if (CurrentImageBlock->BlockType == EFI_HII_IIBT_DUPLICATE) {
-          *ImageId = ReadUnaligned16 ((VOID *) &((EFI_HII_IIBT_DUPLICATE_BLOCK *) CurrentImageBlock)->ImageId);
+        if (((EFI_HII_IMAGE_BLOCK *) ImageBlock)->BlockType == EFI_HII_IIBT_DUPLICATE) {
+          CopyMem (ImageId, ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK), sizeof (EFI_IMAGE_ID));
           ASSERT (*ImageId != ImageIdCurrent);
-          ASSERT (*ImageId != 0);
-          CurrentImageBlock = ImageBlocks;
+          ImageBlock = ImageBlockHdr;
           ImageIdCurrent = 1;
           continue;
         }
 
-        return CurrentImageBlock;
+        return ImageBlock;
       }
       if (*ImageId < ImageIdCurrent) {
         //
@@ -70,80 +77,86 @@ GetImageIdOrAddress (
         return NULL;
       }
     }
-    switch (CurrentImageBlock->BlockType) {
+    switch (((EFI_HII_IMAGE_BLOCK *) ImageBlock)->BlockType) {
     case EFI_HII_IIBT_EXT1:
-      Length = ((EFI_HII_IIBT_EXT1_BLOCK *) CurrentImageBlock)->Length;
+      Length8 = *(UINT8*)((UINTN)ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK) + sizeof (UINT8));
+      ImageBlock += Length8;
       break;
     case EFI_HII_IIBT_EXT2:
-      Length = ReadUnaligned16 (&((EFI_HII_IIBT_EXT2_BLOCK *) CurrentImageBlock)->Length);
+      CopyMem (
+        &Length16,
+        (UINT8*)((UINTN)ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK) + sizeof (UINT8)),
+        sizeof (UINT16)
+        );
+      ImageBlock += Length16;
       break;
     case EFI_HII_IIBT_EXT4:
-      Length = ReadUnaligned32 ((VOID *) &((EFI_HII_IIBT_EXT4_BLOCK *) CurrentImageBlock)->Length);
+      CopyMem (
+        &Length32,
+        (UINT8*)((UINTN)ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK) + sizeof (UINT8)),
+        sizeof (UINT32)
+        );
+      ImageBlock += Length32;
       break;
 
     case EFI_HII_IIBT_IMAGE_1BIT:
     case EFI_HII_IIBT_IMAGE_1BIT_TRANS:
-      Length = sizeof (EFI_HII_IIBT_IMAGE_1BIT_BLOCK) - sizeof (UINT8) +
-               BITMAP_LEN_1_BIT (
-                 ReadUnaligned16 (&((EFI_HII_IIBT_IMAGE_1BIT_BLOCK *) CurrentImageBlock)->Bitmap.Width),
-                 ReadUnaligned16 (&((EFI_HII_IIBT_IMAGE_1BIT_BLOCK *) CurrentImageBlock)->Bitmap.Height)
-                 );
+      CopyMem (&Iibt1bit, ImageBlock, sizeof (EFI_HII_IIBT_IMAGE_1BIT_BLOCK));
+      ImageBlock += sizeof (EFI_HII_IIBT_IMAGE_1BIT_BLOCK) - sizeof (UINT8) +
+                    BITMAP_LEN_1_BIT (Iibt1bit.Bitmap.Width, Iibt1bit.Bitmap.Height);
       ImageIdCurrent++;
       break;
 
     case EFI_HII_IIBT_IMAGE_4BIT:
     case EFI_HII_IIBT_IMAGE_4BIT_TRANS:
-      Length = sizeof (EFI_HII_IIBT_IMAGE_4BIT_BLOCK) - sizeof (UINT8) +
-               BITMAP_LEN_4_BIT (
-                 ReadUnaligned16 (&((EFI_HII_IIBT_IMAGE_4BIT_BLOCK *) CurrentImageBlock)->Bitmap.Width),
-                 ReadUnaligned16 (&((EFI_HII_IIBT_IMAGE_4BIT_BLOCK *) CurrentImageBlock)->Bitmap.Height)
-                 );
+      CopyMem (&Iibt4bit, ImageBlock, sizeof (EFI_HII_IIBT_IMAGE_4BIT_BLOCK));
+      ImageBlock += sizeof (EFI_HII_IIBT_IMAGE_4BIT_BLOCK) - sizeof (UINT8) +
+                    BITMAP_LEN_4_BIT (Iibt4bit.Bitmap.Width, Iibt4bit.Bitmap.Height);
       ImageIdCurrent++;
       break;
 
     case EFI_HII_IIBT_IMAGE_8BIT:
     case EFI_HII_IIBT_IMAGE_8BIT_TRANS:
-      Length = sizeof (EFI_HII_IIBT_IMAGE_8BIT_BLOCK) - sizeof (UINT8) +
-               BITMAP_LEN_8_BIT (
-                 ReadUnaligned16 (&((EFI_HII_IIBT_IMAGE_8BIT_BLOCK *) CurrentImageBlock)->Bitmap.Width),
-                 ReadUnaligned16 (&((EFI_HII_IIBT_IMAGE_8BIT_BLOCK *) CurrentImageBlock)->Bitmap.Height)
-                 );
+      CopyMem (&Iibt8bit, ImageBlock, sizeof (EFI_HII_IIBT_IMAGE_8BIT_BLOCK));
+      ImageBlock += sizeof (EFI_HII_IIBT_IMAGE_8BIT_BLOCK) - sizeof (UINT8) +
+                    BITMAP_LEN_8_BIT (Iibt8bit.Bitmap.Width, Iibt8bit.Bitmap.Height);
       ImageIdCurrent++;
       break;
 
     case EFI_HII_IIBT_IMAGE_24BIT:
     case EFI_HII_IIBT_IMAGE_24BIT_TRANS:
-      Length = sizeof (EFI_HII_IIBT_IMAGE_24BIT_BLOCK) - sizeof (EFI_HII_RGB_PIXEL) +
-               BITMAP_LEN_24_BIT (
-                 ReadUnaligned16 ((VOID *) &((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) CurrentImageBlock)->Bitmap.Width),
-                 ReadUnaligned16 ((VOID *) &((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) CurrentImageBlock)->Bitmap.Height)
-                 );
+      CopyMem (&Width, ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK), sizeof (UINT16));
+      CopyMem (
+        &Height,
+        ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK) + sizeof (UINT16),
+        sizeof (UINT16)
+        );
+      ImageBlock += sizeof (EFI_HII_IIBT_IMAGE_24BIT_BLOCK) - sizeof (EFI_HII_RGB_PIXEL) +
+                    BITMAP_LEN_24_BIT (Width, Height);
       ImageIdCurrent++;
       break;
 
     case EFI_HII_IIBT_DUPLICATE:
-      Length = sizeof (EFI_HII_IIBT_DUPLICATE_BLOCK);
+      ImageBlock += sizeof (EFI_HII_IIBT_DUPLICATE_BLOCK);
       ImageIdCurrent++;
       break;
 
     case EFI_HII_IIBT_IMAGE_JPEG:
-      Length = OFFSET_OF (EFI_HII_IIBT_JPEG_BLOCK, Data) + ReadUnaligned32 ((VOID *) &((EFI_HII_IIBT_JPEG_BLOCK *) CurrentImageBlock)->Size);
-      ImageIdCurrent++;
-      break;
-
-    case EFI_HII_IIBT_IMAGE_PNG:
-      Length = OFFSET_OF (EFI_HII_IIBT_PNG_BLOCK, Data) + ReadUnaligned32 ((VOID *) &((EFI_HII_IIBT_PNG_BLOCK *) CurrentImageBlock)->Size);
+      CopyMem (&Length32, ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK), sizeof (UINT32));
+      ImageBlock += Length32;
       ImageIdCurrent++;
       break;
 
     case EFI_HII_IIBT_SKIP1:
-      Length = sizeof (EFI_HII_IIBT_SKIP1_BLOCK);
-      ImageIdCurrent += ((EFI_HII_IIBT_SKIP1_BLOCK *) CurrentImageBlock)->SkipCount;
+      Length8 = *(ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK));
+      ImageBlock += sizeof (EFI_HII_IIBT_SKIP1_BLOCK);
+      ImageIdCurrent = (UINT16) (ImageIdCurrent + Length8);
       break;
 
     case EFI_HII_IIBT_SKIP2:
-      Length = sizeof (EFI_HII_IIBT_SKIP2_BLOCK);
-      ImageIdCurrent += ReadUnaligned16 ((VOID *) &((EFI_HII_IIBT_SKIP2_BLOCK *) CurrentImageBlock)->SkipCount);
+      CopyMem (&Length16, ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK), sizeof (UINT16));
+      ImageBlock += sizeof (EFI_HII_IIBT_SKIP2_BLOCK);
+      ImageIdCurrent = (UINT16) (ImageIdCurrent + Length16);
       break;
 
     default:
@@ -151,12 +164,7 @@ GetImageIdOrAddress (
       // Unknown image blocks can not be skipped, processing halts.
       //
       ASSERT (FALSE);
-      Length = 0;
-      break;
     }
-
-    CurrentImageBlock = (EFI_HII_IMAGE_BLOCK *) ((UINT8 *) CurrentImageBlock + Length);
-
   }
 
   //
@@ -164,7 +172,7 @@ GetImageIdOrAddress (
   //
   if (*ImageId == 0) {
     *ImageId = ImageIdCurrent;
-    return CurrentImageBlock;
+    return ImageBlock;
   }
 
   return NULL;
@@ -574,37 +582,6 @@ ImageToBlt (
   return EFI_SUCCESS;
 }
 
-/**
-  Return the HII package list identified by PackageList HII handle.
-
-  @param Database    Pointer to HII database list header.
-  @param PackageList HII handle of the package list to locate.
-
-  @retval The HII package list instance.
-**/
-HII_DATABASE_PACKAGE_LIST_INSTANCE *
-LocatePackageList (
-  IN  LIST_ENTRY                     *Database,
-  IN  EFI_HII_HANDLE                 PackageList
-  )
-{
-  LIST_ENTRY                         *Link;
-  HII_DATABASE_RECORD                *Record;
-
-  //
-  // Get the specified package list and image package.
-  //
-  for (Link = GetFirstNode (Database);
-       !IsNull (Database, Link);
-       Link = GetNextNode (Database, Link)
-      ) {
-    Record = CR (Link, HII_DATABASE_RECORD, DatabaseEntry, HII_DATABASE_RECORD_SIGNATURE);
-    if (Record->Handle == PackageList) {
-      return Record->PackageList;
-    }
-  }
-  return NULL;
-}
 
 /**
   This function adds the image Image to the group of images owned by PackageList, and returns
@@ -634,23 +611,52 @@ HiiNewImage (
   )
 {
   HII_DATABASE_PRIVATE_DATA           *Private;
+  LIST_ENTRY                          *Link;
+  HII_DATABASE_RECORD                 *DatabaseRecord;
   HII_DATABASE_PACKAGE_LIST_INSTANCE  *PackageListNode;
   HII_IMAGE_PACKAGE_INSTANCE          *ImagePackage;
-  EFI_HII_IMAGE_BLOCK                 *ImageBlocks;
-  UINT32                              NewBlockSize;
+  UINT8                               *ImageBlock;
+  UINTN                               BlockSize;
+  UINT8                               *NewBlock;
+  UINT8                               *NewBlockPtr;
+  UINTN                               NewBlockSize;
+  EFI_IMAGE_INPUT                     *ImageIn;
 
   if (This == NULL || ImageId == NULL || Image == NULL || Image->Bitmap == NULL) {
     return EFI_INVALID_PARAMETER;
   }
 
+  if (!IsHiiHandleValid (PackageList)) {
+    return EFI_NOT_FOUND;
+  }
+
   Private = HII_IMAGE_DATABASE_PRIVATE_DATA_FROM_THIS (This);
-  PackageListNode = LocatePackageList (&Private->DatabaseList, PackageList);
+
+  //
+  // Get the specified package list
+  //
+
+  PackageListNode = NULL;
+
+  for (Link = Private->DatabaseList.ForwardLink;
+       Link != &Private->DatabaseList;
+       Link = Link->ForwardLink
+      ) {
+    DatabaseRecord = CR (Link, HII_DATABASE_RECORD, DatabaseEntry, HII_DATABASE_RECORD_SIGNATURE);
+    if (DatabaseRecord->Handle == PackageList) {
+      PackageListNode = DatabaseRecord->PackageList;
+      break;
+    }
+  }
+
   if (PackageListNode == NULL) {
     return EFI_NOT_FOUND;
   }
 
+  ImageIn = (EFI_IMAGE_INPUT *) Image;
+
   NewBlockSize = sizeof (EFI_HII_IIBT_IMAGE_24BIT_BLOCK) - sizeof (EFI_HII_RGB_PIXEL) +
-                 BITMAP_LEN_24_BIT (Image->Width, Image->Height);
+                 BITMAP_LEN_24_BIT (ImageIn->Width, ImageIn->Height);
 
   //
   // Get the image package in the package list,
@@ -669,33 +675,38 @@ HiiNewImage (
     //
     // Update the package's image block by appending the new block to the end.
     //
-    ImageBlocks = AllocatePool (ImagePackage->ImageBlockSize + NewBlockSize);
-    if (ImageBlocks == NULL) {
+    BlockSize  = ImagePackage->ImageBlockSize + NewBlockSize;
+    ImageBlock = (UINT8 *) AllocateZeroPool (BlockSize);
+    if (ImageBlock == NULL) {
       return EFI_OUT_OF_RESOURCES;
     }
     //
     // Copy the original content.
     //
     CopyMem (
-      ImageBlocks,
+      ImageBlock,
       ImagePackage->ImageBlock,
       ImagePackage->ImageBlockSize - sizeof (EFI_HII_IIBT_END_BLOCK)
       );
     FreePool (ImagePackage->ImageBlock);
-    ImagePackage->ImageBlock = ImageBlocks;
+    ImagePackage->ImageBlock = ImageBlock;
+    ImageBlock += ImagePackage->ImageBlockSize - sizeof (EFI_HII_IIBT_END_BLOCK);
+    //
+    // Temp memory to store new block.
+    //
+    NewBlock = AllocateZeroPool (NewBlockSize);
+    if (NewBlock == NULL) {
+      FreePool (ImagePackage->ImageBlock);
+      return EFI_OUT_OF_RESOURCES;
+    }
+    NewBlockPtr = NewBlock;
 
-    //
-    // Point to the very last block.
-    //
-    ImageBlocks = (EFI_HII_IMAGE_BLOCK *) (
-                    (UINT8 *) ImageBlocks + ImagePackage->ImageBlockSize - sizeof (EFI_HII_IIBT_END_BLOCK)
-                    );
     //
     // Update the length record.
     //
-    ImagePackage->ImageBlockSize                  += NewBlockSize;
-    ImagePackage->ImagePkgHdr.Header.Length       += NewBlockSize;
-    PackageListNode->PackageListHdr.PackageLength += NewBlockSize;
+    ImagePackage->ImageBlockSize = (UINT32) BlockSize;
+    ImagePackage->ImagePkgHdr.Header.Length += (UINT32) NewBlockSize;
+    PackageListNode->PackageListHdr.PackageLength += (UINT32) NewBlockSize;
 
   } else {
     //
@@ -711,10 +722,11 @@ HiiNewImage (
     // first image block so that id is initially to one.
     //
     *ImageId = 1;
+    BlockSize    = sizeof (EFI_HII_IIBT_END_BLOCK) + NewBlockSize;
     //
     // Fill in image package header.
     //
-    ImagePackage->ImagePkgHdr.Header.Length     = sizeof (EFI_HII_IMAGE_PACKAGE_HDR) + NewBlockSize + sizeof (EFI_HII_IIBT_END_BLOCK);
+    ImagePackage->ImagePkgHdr.Header.Length     = (UINT32) BlockSize + sizeof (EFI_HII_IMAGE_PACKAGE_HDR);
     ImagePackage->ImagePkgHdr.Header.Type       = EFI_HII_PACKAGE_IMAGES;
     ImagePackage->ImagePkgHdr.ImageInfoOffset   = sizeof (EFI_HII_IMAGE_PACKAGE_HDR);
     ImagePackage->ImagePkgHdr.PaletteInfoOffset = 0;
@@ -728,13 +740,24 @@ HiiNewImage (
     //
     // Fill in image blocks.
     //
-    ImagePackage->ImageBlockSize = NewBlockSize + sizeof (EFI_HII_IIBT_END_BLOCK);
-    ImagePackage->ImageBlock = AllocateZeroPool (NewBlockSize + sizeof (EFI_HII_IIBT_END_BLOCK));
+    ImagePackage->ImageBlockSize = (UINT32) BlockSize;
+    ImagePackage->ImageBlock = (UINT8 *) AllocateZeroPool (BlockSize);
     if (ImagePackage->ImageBlock == NULL) {
       FreePool (ImagePackage);
       return EFI_OUT_OF_RESOURCES;
     }
-    ImageBlocks = ImagePackage->ImageBlock;
+    ImageBlock = ImagePackage->ImageBlock;
+
+    //
+    // Temp memory to store new block.
+    //
+    NewBlock = AllocateZeroPool (NewBlockSize);
+    if (NewBlock == NULL) {
+      FreePool (ImagePackage->ImageBlock);
+      FreePool (ImagePackage);
+      return EFI_OUT_OF_RESOURCES;
+    }
+    NewBlockPtr = NewBlock;
 
     //
     // Insert this image package.
@@ -746,20 +769,26 @@ HiiNewImage (
   //
   // Append the new block here
   //
-  if (Image->Flags == EFI_IMAGE_TRANSPARENT) {
-    ImageBlocks->BlockType = EFI_HII_IIBT_IMAGE_24BIT_TRANS;
+  if (ImageIn->Flags == EFI_IMAGE_TRANSPARENT) {
+    *NewBlock = EFI_HII_IIBT_IMAGE_24BIT_TRANS;
   } else {
-    ImageBlocks->BlockType = EFI_HII_IIBT_IMAGE_24BIT;
+    *NewBlock = EFI_HII_IIBT_IMAGE_24BIT;
   }
-  WriteUnaligned16 ((VOID *) &((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) ImageBlocks)->Bitmap.Width, Image->Width);
-  WriteUnaligned16 ((VOID *) &((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) ImageBlocks)->Bitmap.Height, Image->Height);
-  CopyGopToRgbPixel (((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) ImageBlocks)->Bitmap.Bitmap, Image->Bitmap, Image->Width * Image->Height);
+  NewBlock++;
+  CopyMem (NewBlock, &ImageIn->Width, sizeof (UINT16));
+  NewBlock += sizeof (UINT16);
+  CopyMem (NewBlock, &ImageIn->Height, sizeof (UINT16));
+  NewBlock += sizeof (UINT16);
+  CopyGopToRgbPixel ((EFI_HII_RGB_PIXEL *) NewBlock, ImageIn->Bitmap, ImageIn->Width * ImageIn->Height);
+
+  CopyMem (ImageBlock, NewBlockPtr, NewBlockSize);
+  FreePool (NewBlockPtr);
 
   //
   // Append the block end
   //
-  ImageBlocks = (EFI_HII_IMAGE_BLOCK *) ((UINT8 *) ImageBlocks + NewBlockSize);
-  ImageBlocks->BlockType = EFI_HII_IIBT_END;
+  ImageBlock += NewBlockSize;
+  ((EFI_HII_IIBT_END_BLOCK *) (ImageBlock))->Header.BlockType = EFI_HII_IIBT_END;
 
   //
   // Check whether need to get the contents of HiiDataBase.
@@ -772,203 +801,6 @@ HiiNewImage (
   return EFI_SUCCESS;
 }
 
-
-/**
-  This function retrieves the image specified by ImageId which is associated with
-  the specified PackageList and copies it into the buffer specified by Image.
-
-  @param  Database               A pointer to the database list header.
-  @param  PackageList            Handle of the package list where this image will
-                                 be searched.
-  @param  ImageId                The image's id,, which is unique within
-                                 PackageList.
-  @param  Image                  Points to the image.
-  @param  BitmapOnly             TRUE to only return the bitmap type image.
-                                 FALSE to locate image decoder instance to decode image.
-
-  @retval EFI_SUCCESS            The new image was returned successfully.
-  @retval EFI_NOT_FOUND          The image specified by ImageId is not in the
-                                 database. The specified PackageList is not in the database.
-  @retval EFI_BUFFER_TOO_SMALL   The buffer specified by ImageSize is too small to
-                                 hold the image.
-  @retval EFI_INVALID_PARAMETER  The Image or ImageSize was NULL.
-  @retval EFI_OUT_OF_RESOURCES   The bitmap could not be retrieved because there was not
-                                 enough memory.
-**/
-EFI_STATUS
-IGetImage (
-  IN  LIST_ENTRY                     *Database,
-  IN  EFI_HII_HANDLE                 PackageList,
-  IN  EFI_IMAGE_ID                   ImageId,
-  OUT EFI_IMAGE_INPUT                *Image,
-  IN  BOOLEAN                        BitmapOnly
-  )
-{
-  EFI_STATUS                          Status;
-  HII_DATABASE_PACKAGE_LIST_INSTANCE  *PackageListNode;
-  HII_IMAGE_PACKAGE_INSTANCE          *ImagePackage;
-  EFI_HII_IMAGE_BLOCK                 *CurrentImageBlock;
-  EFI_HII_IIBT_IMAGE_1BIT_BLOCK       Iibt1bit;
-  UINT16                              Width;
-  UINT16                              Height;
-  UINTN                               ImageLength;
-  UINT8                               *PaletteInfo;
-  UINT8                               PaletteIndex;
-  UINT16                              PaletteSize;
-  EFI_HII_IMAGE_DECODER_PROTOCOL      *Decoder;
-  EFI_IMAGE_OUTPUT                    *ImageOut;
-
-  if (Image == NULL || ImageId == 0) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  PackageListNode = LocatePackageList (Database, PackageList);
-  if (PackageListNode == NULL) {
-    return EFI_NOT_FOUND;
-  }
-  ImagePackage = PackageListNode->ImagePkg;
-  if (ImagePackage == NULL) {
-    return EFI_NOT_FOUND;
-  }
-
-  //
-  // Find the image block specified by ImageId
-  //
-  CurrentImageBlock = GetImageIdOrAddress (ImagePackage->ImageBlock, &ImageId);
-  if (CurrentImageBlock == NULL) {
-    return EFI_NOT_FOUND;
-  }
-
-  Image->Flags = 0;
-  switch (CurrentImageBlock->BlockType) {
-  case EFI_HII_IIBT_IMAGE_JPEG:
-  case EFI_HII_IIBT_IMAGE_PNG:
-    if (BitmapOnly) {
-      return EFI_UNSUPPORTED;
-    }
-
-    ImageOut = NULL;
-    Decoder = LocateHiiImageDecoder (CurrentImageBlock->BlockType);
-    if (Decoder == NULL) {
-      return EFI_UNSUPPORTED;
-    }
-    //
-    // Use the common block code since the definition of two structures is the same.
-    //
-    ASSERT (OFFSET_OF (EFI_HII_IIBT_JPEG_BLOCK, Data) == OFFSET_OF (EFI_HII_IIBT_PNG_BLOCK, Data));
-    ASSERT (sizeof (((EFI_HII_IIBT_JPEG_BLOCK *) CurrentImageBlock)->Data) ==
-            sizeof (((EFI_HII_IIBT_PNG_BLOCK *) CurrentImageBlock)->Data));
-    ASSERT (OFFSET_OF (EFI_HII_IIBT_JPEG_BLOCK, Size) == OFFSET_OF (EFI_HII_IIBT_PNG_BLOCK, Size));
-    ASSERT (sizeof (((EFI_HII_IIBT_JPEG_BLOCK *) CurrentImageBlock)->Size) ==
-            sizeof (((EFI_HII_IIBT_PNG_BLOCK *) CurrentImageBlock)->Size));
-    Status = Decoder->DecodeImage (
-      Decoder,
-      ((EFI_HII_IIBT_JPEG_BLOCK *) CurrentImageBlock)->Data,
-      ((EFI_HII_IIBT_JPEG_BLOCK *) CurrentImageBlock)->Size,
-      &ImageOut,
-      FALSE
-    );
-
-    //
-    // Spec requires to use the first capable image decoder instance.
-    // The first image decoder instance may fail to decode the image.
-    //
-    if (!EFI_ERROR (Status)) {
-      Image->Bitmap = ImageOut->Image.Bitmap;
-      Image->Height = ImageOut->Height;
-      Image->Width = ImageOut->Width;
-      FreePool (ImageOut);
-    }
-    return Status;
-
-  case EFI_HII_IIBT_IMAGE_1BIT_TRANS:
-  case EFI_HII_IIBT_IMAGE_4BIT_TRANS:
-  case EFI_HII_IIBT_IMAGE_8BIT_TRANS:
-    Image->Flags = EFI_IMAGE_TRANSPARENT;
-    //
-    // fall through
-    //
-  case EFI_HII_IIBT_IMAGE_1BIT:
-  case EFI_HII_IIBT_IMAGE_4BIT:
-  case EFI_HII_IIBT_IMAGE_8BIT:
-    //
-    // Use the common block code since the definition of these structures is the same.
-    //
-    CopyMem (&Iibt1bit, CurrentImageBlock, sizeof (EFI_HII_IIBT_IMAGE_1BIT_BLOCK));
-    ImageLength = sizeof (EFI_GRAPHICS_OUTPUT_BLT_PIXEL) *
-                  (Iibt1bit.Bitmap.Width * Iibt1bit.Bitmap.Height);
-    Image->Bitmap = AllocateZeroPool (ImageLength);
-    if (Image->Bitmap == NULL) {
-      return EFI_OUT_OF_RESOURCES;
-    }
-
-    Image->Width  = Iibt1bit.Bitmap.Width;
-    Image->Height = Iibt1bit.Bitmap.Height;
-
-    PaletteInfo = ImagePackage->PaletteBlock + sizeof (EFI_HII_IMAGE_PALETTE_INFO_HEADER);
-    for (PaletteIndex = 1; PaletteIndex < Iibt1bit.PaletteIndex; PaletteIndex++) {
-      CopyMem (&PaletteSize, PaletteInfo, sizeof (UINT16));
-      PaletteInfo += PaletteSize + sizeof (UINT16);
-    }
-    ASSERT (PaletteIndex == Iibt1bit.PaletteIndex);
-
-    //
-    // Output bitmap data
-    //
-    if (CurrentImageBlock->BlockType == EFI_HII_IIBT_IMAGE_1BIT ||
-        CurrentImageBlock->BlockType == EFI_HII_IIBT_IMAGE_1BIT_TRANS) {
-      Output1bitPixel (
-        Image,
-        ((EFI_HII_IIBT_IMAGE_1BIT_BLOCK *) CurrentImageBlock)->Bitmap.Data,
-        (EFI_HII_IMAGE_PALETTE_INFO *) PaletteInfo
-        );
-    } else if (CurrentImageBlock->BlockType == EFI_HII_IIBT_IMAGE_4BIT ||
-               CurrentImageBlock->BlockType == EFI_HII_IIBT_IMAGE_4BIT_TRANS) {
-      Output4bitPixel (
-        Image,
-        ((EFI_HII_IIBT_IMAGE_4BIT_BLOCK *) CurrentImageBlock)->Bitmap.Data,
-        (EFI_HII_IMAGE_PALETTE_INFO *) PaletteInfo
-        );
-    } else {
-      Output8bitPixel (
-        Image,
-        ((EFI_HII_IIBT_IMAGE_8BIT_BLOCK *) CurrentImageBlock)->Bitmap.Data,
-        (EFI_HII_IMAGE_PALETTE_INFO *) PaletteInfo
-        );
-    }
-
-    return EFI_SUCCESS;
-
-  case EFI_HII_IIBT_IMAGE_24BIT_TRANS:
-    Image->Flags = EFI_IMAGE_TRANSPARENT;
-    //
-    // fall through
-    //
-  case EFI_HII_IIBT_IMAGE_24BIT:
-    Width = ReadUnaligned16 ((VOID *) &((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) CurrentImageBlock)->Bitmap.Width);
-    Height = ReadUnaligned16 ((VOID *) &((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) CurrentImageBlock)->Bitmap.Height);
-    ImageLength = sizeof (EFI_GRAPHICS_OUTPUT_BLT_PIXEL) * (Width * Height);
-    Image->Bitmap = AllocateZeroPool (ImageLength);
-    if (Image->Bitmap == NULL) {
-      return EFI_OUT_OF_RESOURCES;
-    }
-
-    Image->Width  = Width;
-    Image->Height = Height;
-
-    //
-    // Output the bitmap data directly.
-    //
-    Output24bitPixel (
-      Image,
-      ((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) CurrentImageBlock)->Bitmap.Bitmap
-      );
-    return EFI_SUCCESS;
-
-  default:
-    return EFI_NOT_FOUND;
-  }
-}
 
 /**
   This function retrieves the image specified by ImageId which is associated with
@@ -988,7 +820,7 @@ IGetImage (
                                  hold the image.
   @retval EFI_INVALID_PARAMETER  The Image or ImageSize was NULL.
   @retval EFI_OUT_OF_RESOURCES   The bitmap could not be retrieved because there was not
-                                 enough memory.
+                                                     enough memory.
 
 **/
 EFI_STATUS
@@ -1001,8 +833,168 @@ HiiGetImage (
   )
 {
   HII_DATABASE_PRIVATE_DATA           *Private;
+  LIST_ENTRY                          *Link;
+  HII_DATABASE_RECORD                 *DatabaseRecord;
+  HII_DATABASE_PACKAGE_LIST_INSTANCE  *PackageListNode;
+  HII_IMAGE_PACKAGE_INSTANCE          *ImagePackage;
+  UINT8                               *ImageBlock;
+  EFI_IMAGE_ID                        LocalImageId;
+  UINT8                               BlockType;
+  EFI_HII_IIBT_IMAGE_1BIT_BLOCK       Iibt1bit;
+  UINT16                              Width;
+  UINT16                              Height;
+  UINTN                               ImageLength;
+  BOOLEAN                             Flag;
+  UINT8                               *PaletteInfo;
+  UINT8                               PaletteIndex;
+  UINT16                              PaletteSize;
+
+  if (This == NULL || Image == NULL || ImageId < 1) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if (!IsHiiHandleValid (PackageList)) {
+    return EFI_NOT_FOUND;
+  }
+
   Private = HII_IMAGE_DATABASE_PRIVATE_DATA_FROM_THIS (This);
-  return IGetImage (&Private->DatabaseList, PackageList, ImageId, Image, TRUE);
+
+  //
+  // Get the specified package list and image package.
+  //
+  PackageListNode = NULL;
+  for (Link = Private->DatabaseList.ForwardLink;
+       Link != &Private->DatabaseList;
+       Link = Link->ForwardLink
+      ) {
+    DatabaseRecord = CR (Link, HII_DATABASE_RECORD, DatabaseEntry, HII_DATABASE_RECORD_SIGNATURE);
+    if (DatabaseRecord->Handle == PackageList) {
+      PackageListNode = DatabaseRecord->PackageList;
+      break;
+    }
+  }
+  if (PackageListNode == NULL) {
+    return EFI_NOT_FOUND;
+  }
+  ImagePackage = PackageListNode->ImagePkg;
+  if (ImagePackage == NULL) {
+    return EFI_NOT_FOUND;
+  }
+
+  //
+  // Find the image block specified by ImageId
+  //
+  LocalImageId = ImageId;
+  ImageBlock = GetImageIdOrAddress (ImagePackage->ImageBlock, &LocalImageId);
+  if (ImageBlock == NULL) {
+    return EFI_NOT_FOUND;
+  }
+
+  Flag      = FALSE;
+  BlockType = *ImageBlock;
+
+  switch (BlockType) {
+  case EFI_HII_IIBT_IMAGE_JPEG:
+    //
+    // BUGBUG: need to be supported as soon as image tool is designed.
+    //
+    return EFI_UNSUPPORTED;
+
+  case EFI_HII_IIBT_IMAGE_1BIT_TRANS:
+  case EFI_HII_IIBT_IMAGE_4BIT_TRANS:
+  case EFI_HII_IIBT_IMAGE_8BIT_TRANS:
+    Flag = TRUE;
+    //
+    // fall through
+    //
+  case EFI_HII_IIBT_IMAGE_1BIT:
+  case EFI_HII_IIBT_IMAGE_4BIT:
+  case EFI_HII_IIBT_IMAGE_8BIT:
+    //
+    // Use the common block code since the definition of these structures is the same.
+    //
+    CopyMem (&Iibt1bit, ImageBlock, sizeof (EFI_HII_IIBT_IMAGE_1BIT_BLOCK));
+    ImageLength = sizeof (EFI_GRAPHICS_OUTPUT_BLT_PIXEL) *
+                  (Iibt1bit.Bitmap.Width * Iibt1bit.Bitmap.Height);
+    Image->Bitmap = (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *) AllocateZeroPool (ImageLength);
+    if (Image->Bitmap == NULL) {
+      return EFI_OUT_OF_RESOURCES;
+    }
+
+    if (Flag) {
+      Image->Flags = EFI_IMAGE_TRANSPARENT;
+    }
+    Image->Width  = Iibt1bit.Bitmap.Width;
+    Image->Height = Iibt1bit.Bitmap.Height;
+
+    PaletteInfo = ImagePackage->PaletteBlock + sizeof (EFI_HII_IMAGE_PALETTE_INFO_HEADER);
+    for (PaletteIndex = 1; PaletteIndex < Iibt1bit.PaletteIndex; PaletteIndex++) {
+      CopyMem (&PaletteSize, PaletteInfo, sizeof (UINT16));
+      PaletteInfo += PaletteSize + sizeof (UINT16);
+    }
+    ASSERT (PaletteIndex == Iibt1bit.PaletteIndex);
+
+    //
+    // Output bitmap data
+    //
+    if (BlockType == EFI_HII_IIBT_IMAGE_1BIT || BlockType == EFI_HII_IIBT_IMAGE_1BIT_TRANS) {
+      Output1bitPixel (
+        Image,
+        (UINT8 *) ((UINTN)ImageBlock + sizeof (EFI_HII_IIBT_IMAGE_1BIT_BLOCK) - sizeof (UINT8)),
+        (EFI_HII_IMAGE_PALETTE_INFO *) PaletteInfo
+        );
+    } else if (BlockType == EFI_HII_IIBT_IMAGE_4BIT || BlockType == EFI_HII_IIBT_IMAGE_4BIT_TRANS) {
+      Output4bitPixel (
+        Image,
+        (UINT8 *) ((UINTN)ImageBlock + sizeof (EFI_HII_IIBT_IMAGE_4BIT_BLOCK) - sizeof (UINT8)),
+        (EFI_HII_IMAGE_PALETTE_INFO *) PaletteInfo
+        );
+    } else {
+      Output8bitPixel (
+        Image,
+        (UINT8 *) ((UINTN)ImageBlock + sizeof (EFI_HII_IIBT_IMAGE_8BIT_BLOCK) - sizeof (UINT8)),
+        (EFI_HII_IMAGE_PALETTE_INFO *) PaletteInfo
+        );
+    }
+
+    return EFI_SUCCESS;
+
+  case EFI_HII_IIBT_IMAGE_24BIT_TRANS:
+    Flag = TRUE;
+    //
+    // fall through
+    //
+  case EFI_HII_IIBT_IMAGE_24BIT:
+    CopyMem (&Width, ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK), sizeof (UINT16));
+    CopyMem (
+      &Height,
+      ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK) + sizeof (UINT16),
+      sizeof (UINT16)
+      );
+    ImageLength = sizeof (EFI_GRAPHICS_OUTPUT_BLT_PIXEL) * (Width * Height);
+    Image->Bitmap = (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *) AllocateZeroPool (ImageLength);
+    if (Image->Bitmap == NULL) {
+      return EFI_OUT_OF_RESOURCES;
+    }
+
+    if (Flag) {
+      Image->Flags = EFI_IMAGE_TRANSPARENT;
+    }
+    Image->Width  = Width;
+    Image->Height = Height;
+
+    //
+    // Output the bimap data directly.
+    //
+    Output24bitPixel (
+      Image,
+      (EFI_HII_RGB_PIXEL *) (ImageBlock + sizeof (EFI_HII_IIBT_IMAGE_24BIT_BLOCK) - sizeof (EFI_HII_RGB_PIXEL))
+      );
+    return EFI_SUCCESS;
+
+  default:
+    return EFI_NOT_FOUND;
+  }
 }
 
 
@@ -1032,22 +1024,53 @@ HiiSetImage (
   )
 {
   HII_DATABASE_PRIVATE_DATA           *Private;
+  LIST_ENTRY                          *Link;
+  HII_DATABASE_RECORD                 *DatabaseRecord;
   HII_DATABASE_PACKAGE_LIST_INSTANCE  *PackageListNode;
   HII_IMAGE_PACKAGE_INSTANCE          *ImagePackage;
-  EFI_HII_IMAGE_BLOCK                 *CurrentImageBlock;
-  EFI_HII_IMAGE_BLOCK                 *ImageBlocks;
-  EFI_HII_IMAGE_BLOCK                 *NewImageBlock;
+  UINT8                               *ImageBlock;
+  EFI_IMAGE_ID                        LocalImageId;
+  UINT8                               BlockType;
+  EFI_HII_IIBT_IMAGE_1BIT_BLOCK       Iibt1bit;
+  EFI_HII_IIBT_IMAGE_4BIT_BLOCK       Iibt4bit;
+  EFI_HII_IIBT_IMAGE_8BIT_BLOCK       Iibt8bit;
+  UINT16                              Width;
+  UINT16                              Height;
+  UINT32                              BlockSize;
   UINT32                              NewBlockSize;
   UINT32                              OldBlockSize;
+  EFI_IMAGE_INPUT                     *ImageIn;
+  UINT8                               *NewBlock;
+  UINT8                               *NewBlockPtr;
+  UINT8                               *Block;
+  UINT8                               *BlockPtr;
   UINT32                               Part1Size;
   UINT32                               Part2Size;
 
-  if (This == NULL || Image == NULL || ImageId == 0 || Image->Bitmap == NULL) {
+  if (This == NULL || Image == NULL || ImageId < 1 || Image->Bitmap == NULL) {
     return EFI_INVALID_PARAMETER;
   }
 
+  if (!IsHiiHandleValid (PackageList)) {
+    return EFI_NOT_FOUND;
+  }
+
   Private = HII_IMAGE_DATABASE_PRIVATE_DATA_FROM_THIS (This);
-  PackageListNode = LocatePackageList (&Private->DatabaseList, PackageList);
+
+  //
+  // Get the specified package list and image package.
+  //
+  PackageListNode = NULL;
+  for (Link = Private->DatabaseList.ForwardLink;
+       Link != &Private->DatabaseList;
+       Link = Link->ForwardLink
+      ) {
+    DatabaseRecord = CR (Link, HII_DATABASE_RECORD, DatabaseEntry, HII_DATABASE_RECORD_SIGNATURE);
+    if (DatabaseRecord->Handle == PackageList) {
+      PackageListNode = DatabaseRecord->PackageList;
+      break;
+    }
+  }
   if (PackageListNode == NULL) {
     return EFI_NOT_FOUND;
   }
@@ -1059,53 +1082,53 @@ HiiSetImage (
   //
   // Find the image block specified by ImageId
   //
-  CurrentImageBlock = GetImageIdOrAddress (ImagePackage->ImageBlock, &ImageId);
-  if (CurrentImageBlock == NULL) {
+  LocalImageId = ImageId;
+  ImageBlock = GetImageIdOrAddress (ImagePackage->ImageBlock, &LocalImageId);
+  if (ImageBlock == NULL) {
     return EFI_NOT_FOUND;
   }
+
+  BlockType = *ImageBlock;
 
   //
   // Get the size of original image block. Use some common block code here
   // since the definition of some structures is the same.
   //
-  switch (CurrentImageBlock->BlockType) {
+  switch (BlockType) {
   case EFI_HII_IIBT_IMAGE_JPEG:
-    OldBlockSize = OFFSET_OF (EFI_HII_IIBT_JPEG_BLOCK, Data) + ReadUnaligned32 ((VOID *) &((EFI_HII_IIBT_JPEG_BLOCK *) CurrentImageBlock)->Size);
-    break;
-  case EFI_HII_IIBT_IMAGE_PNG:
-    OldBlockSize = OFFSET_OF (EFI_HII_IIBT_PNG_BLOCK, Data) + ReadUnaligned32 ((VOID *) &((EFI_HII_IIBT_PNG_BLOCK *) CurrentImageBlock)->Size);
-    break;
+    //
+    // BUGBUG: need to be supported as soon as image tool is designed.
+    //
+    return EFI_UNSUPPORTED;
+
   case EFI_HII_IIBT_IMAGE_1BIT:
   case EFI_HII_IIBT_IMAGE_1BIT_TRANS:
+    CopyMem (&Iibt1bit, ImageBlock, sizeof (EFI_HII_IIBT_IMAGE_1BIT_BLOCK));
     OldBlockSize = sizeof (EFI_HII_IIBT_IMAGE_1BIT_BLOCK) - sizeof (UINT8) +
-                   BITMAP_LEN_1_BIT (
-                     ReadUnaligned16 (&((EFI_HII_IIBT_IMAGE_1BIT_BLOCK *) CurrentImageBlock)->Bitmap.Width),
-                     ReadUnaligned16 (&((EFI_HII_IIBT_IMAGE_1BIT_BLOCK *) CurrentImageBlock)->Bitmap.Height)
-                     );
+                   BITMAP_LEN_1_BIT (Iibt1bit.Bitmap.Width, Iibt1bit.Bitmap.Height);
     break;
   case EFI_HII_IIBT_IMAGE_4BIT:
   case EFI_HII_IIBT_IMAGE_4BIT_TRANS:
+    CopyMem (&Iibt4bit, ImageBlock, sizeof (EFI_HII_IIBT_IMAGE_4BIT_BLOCK));
     OldBlockSize = sizeof (EFI_HII_IIBT_IMAGE_4BIT_BLOCK) - sizeof (UINT8) +
-                   BITMAP_LEN_4_BIT (
-                     ReadUnaligned16 (&((EFI_HII_IIBT_IMAGE_4BIT_BLOCK *) CurrentImageBlock)->Bitmap.Width),
-                     ReadUnaligned16 (&((EFI_HII_IIBT_IMAGE_4BIT_BLOCK *) CurrentImageBlock)->Bitmap.Height)
-                     );
+                   BITMAP_LEN_4_BIT (Iibt4bit.Bitmap.Width, Iibt4bit.Bitmap.Height);
     break;
   case EFI_HII_IIBT_IMAGE_8BIT:
   case EFI_HII_IIBT_IMAGE_8BIT_TRANS:
+    CopyMem (&Iibt8bit, ImageBlock, sizeof (EFI_HII_IIBT_IMAGE_8BIT_BLOCK));
     OldBlockSize = sizeof (EFI_HII_IIBT_IMAGE_8BIT_BLOCK) - sizeof (UINT8) +
-                   BITMAP_LEN_8_BIT (
-                     ReadUnaligned16 (&((EFI_HII_IIBT_IMAGE_8BIT_BLOCK *) CurrentImageBlock)->Bitmap.Width),
-                     ReadUnaligned16 (&((EFI_HII_IIBT_IMAGE_8BIT_BLOCK *) CurrentImageBlock)->Bitmap.Height)
-                     );
+                   BITMAP_LEN_8_BIT (Iibt8bit.Bitmap.Width, Iibt8bit.Bitmap.Height);
     break;
   case EFI_HII_IIBT_IMAGE_24BIT:
   case EFI_HII_IIBT_IMAGE_24BIT_TRANS:
+    CopyMem (&Width, ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK), sizeof (UINT16));
+    CopyMem (
+      &Height,
+      ImageBlock + sizeof (EFI_HII_IMAGE_BLOCK) + sizeof (UINT16),
+      sizeof (UINT16)
+      );
     OldBlockSize = sizeof (EFI_HII_IIBT_IMAGE_24BIT_BLOCK) - sizeof (EFI_HII_RGB_PIXEL) +
-                   BITMAP_LEN_24_BIT (
-                     ReadUnaligned16 ((VOID *) &((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) CurrentImageBlock)->Bitmap.Width),
-                     ReadUnaligned16 ((VOID *) &((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) CurrentImageBlock)->Bitmap.Height)
-                     );
+                   BITMAP_LEN_24_BIT (Width , Height);
     break;
   default:
     return EFI_NOT_FOUND;
@@ -1114,40 +1137,53 @@ HiiSetImage (
   //
   // Create the new image block according to input image.
   //
+  ImageIn = (EFI_IMAGE_INPUT *) Image;
   NewBlockSize = sizeof (EFI_HII_IIBT_IMAGE_24BIT_BLOCK) - sizeof (EFI_HII_RGB_PIXEL) +
-                 BITMAP_LEN_24_BIT (Image->Width, Image->Height);
-  //
-  // Adjust the image package to remove the original block firstly then add the new block.
-  //
-  ImageBlocks = AllocateZeroPool (ImagePackage->ImageBlockSize + NewBlockSize - OldBlockSize);
-  if (ImageBlocks == NULL) {
+                 BITMAP_LEN_24_BIT (ImageIn->Width, ImageIn->Height);
+  NewBlock = (UINT8 *) AllocateZeroPool (NewBlockSize);
+  if (NewBlock == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
 
-  Part1Size = (UINT32) (UINTN) ((UINT8 *) CurrentImageBlock - (UINT8 *) ImagePackage->ImageBlock);
-  Part2Size = ImagePackage->ImageBlockSize - Part1Size - OldBlockSize;
-  CopyMem (ImageBlocks, ImagePackage->ImageBlock, Part1Size);
-
-  //
-  // Set the new image block
-  //
-  NewImageBlock = (EFI_HII_IMAGE_BLOCK *) ((UINT8 *) ImageBlocks + Part1Size);
-  if ((Image->Flags & EFI_IMAGE_TRANSPARENT) == EFI_IMAGE_TRANSPARENT) {
-    NewImageBlock->BlockType= EFI_HII_IIBT_IMAGE_24BIT_TRANS;
+  NewBlockPtr = NewBlock;
+  if ((ImageIn->Flags & EFI_IMAGE_TRANSPARENT) == EFI_IMAGE_TRANSPARENT) {
+    *NewBlockPtr = EFI_HII_IIBT_IMAGE_24BIT_TRANS;
   } else {
-    NewImageBlock->BlockType = EFI_HII_IIBT_IMAGE_24BIT;
+    *NewBlockPtr = EFI_HII_IIBT_IMAGE_24BIT;
   }
-  WriteUnaligned16 ((VOID *) &((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) NewImageBlock)->Bitmap.Width, Image->Width);
-  WriteUnaligned16 ((VOID *) &((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) NewImageBlock)->Bitmap.Height, Image->Height);
-  CopyGopToRgbPixel (((EFI_HII_IIBT_IMAGE_24BIT_BLOCK *) NewImageBlock)->Bitmap.Bitmap,
-                       Image->Bitmap, Image->Width * Image->Height);
+  NewBlockPtr++;
 
-  CopyMem ((UINT8 *) NewImageBlock + NewBlockSize, (UINT8 *) CurrentImageBlock + OldBlockSize, Part2Size);
+  CopyMem (NewBlockPtr, &ImageIn->Width, sizeof (UINT16));
+  NewBlockPtr += sizeof (UINT16);
+  CopyMem (NewBlockPtr, &ImageIn->Height, sizeof (UINT16));
+  NewBlockPtr += sizeof (UINT16);
+
+  CopyGopToRgbPixel ((EFI_HII_RGB_PIXEL *) NewBlockPtr, ImageIn->Bitmap, ImageIn->Width * ImageIn->Height);
+
+  //
+  // Adjust the image package to remove the original block firstly then add the new block.
+  //
+  BlockSize = ImagePackage->ImageBlockSize + NewBlockSize - OldBlockSize;
+  Block = (UINT8 *) AllocateZeroPool (BlockSize);
+  if (Block == NULL) {
+    FreePool (NewBlock);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  BlockPtr  = Block;
+  Part1Size = (UINT32) (ImageBlock - ImagePackage->ImageBlock);
+  Part2Size = ImagePackage->ImageBlockSize - Part1Size - OldBlockSize;
+  CopyMem (BlockPtr, ImagePackage->ImageBlock, Part1Size);
+  BlockPtr += Part1Size;
+  CopyMem (BlockPtr, NewBlock, NewBlockSize);
+  BlockPtr += NewBlockSize;
+  CopyMem (BlockPtr, ImageBlock + OldBlockSize, Part2Size);
 
   FreePool (ImagePackage->ImageBlock);
-  ImagePackage->ImageBlock                       = ImageBlocks;
-  ImagePackage->ImageBlockSize                  += NewBlockSize - OldBlockSize;
-  ImagePackage->ImagePkgHdr.Header.Length       += NewBlockSize - OldBlockSize;
+  FreePool (NewBlock);
+  ImagePackage->ImageBlock     = Block;
+  ImagePackage->ImageBlockSize = BlockSize;
+  ImagePackage->ImagePkgHdr.Header.Length += NewBlockSize - OldBlockSize;
   PackageListNode->PackageListHdr.PackageLength += NewBlockSize - OldBlockSize;
 
   //
@@ -1204,6 +1240,7 @@ HiiDrawImage (
   EFI_STATUS                          Status;
   HII_DATABASE_PRIVATE_DATA           *Private;
   BOOLEAN                             Transparent;
+  EFI_IMAGE_INPUT                     *ImageIn;
   EFI_IMAGE_OUTPUT                    *ImageOut;
   EFI_GRAPHICS_OUTPUT_BLT_PIXEL       *BltBuffer;
   UINTN                               BufferLen;
@@ -1229,6 +1266,7 @@ HiiDrawImage (
   }
 
   FontInfo = NULL;
+  ImageIn = (EFI_IMAGE_INPUT *) Image;
 
   //
   // Check whether the image will be drawn transparently or opaquely.
@@ -1243,7 +1281,7 @@ HiiDrawImage (
     // Now EFI_HII_DRAW_FLAG_DEFAULT is set, whether image will be drawn depending
     // on the image's transparency setting.
     //
-    if ((Image->Flags & EFI_IMAGE_TRANSPARENT) == EFI_IMAGE_TRANSPARENT) {
+    if ((ImageIn->Flags & EFI_IMAGE_TRANSPARENT) == EFI_IMAGE_TRANSPARENT) {
       Transparent = TRUE;
     }
   }
@@ -1272,8 +1310,8 @@ HiiDrawImage (
     // Clip the image by (Width, Height)
     //
 
-    Width  = Image->Width;
-    Height = Image->Height;
+    Width  = ImageIn->Width;
+    Height = ImageIn->Height;
 
     if (Width > (*Blt)->Width - BltX) {
       Width = (*Blt)->Width - BltX;
@@ -1288,14 +1326,14 @@ HiiDrawImage (
       return EFI_OUT_OF_RESOURCES;
     }
 
-    if (Width == Image->Width && Height == Image->Height) {
-      CopyMem (BltBuffer, Image->Bitmap, BufferLen);
+    if (Width == ImageIn->Width && Height == ImageIn->Height) {
+      CopyMem (BltBuffer, ImageIn->Bitmap, BufferLen);
     } else {
       for (Ypos = 0; Ypos < Height; Ypos++) {
-        OffsetY1 = Image->Width * Ypos;
+        OffsetY1 = ImageIn->Width * Ypos;
         OffsetY2 = Width * Ypos;
         for (Xpos = 0; Xpos < Width; Xpos++) {
-          BltBuffer[OffsetY2 + Xpos] = Image->Bitmap[OffsetY1 + Xpos];
+          BltBuffer[OffsetY2 + Xpos] = ImageIn->Bitmap[OffsetY1 + Xpos];
         }
       }
     }
@@ -1346,8 +1384,8 @@ HiiDrawImage (
     //
     // Allocate a new bitmap to hold the incoming image.
     //
-    Width  = Image->Width  + BltX;
-    Height = Image->Height + BltY;
+    Width  = ImageIn->Width  + BltX;
+    Height = ImageIn->Height + BltY;
 
     BufferLen = Width * Height * sizeof (EFI_GRAPHICS_OUTPUT_BLT_PIXEL);
     BltBuffer = (EFI_GRAPHICS_OUTPUT_BLT_PIXEL *) AllocateZeroPool (BufferLen);
@@ -1385,11 +1423,11 @@ HiiDrawImage (
     //
     *Blt = ImageOut;
     return ImageToBlt (
-             Image->Bitmap,
+             ImageIn->Bitmap,
              BltX,
              BltY,
-             Image->Width,
-             Image->Height,
+             ImageIn->Width,
+             ImageIn->Height,
              Transparent,
              Blt
              );
@@ -1450,6 +1488,10 @@ HiiDrawImageId (
   //
   if (This == NULL || Blt == NULL) {
     return EFI_INVALID_PARAMETER;
+  }
+
+  if (!IsHiiHandleValid (PackageList)) {
+    return EFI_NOT_FOUND;
   }
 
   //

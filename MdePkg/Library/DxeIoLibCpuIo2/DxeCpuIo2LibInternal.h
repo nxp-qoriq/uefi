@@ -58,7 +58,7 @@ IoReadWorker (
   @param  Width         The width of the I/O operation.
   @param  Data          The value to write to the I/O port.
 
-  @return The parameter of Data.
+  @return The paramter of Data.
 
 **/
 UINT64

@@ -1275,7 +1275,8 @@ typedef union {
       SubLeaf,
       NULL, &Ebx.Uint32, &Ecx.Uint32, NULL
       );
-  }
+    SubLeaf++;
+  } while (SubLeaf <= Eax);
   @endcode
 **/
 #define CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS                0x07

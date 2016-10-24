@@ -1069,13 +1069,12 @@ IScsiUpdateTargetAddress (
   IN     UINT32                Len
   )
 {
-  LIST_ENTRY                   *KeyValueList;
-  CHAR8                        *TargetAddress;
-  CHAR8                        *IpStr;
-  EFI_STATUS                   Status;
-  UINTN                        Number;
-  UINT8                        IpMode;
-  ISCSI_SESSION_CONFIG_NVDATA  *NvData;
+  LIST_ENTRY      *KeyValueList;
+  CHAR8           *TargetAddress;
+  CHAR8           *IpStr;
+  EFI_STATUS      Status;
+  UINTN           Number;
+  UINT8           IpMode;
 
   KeyValueList = IScsiBuildKeyValueList (Data, Len);
   if (KeyValueList == NULL) {
@@ -1083,8 +1082,7 @@ IScsiUpdateTargetAddress (
   }
 
   Status = EFI_NOT_FOUND;
-  NvData = &Session->ConfigData->SessionConfigData;
- 
+
   while (TRUE) {
     TargetAddress = IScsiGetValueByKeyFromList (KeyValueList, ISCSI_KEY_TARGET_ADDRESS);
     if (TargetAddress == NULL) {
@@ -1099,11 +1097,6 @@ IScsiUpdateTargetAddress (
       //
       continue;
     }
-
-    //
-    // Save the origial user setting which specifies the proxy/virtual iSCSI target.
-    //
-    NvData->OriginalTargetPort = NvData->TargetPort;
 
     IpStr = TargetAddress;
 
@@ -1129,25 +1122,19 @@ IScsiUpdateTargetAddress (
       if (Number > 0xFFFF) {
         continue;
       } else {
-        NvData->TargetPort = (UINT16) Number;
+        Session->ConfigData->SessionConfigData.TargetPort = (UINT16) Number;
       }
     } else {
       //
       // The string only contains the IPv4 address. Use the well-known port.
       //
-      NvData->TargetPort = ISCSI_WELL_KNOWN_PORT;
+      Session->ConfigData->SessionConfigData.TargetPort = ISCSI_WELL_KNOWN_PORT;
     }
-
-    //
-    // Save the origial user setting which specifies the proxy/virtual iSCSI target.
-    //    
-    CopyMem (&NvData->OriginalTargetIp, &NvData->TargetIp, sizeof (EFI_IP_ADDRESS));
-
     //
     // Update the target IP address.
     //
-    if (NvData->IpMode < IP_MODE_AUTOCONFIG) {
-      IpMode = NvData->IpMode;
+    if (Session->ConfigData->SessionConfigData.IpMode < IP_MODE_AUTOCONFIG) {
+      IpMode = Session->ConfigData->SessionConfigData.IpMode;
     } else {
       IpMode = Session->ConfigData->AutoConfigureMode;
     }
@@ -1161,7 +1148,6 @@ IScsiUpdateTargetAddress (
     if (EFI_ERROR (Status)) {
       continue;
     } else {
-      NvData->RedirectFlag = TRUE;
       break;
     }
   }

@@ -613,7 +613,7 @@ TcpSetState (
   ASSERT (State < (sizeof (mTcpStateName) / sizeof (CHAR16 *)));
 
   DEBUG (
-    (EFI_D_NET,
+    (EFI_D_INFO,
     "Tcb (%p) state %s --> %s\n",
     Tcb,
     mTcpStateName[Tcb->State],
@@ -862,7 +862,7 @@ TcpOnAppConsume (
       if (TcpOld < Tcb->RcvMss) {
 
         DEBUG (
-          (EFI_D_NET,
+          (EFI_D_INFO,
           "TcpOnAppConsume: send a window update for a window closed Tcb %p\n",
           Tcb)
           );
@@ -871,7 +871,7 @@ TcpOnAppConsume (
       } else if (Tcb->DelayedAck == 0) {
 
         DEBUG (
-          (EFI_D_NET,
+          (EFI_D_INFO,
           "TcpOnAppConsume: scheduled a delayed ACK to update window for Tcb %p\n",
           Tcb)
           );

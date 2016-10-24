@@ -79,18 +79,17 @@ PL011UartInitializePort (
   UINT32      Divisor;
   UINT32      Integer;
   UINT32      Fractional;
-  UINT32      HardwareFifoDepth;
 
-  HardwareFifoDepth = (PL011_UARTPID2_VER (MmioRead32 (UartBase + UARTPID2)) \
-                       > PL011_VER_R1P4) \
-                      ? 32 : 16 ;
   // The PL011 supports a buffer of 1, 16 or 32 chars. Therefore we can accept
   // 1 char buffer as the minimum FIFO size. Because everything can be rounded
   // down, there is no maximum FIFO size.
-  if ((*ReceiveFifoDepth == 0) || (*ReceiveFifoDepth >= HardwareFifoDepth)) {
+  if ((*ReceiveFifoDepth == 0) || (*ReceiveFifoDepth >= 32)) {
     // Enable FIFO
     LineControl = PL011_UARTLCR_H_FEN;
-    *ReceiveFifoDepth = HardwareFifoDepth;
+    if (PL011_UARTPID2_VER (MmioRead32 (UartBase + UARTPID2)) > PL011_VER_R1P4)
+      *ReceiveFifoDepth = 32;
+    else
+      *ReceiveFifoDepth = 16;
   } else {
     // Disable FIFO
     LineControl = 0;
@@ -456,8 +455,9 @@ PL011UartRead (
 /**
   Check to see if any data is available to be read from the debug device.
 
-  @retval TRUE       At least one byte of data is available to be read
-  @retval FALSE      No data is available to be read
+  @retval EFI_SUCCESS       At least one byte of data is available to be read
+  @retval EFI_NOT_READY     No data is available to be read
+  @retval EFI_DEVICE_ERROR  The serial device is not functioning properly
 
 **/
 BOOLEAN

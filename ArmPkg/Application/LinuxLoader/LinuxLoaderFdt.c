@@ -310,6 +310,7 @@ PrepareFdt (
     }
   }
 
+
   //
   // Setup Arm Mpcore Info if it is a multi-core or multi-cluster platforms.
   //

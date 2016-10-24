@@ -18,10 +18,272 @@
 #include <Library/PerformanceLib.h>
 
 #include <Protocol/Bds.h>
+#include <Protocol/BlockIo.h>
+#include <Protocol/SimpleFileSystem.h>
+#include <Protocol/I2cMaster.h>
 
 #include <Guid/EventGroup.h>
+#include <Include/I2c.h>
+#include <Library/LS2080aFileSystem.h>
+#include <Include/Library/FslDdr.h>
 
 #define EFI_SET_TIMER_TO_SECOND   10000000
+
+UINT32
+GetMediaId(
+  IN EFI_FILE_PROTOCOL        *This
+  )
+{
+  LS2080A_FILE_SYSTEM       *Instance;
+
+  Instance = CR(This, LS2080A_FILE_SYSTEM, FileIo,
+                LS2080A_FILE_SYSTEM_SIGNATURE);
+  return(Instance->BlockIo->Media->MediaId);
+}
+
+EFI_STATUS
+LS2080aTestBlockIoDevice (
+  VOID
+)
+{
+  EFI_STATUS Status;
+  UINTN Size, BufferSize = 0x20000, Index, Temp;
+  EFI_HANDLE *Handle;
+  EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *FsProtocol;
+  EFI_FILE_PROTOCOL *Fs, *File;
+  UINT8 SourceBuffer[BufferSize];
+  UINT8 DestinationBuffer[BufferSize];
+  UINT32 MediaId = 0;
+
+  Status = gBS->LocateHandleBuffer (ByProtocol,
+		&gEfiBlockIoProtocolGuid,
+		NULL, &Size, &Handle);
+
+  if (Size == 0)
+    return EFI_SUCCESS;
+
+  if (Status != EFI_SUCCESS) {
+	return Status;
+  }
+
+  for(Index = 0; Index < Size; Index++) {
+    Status = gBS->ConnectController (Handle[Index], NULL, NULL, FALSE);
+    if (Status != EFI_SUCCESS) {
+      return Status;
+    }
+
+    Status = gBS->HandleProtocol (Handle[Index],
+		&gEfiSimpleFileSystemProtocolGuid,
+		(VOID **)&FsProtocol);
+
+    if (Status != EFI_SUCCESS) {
+      gBS->FreePool(Handle);
+      return Status;
+    }
+
+    // Try to Open the volume and get root directory
+    Status = FsProtocol->OpenVolume (FsProtocol, &Fs);
+    if (Status != EFI_SUCCESS) {
+      gBS->FreePool(Handle);
+      return Status;
+    }
+
+    File = NULL;
+    Status = Fs->Open (Fs, &File, L"0x400000|0x1000", EFI_FILE_MODE_READ, 0);
+    if (Status != EFI_SUCCESS) {
+      gBS->FreePool(Handle);
+      return Status;
+    }
+
+    MediaId = GetMediaId(File);
+    if (MediaId == 0)
+      BufferSize = 0x20000;
+    else if (MediaId == SIGNATURE_32('m','m','c','o'))
+      goto Disconnect;
+    else
+      BufferSize = 4096;
+
+    for(Temp = 0; Temp < BufferSize; Temp++) {
+         if (Temp % 2 == 0)
+		 SourceBuffer[Temp] = 0x61;
+	 else
+		 SourceBuffer[Temp] = 0x52;
+    }
+
+    for(Temp = 0; Temp < BufferSize; Temp++) {
+         DestinationBuffer[Temp] = 0x00;
+    }
+
+    Status = File->Write (File, &BufferSize, (VOID*)SourceBuffer);
+    if (Status != EFI_SUCCESS) {
+        gBS->FreePool(Handle);
+         return Status;
+    }
+
+    Status = File->Read (File, &BufferSize, (VOID*)DestinationBuffer);
+    if (Status != EFI_SUCCESS) {
+        gBS->FreePool(Handle);
+         return Status;
+    }
+
+    for (Temp = 0; Temp < BufferSize; Temp++) {
+      if (SourceBuffer[Temp] != DestinationBuffer[Temp]) {
+    	 gBS->DisconnectController (Handle[Index], NULL, NULL);
+	 Status = EFI_COMPROMISED_DATA;
+        if (MediaId == SIGNATURE_32('d','s','p','i')) {
+	   DEBUG((EFI_D_ERROR, "Dspi Flash Test Result: FAIL, Error:'%r'\n",
+				Status));
+	   break;
+	 } else if (MediaId == SIGNATURE_32('n', 'a', 'n', 'd')) {
+	   DEBUG((EFI_D_ERROR, "Nand Flash Test Result: FAIL, Error:'%r'\n",
+				Status));
+	   break;
+	 } else if (MediaId == 0) {
+	   DEBUG((EFI_D_ERROR, "Nor Flash Test Result: FAIL, Error:'%r'\n",
+				Status));
+	   break;
+	 }
+      }
+    }
+
+    if (Temp == BufferSize) {
+      if (MediaId == SIGNATURE_32('d','s','p','i'))
+	 Print(L"Dspi Test Result: PASS\n");
+      else if (MediaId == SIGNATURE_32('n', 'a', 'n', 'd'))
+	 Print(L"Nand Test Result: PASS\n");
+      else if (MediaId == 0)
+	 Print(L"Nor Test Result: PASS\n");
+
+Disconnect:
+      Status = gBS->DisconnectController (Handle[Index], NULL, NULL);
+    }
+  }
+
+  gBS->FreePool(Handle);
+
+  return Status;
+}
+
+EFI_STATUS
+LS2080aTestI2c (
+  VOID
+)
+{
+  EFI_STATUS 			Status;
+  EFI_I2C_MASTER_PROTOCOL 	*I2c;
+  EFI_I2C_REQUEST_PACKET    *RequestPacket;
+  UINT8 Rbuf[6];
+//  UINT8 Wbuf[6] = {1, 2, 3, 4, 5};
+  UINTN BusFreq = I2C_SPEED;
+
+  Status = gBS->LocateProtocol (&gEfiI2cMasterProtocolGuid,
+		NULL,
+		(VOID **)&I2c);
+
+  if (EFI_ERROR (Status)) {
+    DEBUG((EFI_D_ERROR,"Failed to locate i2c protocol (Error '%r')\n", Status));
+    return Status;
+  }
+
+  /* Test I2c Set Bus Frequency Function */
+  Status = I2c->SetBusFrequency(I2c, &BusFreq);
+  if (EFI_ERROR (Status)) {
+    DEBUG((EFI_D_ERROR,"Failed to set i2c bus frequency (Error '%r')\n", Status));
+    return Status;
+  }
+#if 0
+  /* Test I2c reset Function */
+  Status = I2c->Reset(I2c);
+  if (EFI_ERROR (Status)) {
+    DEBUG((EFI_D_ERROR,"Failed to reset i2c bus(Error '%r')\n", Status));
+    return Status;
+  }
+#endif
+
+  /* Test I2c Read Function */
+  RequestPacket = (EFI_I2C_REQUEST_PACKET*)AllocatePool
+					(sizeof(EFI_I2C_REQUEST_PACKET));
+  RequestPacket->OperationCount = 1;
+  RequestPacket->Operation[0].Flags = I2C_READ_FLAG;
+  RequestPacket->Operation[0].LengthInBytes = 10;
+  RequestPacket->Operation[0].Buffer = Rbuf;
+
+  /* EEPROM0_ADDRESS */
+  Status = I2c->StartRequest (I2c, EEPROM0_ADDRESS, RequestPacket, NULL, NULL);
+
+  if (Status != EFI_SUCCESS) {
+    DEBUG((EFI_D_ERROR,"Failed to read eeprom on i2c bus Error '%r')\n",
+		Status));
+    FreePool(RequestPacket);
+    return Status;
+  }
+
+  DEBUG((EFI_D_RELEASE,"EEPROM0: 0x%x 0x%x 0x%x  0x%x  0x%x ",
+	Rbuf[0], Rbuf[1], Rbuf[2], Rbuf[3], Rbuf[4]));
+  DEBUG((EFI_D_RELEASE,"0x%x 0x%x 0x%x  0x%x  0x%x \n",
+	Rbuf[5], Rbuf[6], Rbuf[7], Rbuf[8], Rbuf[9]));
+
+#if 0
+  if (Rbuf[0] != 0x92 || Rbuf[1] != 0x10 || Rbuf[2] != 0xb ||
+      Rbuf[3] != 0x2 || Rbuf[4] != 0x2) {
+    DEBUG((EFI_D_ERROR,"Read data is invalid\n"));
+    FreePool(RequestPacket);
+    return EFI_COMPROMISED_DATA;
+  }
+  FreePool(RequestPacket);
+
+  /* Test I2c Write Function */
+  RequestPacket = (EFI_I2C_REQUEST_PACKET*)AllocatePool
+				(sizeof(EFI_I2C_OPERATION) +
+				 sizeof(EFI_I2C_REQUEST_PACKET));
+  RequestPacket->OperationCount = 2;
+
+  RequestPacket->Operation[0].Flags = 0x2;
+  RequestPacket->Operation[0].LengthInBytes = 5;
+  RequestPacket->Operation[0].Buffer = Wbuf;
+
+  RequestPacket->Operation[1].Flags = 0x1;
+  RequestPacket->Operation[1].LengthInBytes = 5;
+  RequestPacket->Operation[1].Buffer = Rbuf;
+
+  Status = I2c->StartRequest (I2c, 0x51, RequestPacket, NULL, NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG((EFI_D_ERROR, "Failed to W/R eeprom on i2c bus \
+    (Error '%r')\n", Status));
+    FreePool(RequestPacket);
+    return Status;
+  }
+
+  if (Rbuf[0] != Wbuf[0] || Rbuf[1] != Wbuf[1] || Rbuf[2] != Wbuf[2] ||
+      Rbuf[3] != Wbuf[3] || Rbuf[4] != Wbuf[4]) {
+    DEBUG((EFI_D_ERROR, "Read back data is not similar to written data\n"));
+    FreePool(RequestPacket);
+    return EFI_COMPROMISED_DATA;
+  }
+#endif
+  FreePool(RequestPacket);
+  return EFI_SUCCESS;
+}
+
+VOID LS2080aTestCode
+(
+  VOID
+)
+{
+#ifdef I2CTEST
+  EFI_STATUS Status;
+  Status = LS2080aTestI2c();
+  if(Status == EFI_SUCCESS)
+	Print(L"I2c Test Result: PASS\n");
+#endif
+
+#ifdef BLOCKIO
+  EFI_STATUS Status;
+  Status = LS2080aTestBlockIoDevice();
+  if (EFI_ERROR(Status))
+    DEBUG((EFI_D_ERROR, "BlockIoDevice Test FAILED, Error:'%r'\n", Status));
+#endif
+}
 
 STATIC
 EFI_STATUS
@@ -479,9 +741,6 @@ BdsEntry (
   Status = gBS->CalculateCrc32 ((VOID*)gST, gST->Hdr.HeaderSize, &gST->Hdr.CRC32);
   ASSERT_EFI_ERROR (Status);
 
-  // Now we need to setup the EFI System Table with information about the console devices.
-  InitializeConsole ();
-
   // If BootNext environment variable is defined then we just load it !
   BootNextSize = sizeof(UINT16);
   Status = GetGlobalEnvironmentVariable (L"BootNext", NULL, &BootNextSize, (VOID**)&BootNext);
@@ -521,12 +780,20 @@ BdsEntry (
   // If Boot Order does not exist then create a default entry
   DefineDefaultBootEntries ();
 
+  // Now we need to setup the EFI System Table with information about the console devices.
+  InitializeConsole ();
+
   //
   // Update the CRC32 in the EFI System Table header
   //
   gST->Hdr.CRC32 = 0;
   Status = gBS->CalculateCrc32 ((VOID*)gST, gST->Hdr.HeaderSize, &gST->Hdr.CRC32);
   ASSERT_EFI_ERROR (Status);
+
+DEBUG_CODE_BEGIN();
+	if(PcdGet32(PcdBootMode) == 0) //For now only for NOR boot
+		LS2080aTestCode();
+DEBUG_CODE_END();
 
   // Timer before initiating the default boot selection
   StartDefaultBootOnTimeout ();

@@ -17,6 +17,7 @@
 #include <Library/PcdLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/BdsLib.h>
+#include <LS2088aSocLib.h>
 
 #include <Protocol/DevicePath.h>
 
@@ -105,6 +106,13 @@ InstallFdt (
     Status = EFI_LOAD_ERROR;
     goto Error;
   }
+
+  /* fdt fixup for LS2080A */
+  FdtCpuSetup((VOID *)FdtBlobBase, FdtBlobSize);
+
+  /* Dump the fixed up fdt */
+  if (FeaturePcdGet(PcdEnableFdtDump))
+	  DebugDumpFdt((VOID *)FdtBlobBase);
 
   //
   // Store the FDT as Runtime Service Data to prevent the Kernel from

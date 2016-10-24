@@ -28,6 +28,7 @@
 
 **/
 EFI_STATUS
+EFIAPI
 ConnectAllEfi (
   VOID
   )
@@ -73,6 +74,7 @@ ConnectAllEfi (
   @retval EFI_OUT_OF_RESOURCES  there was insufficient memory
 **/
 EFI_STATUS
+EFIAPI
 LoadDriver(
   IN CONST CHAR16   *FileName,
   IN CONST BOOLEAN  Connect

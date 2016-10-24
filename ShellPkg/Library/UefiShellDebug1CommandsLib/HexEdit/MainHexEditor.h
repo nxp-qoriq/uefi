@@ -68,6 +68,7 @@ HMainEditorKeyInput (
   Backup function for MainEditor.
 **/
 VOID
+EFIAPI
 HMainEditorBackup (
   VOID
   );

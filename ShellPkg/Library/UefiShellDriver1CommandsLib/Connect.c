@@ -113,6 +113,7 @@ ShellConnectPciRootBridge (
   @retval EFI_SUCCESS             The operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 ConnectControllers (
   IN CONST EFI_HANDLE ControllerHandle OPTIONAL,
   IN CONST EFI_HANDLE DriverHandle OPTIONAL,
@@ -193,6 +194,7 @@ ConnectControllers (
   @retval EFI_SUCCESS   The operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 ShellConnectFromDevPaths (
   IN CONST CHAR16 *Key
   )
@@ -351,6 +353,7 @@ ShellConnectFromDevPaths (
   @retval EFI_SUCCESS           The operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 ConvertAndConnectControllers (
   IN EFI_HANDLE     *Handle1 OPTIONAL,
   IN EFI_HANDLE     *Handle2 OPTIONAL,

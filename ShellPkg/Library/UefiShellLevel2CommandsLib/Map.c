@@ -34,6 +34,7 @@
   @retval FALSE           String has at least one other character.
 **/
 BOOLEAN
+EFIAPI
 IsNumberLetterOnly(
   IN CONST CHAR16 *String,
   IN CONST UINTN  Len
@@ -64,6 +65,7 @@ IsNumberLetterOnly(
                           items (";" normally). 
 **/
 BOOLEAN
+EFIAPI
 SearchList(
   IN CONST CHAR16   *List,
   IN CONST CHAR16   *MetaTarget,
@@ -131,6 +133,7 @@ SearchList(
   @retval STR_MAP_MEDIA_FLOPPY    The media is a floppy drive.
 **/
 CHAR16*
+EFIAPI
 GetDeviceMediaType (
   IN  EFI_DEVICE_PATH_PROTOCOL     *DevicePath
   )
@@ -176,6 +179,7 @@ GetDeviceMediaType (
   @retval FALSE                     The handle does not have removable storage.
 **/
 BOOLEAN
+EFIAPI
 IsRemoveableDevice (
   IN EFI_DEVICE_PATH_PROTOCOL      *DevicePath
   )
@@ -212,6 +216,7 @@ IsRemoveableDevice (
   @retval FALSE               The map should not be displayed.
 **/
 BOOLEAN
+EFIAPI
 MappingListHasType(
   IN CONST CHAR16     *MapList,
   IN CONST CHAR16     *Specific,
@@ -282,6 +287,7 @@ MappingListHasType(
   @retval EFI_SUCCESS               The mapping was displayed.
 **/
 EFI_STATUS
+EFIAPI
 PerformSingleMappingDisplay(
   IN CONST BOOLEAN    Verbose,
   IN CONST BOOLEAN    Consist,
@@ -455,6 +461,7 @@ PerformSingleMappingDisplay(
   @retval EFI_NOT_FOUND   Name was not a map on Handle.
 **/
 EFI_STATUS
+EFIAPI
 PerformSingleMappingDelete(
   IN CONST CHAR16     *Specific,
   IN CONST EFI_HANDLE Handle
@@ -505,6 +512,7 @@ CONST CHAR16 AnyF[] = L"F*";
 
 **/
 SHELL_STATUS
+EFIAPI
 PerformMappingDisplay(
   IN CONST BOOLEAN Verbose,
   IN CONST BOOLEAN Consist,
@@ -682,6 +690,7 @@ PerformMappingDisplay(
   @sa PerformMappingDisplay
 **/
 SHELL_STATUS
+EFIAPI
 PerformMappingDisplay2(
   IN CONST BOOLEAN Verbose,
   IN CONST BOOLEAN Consist,
@@ -734,6 +743,7 @@ PerformMappingDisplay2(
   @retval EFI_NOT_FOUND             Specific could not be found.
 **/
 EFI_STATUS
+EFIAPI
 PerformMappingDelete(
   IN CONST CHAR16  *Specific
   )
@@ -864,6 +874,7 @@ PerformMappingDelete(
 
 **/
 SHELL_STATUS
+EFIAPI
 AddMappingFromMapping(
   IN CONST CHAR16     *Map,
   IN CONST CHAR16     *SName
@@ -920,6 +931,7 @@ AddMappingFromMapping(
 
 **/
 SHELL_STATUS
+EFIAPI
 AddMappingFromHandle(
   IN CONST EFI_HANDLE Handle,
   IN CONST CHAR16     *SName

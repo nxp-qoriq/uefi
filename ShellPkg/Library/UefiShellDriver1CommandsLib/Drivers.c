@@ -33,6 +33,7 @@ STATIC CONST SHELL_PARAM_ITEM ParamList[] = {
                   free this memory.
 **/
 CHAR16*
+EFIAPI
 GetDevicePathTextForHandle(
   IN EFI_HANDLE TheHandle
   )
@@ -97,6 +98,7 @@ GetDevicePathTextForHandle(
   @retval FALSE             The driver does not have Driver Configuration.
 **/
 BOOLEAN
+EFIAPI
 ReturnDriverConfig(
   IN CONST EFI_HANDLE TheHandle
   )
@@ -118,6 +120,7 @@ ReturnDriverConfig(
   @retval FALSE             The driver does not have Driver Diagnostics.
 **/
 BOOLEAN
+EFIAPI
 ReturnDriverDiag(
   IN CONST EFI_HANDLE TheHandle
   )
@@ -142,6 +145,7 @@ ReturnDriverDiag(
   @retval 0xFFFFFFFF  An error ocurred.
 **/
 UINT32
+EFIAPI
 ReturnDriverVersion(
   IN CONST EFI_HANDLE TheHandle
   )

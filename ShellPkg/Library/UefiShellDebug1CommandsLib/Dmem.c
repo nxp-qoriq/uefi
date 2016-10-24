@@ -31,6 +31,7 @@
   @return A printable character representing Char.
 **/
 CHAR16
+EFIAPI
 MakePrintable(
   IN CONST CHAR16 Char
   )
@@ -48,6 +49,7 @@ MakePrintable(
   @param[in] Size       The length of memory to display.
 **/
 SHELL_STATUS
+EFIAPI
 DisplayMmioMemory(
   IN CONST VOID   *Address,
   IN CONST UINTN  Size

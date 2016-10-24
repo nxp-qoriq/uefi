@@ -63,6 +63,7 @@ SHELL_MAN_HII_VENDOR_DEVICE_PATH  mShellManHiiDevicePath = {
 
 **/
 CHAR16
+EFIAPI 
 InternalShellCharToUpper (
   IN CHAR16  Char
   );
@@ -78,6 +79,7 @@ InternalShellCharToUpper (
   @return                          the new filename with .efi as the extension.
 **/
 CHAR16 *
+EFIAPI
 GetExecuatableFileName (
   IN CONST CHAR16    *NameString
   )
@@ -130,6 +132,7 @@ GetExecuatableFileName (
   @return the new filename with .man as the extension.
 **/
 CHAR16 *
+EFIAPI
 GetManFileName(
   IN CONST CHAR16 *ManFileName
   )
@@ -176,6 +179,7 @@ GetManFileName(
   @retval EFI_NOT_FOUND         The file was not found.
 **/
 EFI_STATUS
+EFIAPI
 SearchPathForFile(
   IN CONST CHAR16             *FileName,
   OUT SHELL_FILE_HANDLE       *Handle
@@ -223,6 +227,7 @@ SearchPathForFile(
                                 an alloceted buffer.
 **/
 EFI_STATUS
+EFIAPI
 ManBufferFindSections(
   IN CONST CHAR16 *Buffer,
   IN CONST CHAR16 *Sections,
@@ -356,6 +361,7 @@ ManBufferFindSections(
                                 an alloceted buffer.
 **/
 EFI_STATUS
+EFIAPI
 ManFileFindSections(
   IN SHELL_FILE_HANDLE  Handle,
   IN CONST CHAR16       *Sections,
@@ -469,6 +475,7 @@ ManFileFindSections(
                                 an alloceted buffer.
 **/
 EFI_STATUS
+EFIAPI
 ManBufferFindTitleSection(
   IN CHAR16         **Buffer,
   IN CONST CHAR16   *Command,
@@ -705,6 +712,7 @@ IsTitleHeader(
                                 an allocated buffer if requested.
 **/
 EFI_STATUS
+EFIAPI
 ManFileFindTitleSection(
   IN SHELL_FILE_HANDLE  Handle,
   IN CONST CHAR16       *Command,
@@ -797,6 +805,7 @@ ManFileFindTitleSection(
   @retval EFI_NOT_FOUND         There is no help text available for Command.
 **/
 EFI_STATUS
+EFIAPI
 ProcessManFile(
   IN CONST CHAR16 *ManFileName,
   IN CONST CHAR16 *Command,

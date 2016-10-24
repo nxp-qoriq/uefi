@@ -27,6 +27,7 @@
   @retval SHELL_SUCCESS     The operation was sucessful.
 **/
 SHELL_STATUS
+EFIAPI
 HandleVol(
   IN CONST CHAR16  *Path,
   IN CONST BOOLEAN Delete,

@@ -80,6 +80,7 @@ CONST CHAR16 mNoNestingFalse[]              = L"False";
   @param[in] String pointer to the string to trim them off.
 **/
 EFI_STATUS
+EFIAPI
 TrimSpaces(
   IN CHAR16 **String
   )
@@ -112,6 +113,7 @@ TrimSpaces(
   @param[in] CheckForEscapeCharacter  TRUE to skip escaped instances of FinfString, otherwise will return even escaped instances
 **/
 CHAR16*
+EFIAPI
 FindNextInstance(
   IN CONST CHAR16   *SourceString,
   IN CONST CHAR16   *FindString,
@@ -200,6 +202,7 @@ IsValidEnvironmentVariableName(
   @retval FALSE           CmdLine does not have a valid split.
 **/
 BOOLEAN
+EFIAPI
 ContainsSplit(
   IN CONST CHAR16 *CmdLine
   )
@@ -249,6 +252,7 @@ ContainsSplit(
   @retval EFI_OUT_OF_RESOURCES  There is not enough memory available.
 **/
 EFI_STATUS
+EFIAPI
 InternalEfiShellStartCtrlSMonitor(
   VOID
   )
@@ -725,6 +729,7 @@ FreeResources:
   @retval EFI_SUCCESS           all init commands were run successfully.
 **/
 EFI_STATUS
+EFIAPI
 SetBuiltInAlias(
   )
 {
@@ -763,6 +768,7 @@ SetBuiltInAlias(
   @retval FALSE             The 2 command names are not the same.
 **/
 BOOLEAN
+EFIAPI
 IsCommand(
   IN CONST CHAR16 *Command1,
   IN CONST CHAR16 *Command2
@@ -783,6 +789,7 @@ IsCommand(
   @retval FALSE             The command is not a script only command.
 **/
 BOOLEAN
+EFIAPI
 IsScriptOnlyCommand(
   IN CONST CHAR16 *CommandName
   )
@@ -813,6 +820,7 @@ IsScriptOnlyCommand(
   @sa HandleProtocol
 **/
 EFI_STATUS
+EFIAPI
 GetDevicePathsForImageAndFile (
   IN OUT EFI_DEVICE_PATH_PROTOCOL **DevPath,
   IN OUT EFI_DEVICE_PATH_PROTOCOL **FilePath
@@ -888,6 +896,7 @@ GetDevicePathsForImageAndFile (
   @retval EFI_SUCCESS           The variable is initialized.
 **/
 EFI_STATUS
+EFIAPI
 ProcessCommandLine(
   VOID
   )
@@ -1094,6 +1103,7 @@ ProcessCommandLine(
   @retval EFI_SUCCESS           the variable is initialized.
 **/
 EFI_STATUS
+EFIAPI
 DoStartupScript(
   IN EFI_DEVICE_PATH_PROTOCOL *ImagePath,
   IN EFI_DEVICE_PATH_PROTOCOL *FilePath
@@ -1241,6 +1251,7 @@ DoStartupScript(
   @retval RETURN_ABORTED
 **/
 EFI_STATUS
+EFIAPI
 DoShellPrompt (
   VOID
   )
@@ -1307,6 +1318,7 @@ DoShellPrompt (
   @param Buffer   Something to pass to FreePool when the shell is exiting.
 **/
 VOID*
+EFIAPI
 AddBufferToFreeList (
   VOID *Buffer
   )
@@ -1363,6 +1375,7 @@ RestoreBufferList (
   @param Buffer     The line buffer to add.
 **/
 VOID
+EFIAPI
 AddLineToCommandHistory(
   IN CONST CHAR16 *Buffer
   )
@@ -1424,6 +1437,7 @@ AddLineToCommandHistory(
   @retval EFI_OUT_OF_RESOURCES    A memory allocation failed.
 **/
 EFI_STATUS
+EFIAPI
 ShellConvertAlias(
   IN OUT CHAR16 **CommandString
   )
@@ -1448,6 +1462,7 @@ ShellConvertAlias(
   @param[in,out] CmdLine   The command line to update.
 **/
 EFI_STATUS
+EFIAPI
 StripUnreplacedEnvironmentVariables(
   IN OUT CHAR16 *CmdLine
   )
@@ -1520,6 +1535,7 @@ StripUnreplacedEnvironmentVariables(
   @return                           The new command line with no environment variables present.
 **/
 CHAR16*
+EFIAPI
 ShellConvertVariables (
   IN CONST CHAR16 *OriginalCommandLine
   )
@@ -1655,6 +1671,7 @@ ShellConvertVariables (
   @retval other             Some error occurs when executing the split command.
 **/
 EFI_STATUS
+EFIAPI
 RunSplitCommand(
   IN CONST CHAR16             *CmdLine,
   IN       SHELL_FILE_HANDLE  *StdIn,
@@ -1773,6 +1790,7 @@ RunSplitCommand(
   @retval EFI_OUT_OF_RESOURCES  a memory allocation failed.
 **/
 EFI_STATUS
+EFIAPI
 ShellSubstituteVariables(
   IN CHAR16 **CmdLine
   )
@@ -1797,6 +1815,7 @@ ShellSubstituteVariables(
   @retval EFI_OUT_OF_RESOURCES  a memory allocation failed.
 **/
 EFI_STATUS
+EFIAPI
 ShellSubstituteAliases(
   IN CHAR16 **CmdLine
   )
@@ -1868,6 +1887,7 @@ ShellSubstituteAliases(
   @retval Efi_Application     the name is an application (.EFI).
 **/
 SHELL_OPERATION_TYPES
+EFIAPI
 GetOperationType(
   IN CONST CHAR16 *CmdName
   )
@@ -1936,6 +1956,7 @@ GetOperationType(
   @retval EFI_NOT_FOUND         The operation type is unknown or invalid.
 **/
 EFI_STATUS 
+EFIAPI
 IsValidSplit(
   IN CONST CHAR16 *CmdLine
   )
@@ -1994,6 +2015,7 @@ IsValidSplit(
   @retval EFI_ABORTED     CmdLine has at least one invalid command or application.
 **/
 EFI_STATUS
+EFIAPI
 VerifySplit(
   IN CONST CHAR16 *CmdLine
   )
@@ -2039,6 +2061,7 @@ VerifySplit(
   @return               an error occurred.
 **/
 EFI_STATUS
+EFIAPI
 ProcessNewSplitCommandLine(
   IN CONST CHAR16 *CmdLine
   )
@@ -2079,6 +2102,7 @@ ProcessNewSplitCommandLine(
   @retval EFI_SUCCESS The operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 ChangeMappedDrive(
   IN CONST CHAR16 *CmdLine
   )
@@ -2114,6 +2138,7 @@ ChangeMappedDrive(
   @param[in,out] CmdLine        pointer to the command line to update
 **/
 EFI_STATUS
+EFIAPI
 DoHelpUpdate(
   IN OUT CHAR16 **CmdLine
   )
@@ -2167,6 +2192,7 @@ DoHelpUpdate(
   @param[in] ErrorCode      the error code to put into lasterror.
 **/
 EFI_STATUS
+EFIAPI
 SetLastError(
   IN CONST SHELL_STATUS   ErrorCode
   )
@@ -2193,6 +2219,7 @@ SetLastError(
   @return                       some other error occurred
 **/
 EFI_STATUS
+EFIAPI
 ProcessCommandLineToFinal(
   IN OUT CHAR16 **CmdLine
   )
@@ -2245,6 +2272,7 @@ ProcessCommandLineToFinal(
   @retval EFI_ABORTED     The command's operation was aborted.
 **/
 EFI_STATUS
+EFIAPI
 RunInternalCommand(
   IN CONST CHAR16                   *CmdLine,
   IN       CHAR16                   *FirstParameter,
@@ -2357,6 +2385,7 @@ RunInternalCommand(
   @retval EFI_ABORTED     The command's operation was aborted.
 **/
 EFI_STATUS
+EFIAPI
 RunCommandOrFile(
   IN       SHELL_OPERATION_TYPES    Type,
   IN CONST CHAR16                   *CmdLine,
@@ -2486,6 +2515,7 @@ RunCommandOrFile(
   @retval EFI_ABORTED     The command's operation was aborted.
 **/
 EFI_STATUS
+EFIAPI
 SetupAndRunCommandOrFile(
   IN   SHELL_OPERATION_TYPES          Type,
   IN   CHAR16                         *CmdLine,
@@ -2548,6 +2578,7 @@ SetupAndRunCommandOrFile(
   @retval EFI_ABORTED     The command's operation was aborted.
 **/
 EFI_STATUS
+EFIAPI
 RunShellCommand(
   IN CONST CHAR16   *CmdLine,
   OUT EFI_STATUS    *CommandStatus
@@ -2668,6 +2699,7 @@ RunShellCommand(
   @retval EFI_ABORTED     The command's operation was aborted.
 **/
 EFI_STATUS
+EFIAPI
 RunCommand(
   IN CONST CHAR16   *CmdLine
   )
@@ -2687,6 +2719,7 @@ STATIC CONST UINT16 InvalidChars[] = {L'*', L'?', L'<', L'>', L'\\', L'/', L'\"'
   @retval FALSE             CommandName could not be a valid command name
 **/
 BOOLEAN
+EFIAPI
 IsValidCommandName(
   IN CONST CHAR16     *CommandName
   )
@@ -2716,6 +2749,7 @@ IsValidCommandName(
   @retval EFI_SUCCESS           the script completed successfully
 **/
 EFI_STATUS
+EFIAPI
 RunScriptFileHandle (
   IN SHELL_FILE_HANDLE  Handle,
   IN CONST CHAR16       *Name
@@ -3033,6 +3067,7 @@ RunScriptFileHandle (
   @retval EFI_SUCCESS           the script completed successfully
 **/
 EFI_STATUS
+EFIAPI
 RunScriptFile (
   IN CONST CHAR16                   *ScriptPath,
   IN SHELL_FILE_HANDLE              Handle OPTIONAL,
@@ -3096,6 +3131,7 @@ RunScriptFile (
   @retval CHAR_NULL no instance of any character in CharacterList was found in String
 **/
 CONST CHAR16*
+EFIAPI
 FindFirstCharacter(
   IN CONST CHAR16 *String,
   IN CONST CHAR16 *CharacterList,

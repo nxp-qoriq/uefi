@@ -42,6 +42,7 @@ typedef struct {
   @retval The attribute string info.
 **/
 CHAR16 *
+EFIAPI
 GetAttrType (
   IN CONST UINT32 Atts
   )
@@ -366,6 +367,7 @@ AppendSingleVariableToFile (
   @retval SHELL_NOT_FOUND         the Name/Guid pair could not be found.
 **/
 SHELL_STATUS
+EFIAPI
 CascadeProcessVariables (
   IN CONST CHAR16      *Name        OPTIONAL,
   IN CONST EFI_GUID    *Guid        OPTIONAL,
@@ -535,6 +537,7 @@ CascadeProcessVariables (
   @retval SHELL_NOT_FOUND         the Name/Guid pair could not be found.
 **/
 SHELL_STATUS
+EFIAPI
 ProcessVariables (
   IN CONST CHAR16      *Name      OPTIONAL,
   IN CONST EFI_GUID    *Guid      OPTIONAL,

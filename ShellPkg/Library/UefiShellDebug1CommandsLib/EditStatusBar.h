@@ -23,6 +23,7 @@
   @sa StatusBarSetStatusString
 **/
 EFI_STATUS
+EFIAPI
 StatusBarInit (
   VOID
   );
@@ -31,6 +32,7 @@ StatusBarInit (
   Cleanup function for the status bar.
 **/
 VOID
+EFIAPI
 StatusBarCleanup (
   VOID
   );
@@ -49,6 +51,7 @@ StatusBarCleanup (
   @retval EFI_SUCCESS         The operation was successful.
 **/
 EFI_STATUS
+EFIAPI
 StatusBarRefresh (
   IN BOOLEAN  EditorFirst,
   IN UINTN    LastRow,
@@ -67,6 +70,7 @@ StatusBarRefresh (
   @retval EFI_OUT_OF_RESOURCES  A memory allocation failed.
 **/
 EFI_STATUS
+EFIAPI
 StatusBarSetStatusString (
   IN CHAR16 *Str
   );
@@ -77,6 +81,7 @@ StatusBarSetStatusString (
   @return The string that is used.
 **/
 CONST CHAR16*
+EFIAPI
 StatusBarGetString (
   VOID
   );
@@ -85,6 +90,7 @@ StatusBarGetString (
   Function to set the need refresh boolean to TRUE.
 **/
 VOID
+EFIAPI
 StatusBarSetRefresh(
   VOID
   );
@@ -95,6 +101,7 @@ StatusBarSetRefresh(
   @retval TRUE    The status bar needs to be refreshed.
 **/
 BOOLEAN
+EFIAPI
 StatusBarGetRefresh(
   VOID
   );

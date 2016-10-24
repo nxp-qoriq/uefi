@@ -1772,7 +1772,7 @@ PathRemoveLastItem(
 
   @param[in] Path       The pointer to the string containing the path.
 
-  @return       Returns Path, otherwise returns NULL to indicate that an error has occurred.
+  @return       Returns Path, otherwise returns NULL to indicate that an error has occured.
 **/
 CHAR16*
 EFIAPI

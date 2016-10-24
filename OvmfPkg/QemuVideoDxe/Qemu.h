@@ -1,7 +1,7 @@
 /** @file
   QEMU Video Controller Driver
 
-  Copyright (c) 2006 - 2016, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2006 - 2010, Intel Corporation. All rights reserved.<BR>
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -35,10 +35,8 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/TimerLib.h>
-#include <Library/FrameBufferBltLib.h>
 
 #include <IndustryStandard/Pci.h>
-#include <IndustryStandard/Acpi.h>
 
 //
 // QEMU Video PCI Configuration Header values
@@ -56,6 +54,7 @@ typedef struct {
   UINT32  HorizontalResolution;
   UINT32  VerticalResolution;
   UINT32  ColorDepth;
+  UINT32  RefreshRate;
 } QEMU_VIDEO_MODE_DATA;
 
 #define PIXEL_RED_SHIFT   0
@@ -110,15 +109,16 @@ typedef struct {
   EFI_DEVICE_PATH_PROTOCOL              *GopDevicePath;
 
   //
-  // The next two fields match the client-visible
-  // EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE.MaxMode field.
+  // The next three fields match the client-visible
+  // EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE.Mode and
+  // EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE.MaxMode fields.
   //
+  UINTN                                 CurrentMode;
   UINTN                                 MaxMode;
   QEMU_VIDEO_MODE_DATA                  *ModeData;
 
+  UINT8                                 *LineBuffer;
   QEMU_VIDEO_VARIANT                    Variant;
-  FRAME_BUFFER_CONFIGURE                *FrameBufferBltConfigure;
-  UINTN                                 FrameBufferBltConfigureSize;
 } QEMU_VIDEO_PRIVATE_DATA;
 
 ///
@@ -128,6 +128,7 @@ typedef struct {
   UINT32  Width;
   UINT32  Height;
   UINT32  ColorDepth;
+  UINT32  RefreshRate;
   UINT8   *CrtcSettings;
   UINT16  *SeqSettings;
   UINT8   MiscSetting;

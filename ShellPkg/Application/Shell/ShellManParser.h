@@ -45,6 +45,7 @@
   @retval EFI_NOT_FOUND         There is no help text available for Command.
 **/
 EFI_STATUS
+EFIAPI
 ProcessManFile(
   IN CONST CHAR16 *ManFileName,
   IN CONST CHAR16 *Command,
@@ -72,6 +73,7 @@ ProcessManFile(
                                 an alloceted buffer.
 **/
 EFI_STATUS
+EFIAPI
 ManFileFindSections(
   IN SHELL_FILE_HANDLE  Handle,
   IN CONST CHAR16       *Sections,

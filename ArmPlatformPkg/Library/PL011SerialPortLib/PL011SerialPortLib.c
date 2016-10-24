@@ -23,12 +23,14 @@
 
 #include <Drivers/PL011Uart.h>
 
-/** Initialise the serial device hardware with default settings.
 
-  @retval RETURN_SUCCESS            The serial device was initialised.
-  @retval RETURN_INVALID_PARAMETER  One or more of the default settings
-                                    has an unsupported value.
- **/
+/**
+
+  Programmed hardware of Serial port.
+
+  @return    Always return RETURN_UNSUPPORTED.
+
+**/
 RETURN_STATUS
 EFIAPI
 SerialPortInitialize (
@@ -41,7 +43,7 @@ SerialPortInitialize (
   UINT8               DataBits;
   EFI_STOP_BITS_TYPE  StopBits;
 
-  BaudRate = FixedPcdGet64 (PcdUartDefaultBaudRate);
+  BaudRate = (UINTN)FixedPcdGet64 (PcdUartDefaultBaudRate);
   ReceiveFifoDepth = 0;         // Use default FIFO depth
   Parity = (EFI_PARITY_TYPE)FixedPcdGet8 (PcdUartDefaultParity);
   DataBits = FixedPcdGet8 (PcdUartDefaultDataBits);
@@ -101,8 +103,9 @@ SerialPortRead (
 /**
   Check to see if any data is available to be read from the debug device.
 
-  @retval TRUE       At least one byte of data is available to be read
-  @retval FALSE      No data is available to be read
+  @retval EFI_SUCCESS       At least one byte of data is available to be read
+  @retval EFI_NOT_READY     No data is available to be read
+  @retval EFI_DEVICE_ERROR  The serial device is not functioning properly
 
 **/
 BOOLEAN

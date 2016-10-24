@@ -444,193 +444,6 @@ BmmExtractDevicePathFromHiiHandle (
 }
 
 /**
-  Converts the unicode character of the string from uppercase to lowercase.
-  This is a internal function.
-
-  @param ConfigString  String to be converted
-
-**/
-VOID
-HiiToLower (
-  IN EFI_STRING  ConfigString
-  )
-{
-  EFI_STRING  String;
-  BOOLEAN     Lower;
-
-  ASSERT (ConfigString != NULL);
-
-  //
-  // Convert all hex digits in range [A-F] in the configuration header to [a-f]
-  //
-  for (String = ConfigString, Lower = FALSE; *String != L'\0'; String++) {
-    if (*String == L'=') {
-      Lower = TRUE;
-    } else if (*String == L'&') {
-      Lower = FALSE;
-    } else if (Lower && *String >= L'A' && *String <= L'F') {
-      *String = (CHAR16) (*String - L'A' + L'a');
-    }
-  }
-}
-
-/**
-  Update the progress string through the offset value.
-
-  @param Offset           The offset value
-  @param Configuration    Point to the configuration string.
-
-**/
-EFI_STRING
-UpdateProgress(
-  IN  UINTN       Offset,
-  IN  EFI_STRING  Configuration
-)
-{
-  UINTN       Length;
-  EFI_STRING  StringPtr;
-  EFI_STRING  ReturnString;
-
-  StringPtr    = NULL;
-  ReturnString = NULL;
-
-  //
-  // &OFFSET=XXXX followed by a Null-terminator.
-  // Length = StrLen (L"&OFFSET=") + 4 + 1
-  //
-  Length    = StrLen (L"&OFFSET=") + 4 + 1;
-
-  StringPtr = AllocateZeroPool (Length * sizeof (CHAR16));
-
-  if (StringPtr == NULL) {
-    return  NULL;
-  }
-
-  UnicodeSPrint (
-    StringPtr,
-    (8 + 4 + 1) * sizeof (CHAR16),
-    L"&OFFSET=%04x",
-    Offset
-    );
-
-  ReturnString = StrStr (Configuration, StringPtr);
-
-  if (ReturnString == NULL) {
-    //
-    // If doesn't find the string in Configuration, convert the string to lower case then search again.
-    //
-    HiiToLower (StringPtr);
-    ReturnString = StrStr (Configuration, StringPtr);
-  }
-
-  FreePool (StringPtr);
-
-  return ReturnString;
-}
-
-/**
-  Update the terminal content in TerminalMenu.
-
-  @param BmmData           The BMM fake NV data.
-
-**/
-VOID
-UpdateTerminalContent (
-  IN BMM_FAKE_NV_DATA       *BmmData
-  )
-{
-  UINT16                          Index;
-  BM_TERMINAL_CONTEXT             *NewTerminalContext;
-  BM_MENU_ENTRY                   *NewMenuEntry;
-
-  for (Index = 0; Index < TerminalMenu.MenuNumber; Index++) {
-    NewMenuEntry = BOpt_GetMenuEntry (&TerminalMenu, Index);
-    ASSERT (NewMenuEntry != NULL);
-    NewTerminalContext = (BM_TERMINAL_CONTEXT *) NewMenuEntry->VariableContext;
-    NewTerminalContext->BaudRateIndex = BmmData->COMBaudRate[Index];
-    ASSERT (BmmData->COMBaudRate[Index] < (sizeof (BaudRateList) / sizeof (BaudRateList[0])));
-    NewTerminalContext->BaudRate      = BaudRateList[BmmData->COMBaudRate[Index]].Value;
-    NewTerminalContext->DataBitsIndex = BmmData->COMDataRate[Index];
-    ASSERT (BmmData->COMDataRate[Index] < (sizeof (DataBitsList) / sizeof (DataBitsList[0])));
-    NewTerminalContext->DataBits      = (UINT8) DataBitsList[BmmData->COMDataRate[Index]].Value;
-    NewTerminalContext->StopBitsIndex = BmmData->COMStopBits[Index];
-    ASSERT (BmmData->COMStopBits[Index] < (sizeof (StopBitsList) / sizeof (StopBitsList[0])));
-    NewTerminalContext->StopBits      = (UINT8) StopBitsList[BmmData->COMStopBits[Index]].Value;
-    NewTerminalContext->ParityIndex   = BmmData->COMParity[Index];
-    ASSERT (BmmData->COMParity[Index] < (sizeof (ParityList) / sizeof (ParityList[0])));
-    NewTerminalContext->Parity        = (UINT8) ParityList[BmmData->COMParity[Index]].Value;
-    NewTerminalContext->TerminalType  = BmmData->COMTerminalType[Index];
-    NewTerminalContext->FlowControl   = BmmData->COMFlowControl[Index];
-    ChangeTerminalDevicePath (
-      NewTerminalContext->DevicePath,
-      FALSE
-      );
-  }
-}
-
-/**
-  Update the console content in ConsoleMenu.
-
-  @param BmmData           The BMM fake NV data.
-
-**/
-VOID
-UpdateConsoleContent(
-  IN CHAR16                 *ConsoleName,
-  IN BMM_FAKE_NV_DATA       *BmmData
-  )
-{
-  UINT16                          Index;
-  BM_CONSOLE_CONTEXT              *NewConsoleContext;
-  BM_TERMINAL_CONTEXT             *NewTerminalContext;
-  BM_MENU_ENTRY                   *NewMenuEntry;
-
-  if (StrCmp (ConsoleName, L"ConIn") == 0) {
-    for (Index = 0; Index < ConsoleInpMenu.MenuNumber; Index++){
-      NewMenuEntry                = BOpt_GetMenuEntry(&ConsoleInpMenu, Index);
-      NewConsoleContext           = (BM_CONSOLE_CONTEXT *)NewMenuEntry->VariableContext;
-      ASSERT (Index < MAX_MENU_NUMBER);
-      NewConsoleContext->IsActive = BmmData->ConsoleInCheck[Index];
-    }
-    for (Index = 0; Index < TerminalMenu.MenuNumber; Index++) {
-      NewMenuEntry                = BOpt_GetMenuEntry (&TerminalMenu, Index);
-      NewTerminalContext          = (BM_TERMINAL_CONTEXT *) NewMenuEntry->VariableContext;
-      ASSERT (Index + ConsoleInpMenu.MenuNumber < MAX_MENU_NUMBER);
-      NewTerminalContext->IsConIn = BmmData->ConsoleInCheck[Index + ConsoleInpMenu.MenuNumber];
-    }
-  }
-
-  if (StrCmp (ConsoleName, L"ConOut") == 0) {
-    for (Index = 0; Index < ConsoleOutMenu.MenuNumber; Index++){
-      NewMenuEntry                = BOpt_GetMenuEntry(&ConsoleOutMenu, Index);
-      NewConsoleContext           = (BM_CONSOLE_CONTEXT *)NewMenuEntry->VariableContext;
-      ASSERT (Index < MAX_MENU_NUMBER);
-      NewConsoleContext->IsActive = BmmData->ConsoleOutCheck[Index];
-    }
-    for (Index = 0; Index < TerminalMenu.MenuNumber; Index++) {
-      NewMenuEntry                = BOpt_GetMenuEntry (&TerminalMenu, Index);
-      NewTerminalContext          = (BM_TERMINAL_CONTEXT *) NewMenuEntry->VariableContext;
-      ASSERT (Index + ConsoleOutMenu.MenuNumber < MAX_MENU_NUMBER);
-      NewTerminalContext->IsConOut = BmmData->ConsoleOutCheck[Index + ConsoleOutMenu.MenuNumber];
-    }
-  }
-  if (StrCmp (ConsoleName, L"ErrOut") == 0) {
-    for (Index = 0; Index < ConsoleErrMenu.MenuNumber; Index++){
-      NewMenuEntry                = BOpt_GetMenuEntry(&ConsoleErrMenu, Index);
-      NewConsoleContext           = (BM_CONSOLE_CONTEXT *)NewMenuEntry->VariableContext;
-      ASSERT (Index < MAX_MENU_NUMBER);
-      NewConsoleContext->IsActive = BmmData->ConsoleErrCheck[Index];
-    }
-    for (Index = 0; Index < TerminalMenu.MenuNumber; Index++) {
-      NewMenuEntry                = BOpt_GetMenuEntry (&TerminalMenu, Index);
-      NewTerminalContext          = (BM_TERMINAL_CONTEXT *) NewMenuEntry->VariableContext;
-      ASSERT (Index + ConsoleErrMenu.MenuNumber < MAX_MENU_NUMBER);
-      NewTerminalContext->IsStdErr = BmmData->ConsoleErrCheck[Index + ConsoleErrMenu.MenuNumber];
-    }
-  }
-}
-
-/**
   This function allows a caller to extract the current configuration for one
   or more named elements from the target driver.
 
@@ -776,12 +589,13 @@ BootMaintRouteConfig (
   EFI_HII_CONFIG_ROUTING_PROTOCOL *ConfigRouting;
   BMM_FAKE_NV_DATA                *NewBmmData;
   BMM_FAKE_NV_DATA                *OldBmmData;
+  BM_CONSOLE_CONTEXT              *NewConsoleContext;
+  BM_TERMINAL_CONTEXT             *NewTerminalContext;
   BM_MENU_ENTRY                   *NewMenuEntry;
   BM_LOAD_CONTEXT                 *NewLoadContext;
   UINT16                          Index;
   BOOLEAN                         TerminalAttChange;
-  BMM_CALLBACK_DATA               *Private;
-  UINTN                           Offset;
+  BMM_CALLBACK_DATA               *Private; 
 
   if (Progress == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -816,7 +630,6 @@ BootMaintRouteConfig (
   BufferSize = sizeof (BMM_FAKE_NV_DATA);
   OldBmmData = &Private->BmmOldFakeNVData;
   NewBmmData = &Private->BmmFakeNvData;
-  Offset     = 0;
   //
   // Convert <ConfigResp> to buffer data by helper function ConfigToBlock()
   //
@@ -838,10 +651,6 @@ BootMaintRouteConfig (
   //         
   if (CompareMem (&NewBmmData->BootNext, &OldBmmData->BootNext, sizeof (NewBmmData->BootNext)) != 0) {
     Status = Var_UpdateBootNext (Private);
-    if (EFI_ERROR (Status)) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, BootNext);
-      goto Exit;
-    }
   }
 
   //
@@ -858,19 +667,11 @@ BootMaintRouteConfig (
       NewBmmData->BootOptionDelMark[Index] = FALSE;
     }
 
-    Status = Var_DelBootOption ();
-    if (EFI_ERROR (Status)) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, BootOptionDel);
-      goto Exit;
-    }
+    Var_DelBootOption ();
   }
 
   if (CompareMem (NewBmmData->BootOptionOrder, OldBmmData->BootOptionOrder, sizeof (NewBmmData->BootOptionOrder)) != 0) {
     Status = Var_UpdateBootOrder (Private);
-    if (EFI_ERROR (Status)) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, BootOptionOrder);
-      goto Exit;
-    }
   }
 
   if (CompareMem (&NewBmmData->BootTimeOut, &OldBmmData->BootTimeOut, sizeof (NewBmmData->BootTimeOut)) != 0){
@@ -882,8 +683,15 @@ BootMaintRouteConfig (
                     &(NewBmmData->BootTimeOut)
                     );
     if (EFI_ERROR (Status)) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, BootTimeOut);
-      goto Exit;
+      //
+      // If set variable fail, and don't have the appropriate error status for RouteConfig fuction to return,
+      // just return the EFI_NOT_FOUND.
+      //
+      if (Status == EFI_OUT_OF_RESOURCES) {
+        return Status;
+      } else {
+        return EFI_NOT_FOUND;
+      }
     }
     Private->BmmOldFakeNVData.BootTimeOut = NewBmmData->BootTimeOut;
   }
@@ -901,27 +709,15 @@ BootMaintRouteConfig (
       NewBmmData->DriverOptionDel[Index] = FALSE;
       NewBmmData->DriverOptionDelMark[Index] = FALSE;
     }
-    Status = Var_DelDriverOption ();
-    if (EFI_ERROR (Status)) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, DriverOptionDel);
-      goto Exit;
-    }
+    Var_DelDriverOption ();  
   }
 
   if (CompareMem (NewBmmData->DriverOptionOrder, OldBmmData->DriverOptionOrder, sizeof (NewBmmData->DriverOptionOrder)) != 0) {  
     Status = Var_UpdateDriverOrder (Private);
-    if (EFI_ERROR (Status)) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, DriverOptionOrder);
-      goto Exit;
-    }
   }
 
   if (CompareMem (&NewBmmData->ConsoleOutMode, &OldBmmData->ConsoleOutMode, sizeof (NewBmmData->ConsoleOutMode)) != 0){
-    Status = Var_UpdateConMode(Private);
-    if (EFI_ERROR (Status)) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, ConsoleOutMode);
-      goto Exit;
-    }
+    Var_UpdateConMode(Private);
   }
 
   TerminalAttChange = FALSE;
@@ -939,60 +735,83 @@ BootMaintRouteConfig (
       continue;
     }
 
+    NewMenuEntry = BOpt_GetMenuEntry (&TerminalMenu, Index);
+    ASSERT (NewMenuEntry != NULL);
+    NewTerminalContext = (BM_TERMINAL_CONTEXT *) NewMenuEntry->VariableContext;
+    NewTerminalContext->BaudRateIndex = NewBmmData->COMBaudRate[Index];
+    ASSERT (NewBmmData->COMBaudRate[Index] < (sizeof (BaudRateList) / sizeof (BaudRateList[0])));
+    NewTerminalContext->BaudRate      = BaudRateList[NewBmmData->COMBaudRate[Index]].Value;
+    NewTerminalContext->DataBitsIndex = NewBmmData->COMDataRate[Index];
+    ASSERT (NewBmmData->COMDataRate[Index] < (sizeof (DataBitsList) / sizeof (DataBitsList[0])));
+    NewTerminalContext->DataBits      = (UINT8) DataBitsList[NewBmmData->COMDataRate[Index]].Value;
+    NewTerminalContext->StopBitsIndex = NewBmmData->COMStopBits[Index];
+    ASSERT (NewBmmData->COMStopBits[Index] < (sizeof (StopBitsList) / sizeof (StopBitsList[0])));
+    NewTerminalContext->StopBits      = (UINT8) StopBitsList[NewBmmData->COMStopBits[Index]].Value;
+    NewTerminalContext->ParityIndex   = NewBmmData->COMParity[Index];
+    ASSERT (NewBmmData->COMParity[Index] < (sizeof (ParityList) / sizeof (ParityList[0])));
+    NewTerminalContext->Parity        = (UINT8) ParityList[NewBmmData->COMParity[Index]].Value;
+    NewTerminalContext->TerminalType  = NewBmmData->COMTerminalType[Index];
+    NewTerminalContext->FlowControl   = NewBmmData->COMFlowControl[Index];
+    ChangeTerminalDevicePath (
+      NewTerminalContext->DevicePath,
+      FALSE
+      );
     TerminalAttChange = TRUE;
   }
   if (TerminalAttChange) {
-    if (CompareMem (&NewBmmData->COMBaudRate[Index], &OldBmmData->COMBaudRate[Index], sizeof (NewBmmData->COMBaudRate[Index])) != 0) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, COMBaudRate);
-    } else if (CompareMem (&NewBmmData->COMDataRate[Index], &OldBmmData->COMDataRate[Index], sizeof (NewBmmData->COMDataRate[Index])) != 0) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, COMDataRate);
-    } else if (CompareMem (&NewBmmData->COMStopBits[Index], &OldBmmData->COMStopBits[Index], sizeof (NewBmmData->COMStopBits[Index])) != 0) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, COMStopBits);
-    } else if (CompareMem (&NewBmmData->COMParity[Index], &OldBmmData->COMParity[Index], sizeof (NewBmmData->COMParity[Index])) != 0) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, COMParity);
-    } else if (CompareMem (&NewBmmData->COMTerminalType[Index], &OldBmmData->COMTerminalType[Index], sizeof (NewBmmData->COMTerminalType[Index])) != 0) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, COMTerminalType);
-    } else if (CompareMem (&NewBmmData->COMFlowControl[Index], &OldBmmData->COMFlowControl[Index], sizeof (NewBmmData->COMFlowControl[Index])) != 0) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, COMFlowControl);
-    }
-    Status = Var_UpdateConsoleInpOption ();
-    if (EFI_ERROR (Status)) {
-      goto Exit;
-    }
-    Status = Var_UpdateConsoleOutOption ();
-    if (EFI_ERROR (Status)) {
-      goto Exit;
-    }
-    Status = Var_UpdateErrorOutOption ();
-    if (EFI_ERROR (Status)) {
-      goto Exit;
-    }
+    Var_UpdateConsoleInpOption ();
+    Var_UpdateConsoleOutOption ();
+    Var_UpdateErrorOutOption ();
   }
   //
   // Check data which located in Console Options Menu and save the settings if need
   //
   if (CompareMem (NewBmmData->ConsoleInCheck, OldBmmData->ConsoleInCheck, sizeof (NewBmmData->ConsoleInCheck)) != 0){
-    Status = Var_UpdateConsoleInpOption();
-    if (EFI_ERROR (Status)) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, ConsoleInCheck);
-      goto Exit;
+    for (Index = 0; Index < ConsoleInpMenu.MenuNumber; Index++){
+      NewMenuEntry                = BOpt_GetMenuEntry(&ConsoleInpMenu, Index);
+      NewConsoleContext           = (BM_CONSOLE_CONTEXT *)NewMenuEntry->VariableContext;
+      ASSERT (Index < MAX_MENU_NUMBER);
+      NewConsoleContext->IsActive = NewBmmData->ConsoleInCheck[Index];
     }
+    for (Index = 0; Index < TerminalMenu.MenuNumber; Index++) {
+      NewMenuEntry                = BOpt_GetMenuEntry (&TerminalMenu, Index);
+      NewTerminalContext          = (BM_TERMINAL_CONTEXT *) NewMenuEntry->VariableContext;
+      ASSERT (Index + ConsoleInpMenu.MenuNumber < MAX_MENU_NUMBER);
+      NewTerminalContext->IsConIn = NewBmmData->ConsoleInCheck[Index + ConsoleInpMenu.MenuNumber];
+    }
+    Var_UpdateConsoleInpOption();
   }
 
   if (CompareMem (NewBmmData->ConsoleOutCheck, OldBmmData->ConsoleOutCheck, sizeof (NewBmmData->ConsoleOutCheck)) != 0){
-    Status = Var_UpdateConsoleOutOption();
-    if (EFI_ERROR (Status)) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, ConsoleOutCheck);
-      goto Exit;
+    for (Index = 0; Index < ConsoleOutMenu.MenuNumber; Index++){
+      NewMenuEntry                = BOpt_GetMenuEntry(&ConsoleOutMenu, Index);
+      NewConsoleContext           = (BM_CONSOLE_CONTEXT *)NewMenuEntry->VariableContext;
+      ASSERT (Index < MAX_MENU_NUMBER);
+      NewConsoleContext->IsActive = NewBmmData->ConsoleOutCheck[Index];
     }
+    for (Index = 0; Index < TerminalMenu.MenuNumber; Index++) {
+      NewMenuEntry                = BOpt_GetMenuEntry (&TerminalMenu, Index);
+      NewTerminalContext          = (BM_TERMINAL_CONTEXT *) NewMenuEntry->VariableContext;
+      ASSERT (Index + ConsoleOutMenu.MenuNumber < MAX_MENU_NUMBER);
+      NewTerminalContext->IsConOut = NewBmmData->ConsoleOutCheck[Index + ConsoleOutMenu.MenuNumber];
+    }
+    Var_UpdateConsoleOutOption();
   }
 
   if (CompareMem (NewBmmData->ConsoleErrCheck, OldBmmData->ConsoleErrCheck, sizeof (NewBmmData->ConsoleErrCheck)) != 0){
-    Status = Var_UpdateErrorOutOption();
-    if (EFI_ERROR (Status)) {
-      Offset = OFFSET_OF (BMM_FAKE_NV_DATA, ConsoleErrCheck);
-      goto Exit;
+    for (Index = 0; Index < ConsoleErrMenu.MenuNumber; Index++){
+      NewMenuEntry                = BOpt_GetMenuEntry(&ConsoleErrMenu, Index);
+      NewConsoleContext           = (BM_CONSOLE_CONTEXT *)NewMenuEntry->VariableContext;
+      ASSERT (Index < MAX_MENU_NUMBER);
+      NewConsoleContext->IsActive = NewBmmData->ConsoleErrCheck[Index];
     }
+    for (Index = 0; Index < TerminalMenu.MenuNumber; Index++) {
+      NewMenuEntry                = BOpt_GetMenuEntry (&TerminalMenu, Index);
+      NewTerminalContext          = (BM_TERMINAL_CONTEXT *) NewMenuEntry->VariableContext;
+      ASSERT (Index + ConsoleErrMenu.MenuNumber < MAX_MENU_NUMBER);
+      NewTerminalContext->IsStdErr = NewBmmData->ConsoleErrCheck[Index + ConsoleErrMenu.MenuNumber];
+    }
+    Var_UpdateErrorOutOption();
   }
 
   if (CompareMem (NewBmmData->BootDescriptionData, OldBmmData->BootDescriptionData, sizeof (NewBmmData->BootDescriptionData)) != 0 ||
@@ -1000,12 +819,7 @@ BootMaintRouteConfig (
     Status = Var_UpdateBootOption (Private);
     NewBmmData->BootOptionChanged = FALSE;
     if (EFI_ERROR (Status)) {
-      if (CompareMem (NewBmmData->BootDescriptionData, OldBmmData->BootDescriptionData, sizeof (NewBmmData->BootDescriptionData)) != 0) {
-        Offset = OFFSET_OF (BMM_FAKE_NV_DATA, BootDescriptionData);
-      } else {
-        Offset = OFFSET_OF (BMM_FAKE_NV_DATA, BootOptionalData);
-      }
-      goto Exit;
+      return Status;
     }
     BOpt_GetBootOptions (Private);
   }
@@ -1022,12 +836,7 @@ BootMaintRouteConfig (
     NewBmmData->DriverOptionChanged = FALSE;
     NewBmmData->ForceReconnect      = TRUE;
     if (EFI_ERROR (Status)) {
-      if (CompareMem (NewBmmData->DriverDescriptionData, OldBmmData->DriverDescriptionData, sizeof (NewBmmData->DriverDescriptionData)) != 0) {
-        Offset = OFFSET_OF (BMM_FAKE_NV_DATA, DriverDescriptionData);
-      } else {
-        Offset = OFFSET_OF (BMM_FAKE_NV_DATA, DriverOptionalData);
-      }
-      goto Exit;
+      return Status;
     }
 
     BOpt_GetDriverOptions (Private);
@@ -1039,17 +848,6 @@ BootMaintRouteConfig (
   CopyMem (OldBmmData, NewBmmData, sizeof (BMM_FAKE_NV_DATA));
 
   return EFI_SUCCESS;
-
-Exit:
-  //
-  // Fail to save the data, update the progress string.
-  //
-  *Progress = UpdateProgress (Offset, Configuration);
-  if (Status == EFI_OUT_OF_RESOURCES) {
-    return Status;
-  } else {
-    return EFI_NOT_FOUND;
-  }
 }
 
 /**
@@ -1084,7 +882,6 @@ BootMaintCallback (
   BMM_CALLBACK_DATA *Private;
   BM_MENU_ENTRY     *NewMenuEntry;
   BMM_FAKE_NV_DATA  *CurrentFakeNVMap;
-  BMM_FAKE_NV_DATA  *OldFakeNVMap;
   UINTN             Index;
   EFI_DEVICE_PATH_PROTOCOL * File;
 
@@ -1119,7 +916,6 @@ BootMaintCallback (
   // Retrive uncommitted data from Form Browser
   //
   CurrentFakeNVMap = &Private->BmmFakeNvData;
-  OldFakeNVMap     = &Private->BmmOldFakeNVData;
   HiiGetBrowserData (&mBootMaintGuid, mBootMaintStorageName, sizeof (BMM_FAKE_NV_DATA), (UINT8 *) CurrentFakeNVMap);
 
   if (Action == EFI_BROWSER_ACTION_CHANGING) {
@@ -1222,10 +1018,8 @@ BootMaintCallback (
       //
       // Discard changes and exit formset
       //
-      ZeroMem (CurrentFakeNVMap->DriverOptionalData, sizeof (CurrentFakeNVMap->DriverOptionalData));
-      ZeroMem (CurrentFakeNVMap->BootDescriptionData, sizeof (CurrentFakeNVMap->BootDescriptionData));
-      ZeroMem (OldFakeNVMap->DriverOptionalData, sizeof (OldFakeNVMap->DriverOptionalData));
-      ZeroMem (OldFakeNVMap->DriverDescriptionData, sizeof (OldFakeNVMap->DriverDescriptionData));
+      CurrentFakeNVMap->DriverOptionalData[0]     = 0x0000;
+      CurrentFakeNVMap->DriverDescriptionData[0]  = 0x0000;
       CurrentFakeNVMap->DriverOptionChanged = FALSE;
       CurrentFakeNVMap->ForceReconnect      = TRUE;
       *ActionRequest = EFI_BROWSER_ACTION_REQUEST_FORM_DISCARD_EXIT;
@@ -1233,10 +1027,8 @@ BootMaintCallback (
       //
       // Discard changes and exit formset
       //
-      ZeroMem (CurrentFakeNVMap->BootOptionalData, sizeof (CurrentFakeNVMap->BootOptionalData));
-      ZeroMem (CurrentFakeNVMap->BootDescriptionData, sizeof (CurrentFakeNVMap->BootDescriptionData));
-      ZeroMem (OldFakeNVMap->BootOptionalData, sizeof (OldFakeNVMap->BootOptionalData));
-      ZeroMem (OldFakeNVMap->BootDescriptionData, sizeof (OldFakeNVMap->BootDescriptionData));
+      CurrentFakeNVMap->BootOptionalData[0]     = 0x0000;
+      CurrentFakeNVMap->BootDescriptionData[0]  = 0x0000;
       CurrentFakeNVMap->BootOptionChanged = FALSE;
       *ActionRequest = EFI_BROWSER_ACTION_REQUEST_FORM_DISCARD_EXIT;
     } else if (QuestionId == KEY_VALUE_BOOT_DESCRIPTION || QuestionId == KEY_VALUE_BOOT_OPTION) {
@@ -1283,22 +1075,6 @@ BootMaintCallback (
       default:
         break;
       }
-    }
-    //
-    // Update the content in Terminal menu and Console menu here.
-    //
-    if (QuestionId == COM_BAUD_RATE_QUESTION_ID + Private->CurrentTerminal || QuestionId == COM_DATA_RATE_QUESTION_ID + Private->CurrentTerminal ||
-      QuestionId == COM_PARITY_QUESTION_ID + Private->CurrentTerminal || QuestionId == COM_STOP_BITS_QUESTION_ID + Private->CurrentTerminal ||
-      QuestionId == COM_TERMINAL_QUESTION_ID + Private->CurrentTerminal || QuestionId == COM_FLOWCONTROL_QUESTION_ID + Private->CurrentTerminal
-    ) {
-      UpdateTerminalContent(CurrentFakeNVMap);
-    }
-    if ((QuestionId >= CON_IN_DEVICE_QUESTION_ID) && (QuestionId < CON_IN_DEVICE_QUESTION_ID + MAX_MENU_NUMBER)) {
-      UpdateConsoleContent (L"ConIn",CurrentFakeNVMap);
-    } else if ((QuestionId >= CON_OUT_DEVICE_QUESTION_ID) && (QuestionId < CON_OUT_DEVICE_QUESTION_ID + MAX_MENU_NUMBER)) {
-      UpdateConsoleContent (L"ConOut", CurrentFakeNVMap);
-    } else if ((QuestionId >= CON_ERR_DEVICE_QUESTION_ID) && (QuestionId < CON_ERR_DEVICE_QUESTION_ID + MAX_MENU_NUMBER)) {
-      UpdateConsoleContent (L"ConErr", CurrentFakeNVMap);
     }
   }
 

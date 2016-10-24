@@ -137,6 +137,10 @@
   #
   FileExplorerLib|Include/Library/FileExplorerLib.h
 
+  ## @libraryclass  Provides image decoding service.
+  #
+  ImageDecoderLib|Include/Library/ImageDecoderLib.h
+
   ## @libraryclass  Provides interfaces about logo display.
   #
   BootLogoLib|Include/Library/BootLogoLib.h
@@ -152,10 +156,6 @@
   ## @libraryclass  Provides services to record memory profile of multilevel caller.
   #
   MemoryProfileLib|Include/Library/MemoryProfileLib.h
-
-  ##  @libraryclass  Provides an interface for performing UEFI Graphics Output Protocol Video blt operations.
-  ##
-  FrameBufferBltLib|Include/Library/FrameBufferBltLib.h
 
 [Guids]
   ## MdeModule package token space guid
@@ -459,7 +459,6 @@
 
   ## Include/Protocol/FormBrowserEx.h
   gEfiFormBrowserExProtocolGuid = { 0x1f73b18d, 0x4630, 0x43c1, { 0xa1, 0xde, 0x6f, 0x80, 0x85, 0x5d, 0x7d, 0xa4 } }
-  gEdkiiFormBrowserExProtocolGuid = { 0x1f73b18d, 0x4630, 0x43c1, { 0xa1, 0xde, 0x6f, 0x80, 0x85, 0x5d, 0x7d, 0xa4 } }
 
   ## Include/Protocol/EbcVmTest.h
   gEfiEbcVmTestProtocolGuid = { 0xAAEACCFD, 0xF27B, 0x4C17, { 0xB6, 0x10, 0x75, 0xCA, 0x1F, 0x2D, 0xFB, 0x52 } }
@@ -492,7 +491,7 @@
   gEdkiiSmmReadyToBootProtocolGuid = { 0x6e057ecf, 0xfa99, 0x4f39, { 0x95, 0xbc, 0x59, 0xf9, 0x92, 0x1d, 0x17, 0xe4 } }
 
   ## Include/Protocol/PlatformLogo.h
-  gEdkiiPlatformLogoProtocolGuid = { 0x53cd299f, 0x2bc1, 0x40c0, { 0x8c, 0x07, 0x23, 0xf6, 0x4f, 0xdb, 0x30, 0xe0 } }
+  gEdkiiPlatformLogoProtocolGuid = { 0x9b517978, 0xeba1, 0x44e7, { 0xba, 0x65, 0x7c, 0x2c, 0xd0, 0x8b, 0xf8, 0xe9 } }
 
   ## Include/Protocol/FileExplorer.h
   gEfiFileExplorerProtocolGuid = { 0x2C03C536, 0x4594, 0x4515, { 0x9E, 0x7A, 0xD3, 0xD2, 0x04, 0xFE, 0x13, 0x63 } }
@@ -749,17 +748,6 @@
   #   FALSE - Turn off PS2 mouse extended verification. <BR>
   # @Prompt Turn on PS2 Mouse Extended Verification
   gEfiMdeModulePkgTokenSpaceGuid.PcdPs2MouseExtendedVerification|TRUE|BOOLEAN|0x00010075
-
-  ## Indicates whether 64-bit PCI MMIO BARs should degrade to 32-bit in the presence of an option ROM
-  #  On X64 platforms, Option ROMs may contain code that executes in the context of a legacy BIOS (CSM),
-  #  which requires that all PCI MMIO BARs are located below 4 GB
-  #   TRUE  - All PCI MMIO BARs of a device will be located below 4 GB if it has an option ROM
-  #   FALSE - PCI MMIO BARs of a device may be located above 4 GB even if it has an option ROM
-  # @Prompt Degrade 64-bit PCI MMIO BARs for legacy BIOS option ROMs
-  gEfiMdeModulePkgTokenSpaceGuid.PcdPciDegradeResourceForOptionRom|TRUE|BOOLEAN|0x0001003a
-
-[PcdsFeatureFlag.IA32, PcdsFeatureFlag.ARM, PcdsFeatureFlag.AARCH64]
-  gEfiMdeModulePkgTokenSpaceGuid.PcdPciDegradeResourceForOptionRom|FALSE|BOOLEAN|0x0001003a
 
 [PcdsFeatureFlag.IA32, PcdsFeatureFlag.X64]
   ## Indicates if DxeIpl should switch to long mode to enter DXE phase.
@@ -1580,12 +1568,6 @@
   #   FALSE - Use the normal timing to detect PS2.<BR>
   # @Prompt Enable fast PS2 detection
   gEfiMdeModulePkgTokenSpaceGuid.PcdFastPS2Detection|FALSE|BOOLEAN|0x30001044
-
-  ## This is recover file name in PEI phase.
-  #  The file must be in the root directory.
-  #  The file name must be the 8.3 format.
-  #  The PCD data must be in UNICODE format.
-  gEfiMdeModulePkgTokenSpaceGuid.PcdRecoveryFileName|L"FVMAIN.FV"|VOID*|0x30001045
 
 [PcdsPatchableInModule]
   ## Specify memory size with page number for PEI code when

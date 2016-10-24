@@ -657,7 +657,13 @@ PlatformBootManagerAfterConsole (
   //
   // Show the splash screen.
   //
-  BootLogoEnableLogo ();
+  BootLogoEnableLogo (
+    ImageFormatBmp,                          // ImageFormat
+    PcdGetPtr (PcdLogoFile),                 // Logo
+    EdkiiPlatformLogoDisplayAttributeCenter, // Attribute
+    0,                                       // OffsetX
+    0                                        // OffsetY
+    );
 
   //
   // Connect the rest of the devices.

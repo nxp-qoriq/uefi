@@ -29,6 +29,7 @@ STATIC CONST SHELL_PARAM_ITEM ParamList[] = {
   @retval FALSE The directory has at least 1 file or directory in it.
 **/
 BOOLEAN
+EFIAPI
 IsDirectoryEmpty (
   IN EFI_HANDLE   FileHandle
   )
@@ -65,6 +66,7 @@ IsDirectoryEmpty (
   @retval SHELL_DEVICE_ERROR  A device error occured reading this Node.
 **/
 SHELL_STATUS
+EFIAPI
 CascadeDelete(
   IN EFI_SHELL_FILE_INFO  *Node,
   IN CONST BOOLEAN        Quiet
@@ -193,6 +195,7 @@ CascadeDelete(
   @param[in] Package    RESERVED.  Not used.
 **/
 BOOLEAN
+EFIAPI
 IsValidDeleteTarget(
   IN CONST EFI_SHELL_FILE_INFO  *List,
   IN CONST EFI_SHELL_FILE_INFO  *Node,

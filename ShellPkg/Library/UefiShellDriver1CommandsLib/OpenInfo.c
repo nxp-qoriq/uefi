@@ -33,6 +33,7 @@ STATIC CONST CHAR16 StringUnknown[]   = L"Unknown  ";
   @retval EFI_INVALID_PARAMETER TheHandle was NULL.
 **/
 EFI_STATUS
+EFIAPI
 TraverseHandleDatabase (
   IN CONST EFI_HANDLE TheHandle
   )

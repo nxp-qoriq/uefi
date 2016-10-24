@@ -91,7 +91,7 @@
   gEfiFormBrowser2ProtocolGuid                  ## CONSUMES
   gEfiHiiDatabaseProtocolGuid                   ## CONSUMES
   gEfiSimpleTextInputExProtocolGuid             ## SOMETIMES_CONSUMES
-  gEdkiiFormBrowserExProtocolGuid               ## CONSUMES
+  gEfiFormBrowserExProtocolGuid                 ## CONSUMES
   gEfiConfigKeywordHandlerProtocolGuid          ## CONSUMES
 
 [Depex]

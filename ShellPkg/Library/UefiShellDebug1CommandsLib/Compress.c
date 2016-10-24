@@ -7,7 +7,7 @@
   This sequence is further divided into Blocks and Huffman codings
   are applied to each Block.
 
-  Copyright (c) 2007 - 2016, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2007 - 2014, Intel Corporation. All rights reserved.<BR>
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -17,11 +17,12 @@
   WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 **/
-#include <Uefi.h>
+
 #include <Library/MemoryAllocationLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
-#include <Library/ShellLib.h>
+#include <ShellBase.h>
+#include <Uefi.h>
 
 //
 // Macro Definitions
@@ -67,6 +68,7 @@ typedef INT16             NODE;
   @param[in] Data    The dword to put.
 **/
 VOID
+EFIAPI
 PutDword(
   IN UINT32 Data
   );
@@ -126,6 +128,7 @@ INT32         mHuffmanDepth = 0;
 
 **/
 VOID
+EFIAPI
 MakeCrcTable (
   VOID
   )
@@ -156,6 +159,7 @@ MakeCrcTable (
   @param[in] Data    The dword to put.
 **/
 VOID
+EFIAPI
 PutDword (
   IN UINT32 Data
   )
@@ -184,6 +188,7 @@ PutDword (
   @retval EFI_OUT_OF_RESOURCES  A memory allocation failed.
 **/
 EFI_STATUS
+EFIAPI
 AllocateMemory (
   VOID
   )
@@ -217,6 +222,7 @@ AllocateMemory (
 
 **/
 VOID
+EFIAPI
 FreeMemory (
   VOID
   )
@@ -235,6 +241,7 @@ FreeMemory (
   Initialize String Info Log data structures.
 **/
 VOID
+EFIAPI
 InitSlide (
   VOID
   )
@@ -266,6 +273,7 @@ InitSlide (
 
 **/
 NODE
+EFIAPI
 Child (
   IN NODE   LoopVar6,
   IN UINT8  LoopVar5
@@ -290,6 +298,7 @@ Child (
   @param[in] LoopVar4       The child node.
 **/
 VOID
+EFIAPI
 MakeChild (
   IN NODE   LoopVar6,
   IN UINT8  LoopVar5,
@@ -316,6 +325,7 @@ MakeChild (
   @param[in] Old     The node to split.
 **/
 VOID
+EFIAPI
 Split (
   IN NODE Old
   )
@@ -345,6 +355,7 @@ Split (
 
 **/
 VOID
+EFIAPI
 InsertNode (
   VOID
   )
@@ -473,6 +484,7 @@ InsertNode (
 
 **/
 VOID
+EFIAPI
 DeleteNode (
   VOID
   )
@@ -567,6 +579,7 @@ DeleteNode (
   @return The number of bytes actually read.
 **/
 INT32
+EFIAPI
 FreadCrc (
   OUT UINT8 *LoopVar7,
   IN  INT32 LoopVar8
@@ -599,6 +612,7 @@ FreadCrc (
   @retval FALSE     The operation failed due to insufficient memory.
 **/
 BOOLEAN
+EFIAPI
 GetNextMatch (
   VOID
   )
@@ -633,6 +647,7 @@ GetNextMatch (
   @param[in] LoopVar1    The index of the item to move.
 **/
 VOID
+EFIAPI
 DownHeap (
   IN INT32 i
   )
@@ -669,6 +684,7 @@ DownHeap (
   @param[in] LoopVar1      The top node.
 **/
 VOID
+EFIAPI
 CountLen (
   IN INT32 LoopVar1
   )
@@ -689,6 +705,7 @@ CountLen (
   @param[in] Root   The root of the tree.
 **/
 VOID
+EFIAPI
 MakeLen (
   IN INT32 Root
   )
@@ -744,6 +761,7 @@ MakeLen (
   @param[out] Code  The stores codes for each symbol.
 **/
 VOID
+EFIAPI
 MakeCode (
   IN  INT32         LoopVar8,
   IN  UINT8 Len[    ],
@@ -774,6 +792,7 @@ MakeCode (
   @return The root of the Huffman tree.
 **/
 INT32
+EFIAPI
 MakeTree (
   IN  INT32             NParm,
   IN  UINT16  FreqParm[ ],
@@ -857,6 +876,7 @@ MakeTree (
   @param[in] x   The data.
 **/
 VOID
+EFIAPI
 PutBits (
   IN INT32    LoopVar8,
   IN UINT32   x
@@ -895,6 +915,7 @@ PutBits (
   @param[in] LoopVar5     The number to encode.
 **/
 VOID
+EFIAPI
 EncodeC (
   IN INT32 LoopVar5
   )
@@ -908,6 +929,7 @@ EncodeC (
   @param[in] LoopVar7     The number to encode.
 **/
 VOID
+EFIAPI
 EncodeP (
   IN UINT32 LoopVar7
   )
@@ -934,6 +956,7 @@ EncodeP (
 
 **/
 VOID
+EFIAPI
 CountTFreq (
   VOID
   )
@@ -991,6 +1014,7 @@ CountTFreq (
 
 **/
 VOID
+EFIAPI
 WritePTLen (
   IN INT32 LoopVar8,
   IN INT32 nbit,
@@ -1029,6 +1053,7 @@ WritePTLen (
   Outputs the code length array for Char&Length Set.
 **/
 VOID
+EFIAPI
 WriteCLen (
   VOID
   )
@@ -1084,6 +1109,7 @@ WriteCLen (
 
 **/
 VOID
+EFIAPI
 SendBlock (
   VOID
   )
@@ -1157,6 +1183,7 @@ SendBlock (
 
 **/
 VOID
+EFIAPI
 HufEncodeStart (
   VOID
   )
@@ -1178,6 +1205,7 @@ HufEncodeStart (
   @param[in] LoopVar7     The 'Position' field of a Pointer.
 **/
 VOID
+EFIAPI
 CompressOutput (
   IN UINT32 LoopVar5,
   IN UINT32 LoopVar7
@@ -1215,6 +1243,7 @@ CompressOutput (
 
 **/
 VOID
+EFIAPI
 HufEncodeEnd (
   VOID
   )
@@ -1234,6 +1263,7 @@ HufEncodeEnd (
   @retval EFI_OUT_0F_RESOURCES  Not enough memory for compression process.
 **/
 EFI_STATUS
+EFIAPI
 Encode (
   VOID
   )
@@ -1316,6 +1346,7 @@ Encode (
   @retval EFI_BUFFER_TOO_SMALL  The buffer was too small.  DstSize is required.
 **/
 EFI_STATUS
+EFIAPI
 Compress (
   IN       VOID   *SrcBuffer,
   IN       UINT64 SrcSize,

@@ -617,7 +617,8 @@ CpuidStructuredExtendedFeatureFlags (
       PRINT_BIT_FIELD (Ecx, PKU);
       PRINT_BIT_FIELD (Ecx, OSPKE);
     }
-  }
+    SubLeaf++;
+  } while (SubLeaf <= Eax);
 }
 
 /**
