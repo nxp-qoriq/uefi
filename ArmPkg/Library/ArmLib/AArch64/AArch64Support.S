@@ -261,12 +261,12 @@ ASM_FUNC(ArmDisableAlignmentCheck)
    ret
 
 ASM_FUNC(ArmEnableStackAlignmentCheck)
-   EL1_OR_EL2(x1)
+   EL1_OR_EL2_OR_EL3(x1)
 1: mrs     x0, sctlr_el1        // Get control register EL1
    b       3f
 2: mrs     x0, sctlr_el2        // Get control register EL2
 3: orr     x0, x0, #CTRL_SA_BIT // Set SA (stack alignment check) bit
-   EL1_OR_EL2(x1)
+   EL1_OR_EL2_OR_EL3(x1)
 1: msr     sctlr_el1, x0        // Write back control register
    b       3f
 2: msr     sctlr_el2, x0        // Write back control register
