@@ -656,8 +656,25 @@ ArmConfigureMmu (
       return EFI_UNSUPPORTED;
     }
   } else {
-    ASSERT (0); // UEFI is only expected to run at EL2 and EL1, not EL3.
-    return EFI_UNSUPPORTED;
+    TCR = T0SZ | TCR_TG0_4KB;
+
+    // Set the Physical Address Size using MaxAddress
+    if (MaxAddress < SIZE_4GB) {
+      TCR |= TCR_PS_4GB;
+    } else if (MaxAddress < SIZE_64GB) {
+      TCR |= TCR_PS_64GB;
+    } else if (MaxAddress < SIZE_1TB) {
+      TCR |= TCR_PS_1TB;
+    } else if (MaxAddress < SIZE_4TB) {
+      TCR |= TCR_PS_4TB;
+    } else if (MaxAddress < SIZE_16TB) {
+      TCR |= TCR_PS_16TB;
+    } else if (MaxAddress < SIZE_256TB) {
+      TCR |= TCR_PS_256TB;
+    } else {
+      ASSERT (0); // UEFI is only expected to run at EL2 and EL1, not EL3.
+      return EFI_UNSUPPORTED;
+    }
   }
 
   //
