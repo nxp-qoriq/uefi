@@ -432,6 +432,7 @@ PciHostBridgeResourceAllocator (
       // If non-stardard PCI Bridge I/O window alignment is supported,
       // set I/O aligment to minimum possible alignment for root bridge.
       //
+       DEBUG((EFI_D_INFO, "\nPciHostBridgeResourceAllocator: creating resources ######### \n"));
       IoBridge = CreateResourceNode (
                    RootBridgeDev,
                    0,
@@ -791,6 +792,7 @@ PciHostBridgeResourceAllocator (
       &PMem64Base
       );
 
+    DEBUG((EFI_D_INFO, "Before process Option ROM: %llx, %llx, %llx, %llx\n", Mem32Base, PMem32Base, Mem64Base, PMem64Base));
     //
     // Process option rom for this root bridge
     //
