@@ -1,0 +1,233 @@
+#/** LS1046a board package.
+#
+#    Copyright (c) 2015, Freescale Semiconductor, Inc. All rights reserved.
+#
+#    This program and the accompanying materials are licensed and made available under
+#    the terms and conditions of the BSD License which accompanies this distribution.
+#    The full text of the license may be found at
+#    http://opensource.org/licenses/bsd-license.php
+#
+#    THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#**/
+
+[Defines]
+  DEC_SPECIFICATION              = 0x00010005
+  PACKAGE_NAME                   = LS1046aRdbPkg
+  PACKAGE_GUID                   = 6eba6648-d853-4eb3-9761-528b82d5ab04
+  PACKAGE_VERSION                = 0.1
+
+################################################################################
+#
+# Include Section - list of Include Paths that are provided by this package.
+#                   Comments are used for Keywords and Module Types.
+#
+# Supported Module Types:
+#  BASE SEC PEI_CORE PEIM DXE_CORE DXE_DRIVER DXE_RUNTIME_DRIVER DXE_SMM_DRIVER DXE_SAL_DRIVER UEFI_DRIVER UEFI_APPLICATION
+#
+################################################################################
+[Includes.common]
+  Include                        # Root include for the package
+
+[Guids.common]
+  gLS1046aRdbTokenSpaceGuid    =  { 0x6834fe45, 0x4aee, 0x4fc6, { 0xbc, 0xb5, 0xff, 0x45, 0xb7, 0xa8, 0x71, 0xe2 } }
+  gEfiMmcHostProtocolGuid        =  { 0x3e591c00, 0x9e4a, 0x11df, {0x92, 0x44, 0x00, 0x02, 0xA5, 0xD5, 0xC5, 0x1B }}
+  gShellDebug1HiiGuid             = {0x25f200aa, 0xd3cb, 0x470a, {0xbf, 0x51, 0xe7, 0xd1, 0x62, 0xd2, 0x2e, 0x6f}}
+  gShellNetwork1HiiGuid           = {0xf3d301bb, 0xf4a5, 0x45a8, {0xb0, 0xb7, 0xfa, 0x99, 0x9c, 0x62, 0x37, 0xae}}
+  gEfiDpcProtocolGuid            = {0x480f8ae9, 0xc46, 0x4aa9,  { 0xbc, 0x89, 0xdb, 0x9f, 0xba, 0x61, 0x98, 0x6 }}
+  gShellTftpHiiGuid               = {0x738a9314, 0x82c1, 0x4592, {0x8f, 0xf7, 0xc1, 0xbd, 0xf1, 0xb2, 0x0e, 0xd4}}
+
+
+  ## Include/Protocol/SimpleNetwork.h
+  gEfiSimpleNetworkProtocolGuid  = { 0xA19832B9, 0xAC25, 0x11D3, { 0x9A, 0x2D, 0x00, 0x90, 0x27, 0x3F, 0xC1, 0x4D }}
+
+  ## Include/Protocol/ManagedNetwork.h
+  gEfiManagedNetworkServiceBindingProtocolGuid = { 0xF36FF770, 0xA7E1, 0x42CF, { 0x9E, 0xD2, 0x56, 0xF0, 0xF2, 0x71, 0xF4, 0x4C }}
+
+  ## Include/Protocol/ManagedNetwork.h
+  gEfiManagedNetworkProtocolGuid = { 0x7ab33a91, 0xace5, 0x4326, { 0xb5, 0x72, 0xe7, 0xee, 0x33, 0xd3, 0x9f, 0x16 }}
+
+  ## Include/Protocol/HiiConfigRouting.h
+  gEfiHiiConfigRoutingProtocolGuid = {0x587e72d7, 0xcc50, 0x4f79, {0x82, 0x09, 0xca, 0x29, 0x1f, 0xc1, 0xa1, 0x0f}}
+
+  ## Include/Protocol/Arp.h
+  gEfiArpServiceBindingProtocolGuid = { 0xF44C00EE, 0x1F2C, 0x4A00, { 0xAA, 0x09, 0x1C, 0x9F, 0x3E, 0x08, 0x00, 0xA3 }}
+
+  ## Include/Protocol/Arp.h
+  gEfiArpProtocolGuid            = { 0xF4B427BB, 0xBA21, 0x4F16, { 0xBC, 0x4E, 0x43, 0xE4, 0x16, 0xAB, 0x61, 0x9C }}
+
+  ## Include/Protocol/Dhcp4.h
+  gEfiDhcp4ServiceBindingProtocolGuid = { 0x9D9A39D8, 0xBD42, 0x4A73, { 0xA4, 0xD5, 0x8E, 0xE9, 0x4B, 0xE1, 0x13, 0x80 }}
+
+  ## Include/Protocol/Dhcp4.h
+  gEfiDhcp4ProtocolGuid          = { 0x8A219718, 0x4EF5, 0x4761, { 0x91, 0xC8, 0xC0, 0xF0, 0x4B, 0xDA, 0x9E, 0x56 }}
+
+  ## Include/Protocol/Tcp4.h
+  gEfiTcp4ServiceBindingProtocolGuid = { 0x00720665, 0x67EB, 0x4A99, { 0xBA, 0xF7, 0xD3, 0xC3, 0x3A, 0x1C, 0x7C, 0xC9 }}
+
+  ## Include/Protocol/Tcp4.h
+  gEfiTcp4ProtocolGuid           = { 0x65530BC7, 0xA359, 0x410F, { 0xB0, 0x10, 0x5A, 0xAD, 0xC7, 0xEC, 0x2B, 0x62 }}
+
+  ## Include/Protocol/Ip4.h
+  gEfiIp4ServiceBindingProtocolGuid = { 0xC51711E7, 0xB4BF, 0x404A, { 0xBF, 0xB8, 0x0A, 0x04, 0x8E, 0xF1, 0xFF, 0xE4 }}
+
+  ## Include/Protocol/Ip4.h
+  gEfiIp4ProtocolGuid            = { 0x41D94CD2, 0x35B6, 0x455A, { 0x82, 0x58, 0xD4, 0xE5, 0x13, 0x34, 0xAA, 0xDD }}
+
+  ## Include/Protocol/Ip4Config.h
+  gEfiIp4ConfigProtocolGuid      = { 0x3B95AA31, 0x3793, 0x434B, { 0x86, 0x67, 0xC8, 0x07, 0x08, 0x92, 0xE0, 0x5E }}
+
+  ## Include/Protocol/Udp4.h
+  gEfiUdp4ServiceBindingProtocolGuid = { 0x83F01464, 0x99BD, 0x45E5, { 0xB3, 0x83, 0xAF, 0x63, 0x05, 0xD8, 0xE9, 0xE6 }}
+
+  ## Include/Protocol/Udp4.h
+  gEfiUdp4ProtocolGuid           = { 0x3AD9DF29, 0x4501, 0x478D, { 0xB1, 0xF8, 0x7F, 0x7F, 0xE7, 0x0E, 0x50, 0xF3 }}
+
+  ## Include/Protocol/Mtftp4.h
+  gEfiMtftp4ServiceBindingProtocolGuid = { 0x2FE800BE, 0x8F01, 0x4AA6, { 0x94, 0x6B, 0xD7, 0x13, 0x88, 0xE1, 0x83, 0x3F }}
+
+  ## Include/Protocol/Mtftp4.h
+  gEfiMtftp4ProtocolGuid         = { 0x78247C57, 0x63DB, 0x4708, { 0x99, 0xC2, 0xA8, 0xB4, 0xA9, 0xA6, 0x1F, 0x6B }}
+
+[PcdsFixedAtBuild.common]
+  # Size to reserve in the primary core stack for PEI Global Variables
+  #  = sizeof(UINTN) /* PcdPeiServicePtr or HobListPtr */
+  gArmPlatformTokenSpaceGuid.PcdPeiGlobalVariableSize|0x4|UINT32|0x00000016
+  gArmPlatformTokenSpaceGuid.PcdCounterFrequency|12000000|UINT32|0x00000017
+
+  ## LS1046a UART
+  gArmPlatformTokenSpaceGuid.LS1046aUartClkInHz|61440000|UINT32|0x00000018
+  gArmPlatformTokenSpaceGuid.LS1046aUartInteger|0|UINT32|0x00000019
+  gArmPlatformTokenSpaceGuid.LS1046aUartFractional|0|UINT32|0x0000001A
+
+  ## Timer
+  gArmTokenSpaceGuid.PcdArmArchTimerFreqInHz|0|UINT32|0x0000001B
+  gEmbeddedTokenSpaceGuid.PcdTimerPeriod|10000|UINT32|0x0000001C
+  gArmPlatformTokenSpaceGuid.PcdArmArchTimerVirtIntrNum|0|UINT32|0x0000001D
+  gArmPlatformTokenSpaceGuid.PcdArmArchTimerHypIntrNum|0|UINT32|0x0000001E
+  gArmPlatformTokenSpaceGuid.PcdArmArchTimerSecIntrNum|0|UINT32|0x0000001F
+  gArmPlatformTokenSpaceGuid.PcdArmArchTimerIntrNum|0|UINT32|0x00000020
+  gEmbeddedTokenSpaceGuid.PcdMetronomeTickPeriod|0|UINT32|0x00000021
+  
+  gArmPlatformTokenSpaceGuid.PcdLS1046aWatchDogBase|0x0|UINT32|0x00000022
+  gArmPlatformTokenSpaceGuid.DUartClkInHz|0x0|UINT32|0x00000023
+  gArmPlatformTokenSpaceGuid.DUartInteger|0x0|UINT32|0x00000024
+
+  #
+  # LS1046a Soc Specific PCDs
+  #
+  gArmPlatformTokenSpaceGuid.PcdCounterFrequencyReal|FALSE|BOOLEAN|0x00000025
+  gArmPlatformTokenSpaceGuid.PcdCsuInitialize|FALSE|BOOLEAN|0x00000026
+  gArmPlatformTokenSpaceGuid.PcdTzc380Initialize|FALSE|BOOLEAN|0x00000027
+  gArmPlatformTokenSpaceGuid.PcdCci400Initialize|FALSE|BOOLEAN|0x00000028
+  gArmPlatformTokenSpaceGuid.PcdClockInitialize|FALSE|BOOLEAN|0x00000029
+
+  gLS1046aRdbTokenSpaceGuid.PcdPiFdBaseAddress|0x0|UINT32|0x0000002A
+  gLS1046aRdbTokenSpaceGuid.PcdPiFdSize|0x0|UINT32|0x0000002B
+
+  gLS1046aRdbTokenSpaceGuid.PcdPiFvBaseAddress|0x0|UINT32|0x0000002C
+  gLS1046aRdbTokenSpaceGuid.PcdPiFvSize|0x0|UINT32|0x0000002D
+  gLS1046aRdbTokenSpaceGuid.PcdOcramStackBase|0x0|UINT32|0x0000002E
+  gLS1046aRdbTokenSpaceGuid.PcdFdNandLba|0x0|UINT32|0x0000002F
+  
+  #gEfiShellPkgTokenSpaceGuid.PcdShellLibAutoInitialize|FALSE|BOOLEAN|0x00000039
+  #
+  # PPA specific PCDs
+  #
+  gLS1046aRdbTokenSpaceGuid.PcdPpaNorBaseAddr|0x0|UINT64|0x00000030
+  gLS1046aRdbTokenSpaceGuid.PcdPpaFwSize|0x0|UINT64|0x00000031
+  gLS1046aRdbTokenSpaceGuid.PcdPpaFitConfiguration|""|VOID*|0x00000032
+
+  gLS1046aRdbTokenSpaceGuid.PcdFdNorBaseAddress|0x0|UINT64|0x00000033
+  gLS1046aRdbTokenSpaceGuid.PcdFvNorBaseAddress|0x0|UINT64|0x00000034
+  gLS1046aRdbTokenSpaceGuid.PcdFvNorSize|0x0|UINT64|0x00000035
+ 
+  ## PCI
+  #  This value is used to set the base address of PCI express hierarchy.
+  #  @Prompt PCI Express Base Address.
+  #
+  gLS1046aRdbTokenSpaceGuid.PcdPciMaxPayloadFixup|FALSE|BOOLEAN|0x00000036
+  gLS1046aRdbTokenSpaceGuid.PcdKludgeMapPciMmioAsCached|FALSE|BOOLEAN|0x000000037
+  gLS1046aRdbTokenSpaceGuid.PcdPciBusMin|0|UINT64|0x00000038
+  gLS1046aRdbTokenSpaceGuid.PcdPciBusMax|255|UINT64|0x00000039
+  gLS1046aRdbTokenSpaceGuid.PcdPciIoBase|0x00010000|UINT64|0x0000003A
+  gLS1046aRdbTokenSpaceGuid.PcdPciIoSize|0x00010000|UINT64|0x0000003B
+  gLS1046aRdbTokenSpaceGuid.PcdPci1Mmio64Base|0x4040000000|UINT64|0x0000003C
+  gLS1046aRdbTokenSpaceGuid.PcdPci2Mmio64Base|0x4840000000|UINT64|0x0000003D
+  gLS1046aRdbTokenSpaceGuid.PcdPci3Mmio64Base|0x5040000000|UINT64|0x0000003E
+  gLS1046aRdbTokenSpaceGuid.PcdPciMmio64Size|0x0040000000|UINT64|0x0000003F
+  gLS1046aRdbTokenSpaceGuid.PcdPci1ExpressBaseAddress|0x4000000000|UINT64|0x00000040
+  gLS1046aRdbTokenSpaceGuid.PcdPci2ExpressBaseAddress|0x4800000000|UINT64|0x00000041
+  gLS1046aRdbTokenSpaceGuid.PcdPci3ExpressBaseAddress|0x5000000000|UINT64|0x00000042
+  gLS1046aRdbTokenSpaceGuid.PcdPciExpressBaseAddress|0x03600000|UINT64|0x00000043
+  gLS1046aRdbTokenSpaceGuid.PcdPciDebug|FALSE|BOOLEAN|0x00000044
+
+  gLS1046aRdbTokenSpaceGuid.PcdBootMode|0x0|UINT32|0x00000045
+  gLS1046aRdbTokenSpaceGuid.PcdPpaNandLba|0x10|UINT32|0x00000046
+
+  gLS1046aRdbTokenSpaceGuid.PcdPpaImageSize|0x100000|UINT32|0x00000047
+  gLS1046aRdbTokenSpaceGuid.PcdPpaSdxcLba|0x10|UINT32|0x00000048
+  gLS1046aRdbTokenSpaceGuid.PcdFdSdxcLba|0x0|UINT32|0x00000049
+
+  #
+  # LS1046a SoC specific DPAA1 PCDs
+  #
+  # Valid values for PcdDpaa1DebugFlags:
+  # - 0x1      Enable DPAA1 debugging messages
+  # - 0x2      Dump values of RAM words or registers
+  # - 0x4      Perform extra checks
+  # - 0x8      Trace sent/received network packets
+  #
+  gLS1046aRdbTokenSpaceGuid.PcdDpaa1Initialize|TRUE|BOOLEAN|0x0000004A
+  gLS1046aRdbTokenSpaceGuid.PcdDpaa1DebugFlags|0x0|UINT32|0x0000004B
+  gLS1046aRdbTokenSpaceGuid.PcdFManFwSrc|0x1|UINT8|0x0000004C
+  gLS1046aRdbTokenSpaceGuid.PcdFManFwNorAddr|0x40900000|UINT32|0x0000004D
+  gLS1046aRdbTokenSpaceGuid.PcdFManFwQspiAddr|0x40900000|UINT32|0x0000004E
+
+  #
+  # Bit mask to indicate the DPAA1 MEMACs to be used.
+  # MeMaci is selected to be used, if bit 'i - 1' is set in the bit mask,
+  # where i is the range '1 .. #Memacs'. For example, if we want MEMAC5
+  # to be used, the value of the mask needs to be 0x10 (bit 4 set)
+  #
+  gLS1046aRdbTokenSpaceGuid.PcdDpaa1UsedMemacsMask|0x0|UINT64|0x0000004F
+  #Flash Pcd
+  gLS1046aRdbTokenSpaceGuid.PcdFlashDeviceBase64|0x0|UINT64|0x00000050
+  
+  #Runtime Variable Pcds
+  gLS1046aRdbTokenSpaceGuid.PcdFlashReservedRegionBase64|0x0|UINT64|0x00000051
+  
+  gLS1046aRdbTokenSpaceGuid.PcdNvFdBase|0x0|UINT64|0x00000052
+  gLS1046aRdbTokenSpaceGuid.PcdNvFdSize|0x0|UINT32|0x00000053
+  
+  gLS1046aRdbTokenSpaceGuid.PcdSdxcDmaSupported|FALSE|BOOLEAN|0x00000054
+
+  #
+  # IP Testing specific PCDs
+  #
+  gLS1046aRdbTokenSpaceGuid.PcdDspiTest|FALSE|BOOLEAN|0x00000055
+  gLS1046aRdbTokenSpaceGuid.PcdQspiTest|FALSE|BOOLEAN|0x00000056
+  gLS1046aRdbTokenSpaceGuid.PcdDdrBistTest|FALSE|BOOLEAN|0x00000057
+
+  #
+  # PPA specific PCDs
+  #
+  gLS1046aRdbTokenSpaceGuid.PcdPpaQspiBaseAddr|0x0|UINT64|0x00000058
+
+  # Errata Pcds
+  gLS1046aRdbTokenSpaceGuid.PcdDdrErratumA008550|FALSE|BOOLEAN|0x00000059
+  gLS1046aRdbTokenSpaceGuid.PcdDdrErratumA009660|FALSE|BOOLEAN|0x0000005A
+  gLS1046aRdbTokenSpaceGuid.PcdDdrErratumA009663|FALSE|BOOLEAN|0x0000005B
+  gLS1046aRdbTokenSpaceGuid.PcdDdrErratumA009442|FALSE|BOOLEAN|0x0000005C
+
+  gLS1046aRdbTokenSpaceGuid.PcdUsbErratumA009008|FALSE|BOOLEAN|0x0000005D
+  gLS1046aRdbTokenSpaceGuid.PcdUsbErratumA009798|FALSE|BOOLEAN|0x0000005E
+  gLS1046aRdbTokenSpaceGuid.PcdUsbErratumA008997|FALSE|BOOLEAN|0x0000005F
+  gLS1046aRdbTokenSpaceGuid.PcdUsbErratumA009007|FALSE|BOOLEAN|0x00000060
+
+  gLS1046aRdbTokenSpaceGuid.PcdQspiSwap|FALSE|BOOLEAN|0x00000061
+  gLS1046aRdbTokenSpaceGuid.PcdSataErratumA009185|FALSE|BOOLEAN|0x00000062
+  gLS1046aRdbTokenSpaceGuid.PcdSataErratumA010554|FALSE|BOOLEAN|0x00000063
+  gLS1046aRdbTokenSpaceGuid.PcdSataErratumA010635|FALSE|BOOLEAN|0x00000064
+  gLS1046aRdbTokenSpaceGuid.PcdSataErratumA008402|FALSE|BOOLEAN|0x00000065

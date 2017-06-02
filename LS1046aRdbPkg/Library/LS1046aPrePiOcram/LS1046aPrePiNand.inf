@@ -1,0 +1,50 @@
+#/** @LS1046aPrePiNand.inf
+#
+#  Copyright (c) 2015, Freescale Semiconductor, Inc. All rights reserved.
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution.  The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = LS1046aPrePiOcram
+  FILE_GUID                      = d959e387-7b91-452c-90e1-a1dbac10ddb8
+  MODULE_TYPE                    = SEC
+  VERSION_STRING                 = 1.0
+
+[Sources]
+	LS1046aPrePiOcram.c
+	LS1046aPrePiNand.c
+
+[Sources.AArch64]
+  AArch64/ModuleEntryPoint.S
+
+[Packages]
+  MdePkg/MdePkg.dec
+	ArmPkg/ArmPkg.dec
+	ArmPlatformPkg/ArmPlatformPkg.dec
+	LS1046aRdbPkg/LS1046aRdbPkg.dec
+
+[LibraryClasses]
+	ArmLib
+	PcdLib
+	NandFlashLib
+	ArmPlatformLib
+	DdrLib
+
+[FixedPcd]
+  gLS1046aRdbTokenSpaceGuid.PcdOcramStackBase
+  gLS1046aRdbTokenSpaceGuid.PcdFdNandLba
+  gArmTokenSpaceGuid.PcdFdBaseAddress
+  gArmTokenSpaceGuid.PcdFdSize
+  gArmTokenSpaceGuid.PcdSystemMemoryBase
+  gArmTokenSpaceGuid.PcdSystemMemorySize
+  gArmPlatformTokenSpaceGuid.PcdSystemMemoryUefiRegionSize
+  gLS1046aRdbTokenSpaceGuid.PcdBootMode

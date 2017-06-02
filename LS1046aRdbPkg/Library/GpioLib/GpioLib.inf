@@ -1,0 +1,41 @@
+#/** GpioLib.inf
+#
+#  Component description file for GpioLib module
+#
+#  Copyright (c) 2016 NXP.
+#  All rights reserved.
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution. The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = GpioLib
+  FILE_GUID                      = addec2b8-d2e0-43c0-a277-41a8d42f3f4f
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = GpioLib
+
+[Sources.common]
+  GpioLib.c
+
+[LibraryClasses]
+  ArmLib
+  IoLib
+  BaseMemoryLib
+  BaseLib
+  #LS1046aSocLib
+
+[Packages]
+  EmbeddedPkg/EmbeddedPkg.dec
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  ArmPlatformPkg/ArmPlatformPkg.dec
+  LS1046aRdbPkg/LS1046aRdbPkg.dec

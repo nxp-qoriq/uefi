@@ -1,0 +1,47 @@
+#/** DdrLib.inf
+#
+#  Component description file for DdrLib module
+#
+#  Copyright (c) 2015, Freescale Semiconductor, Inc. All rights reserved.
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution.  The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = DdrLib
+  FILE_GUID                      = 8ecefc8f-a2c4-4091-b31f-20f7aeb0567f
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = DdrLib
+
+[Sources.common]
+  DdrLib.c
+
+[LibraryClasses]
+  ArmLib
+  BaseMemoryLib
+  BaseLib
+  IoLib
+  LS1046aSocLib
+
+[Packages]
+  ArmPlatformPkg/ArmPlatformPkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  LS1046aRdbPkg/LS1046aRdbPkg.dec
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[FixedPcd]
+  gLS1046aRdbTokenSpaceGuid.PcdDdrBistTest
+  gLS1046aRdbTokenSpaceGuid.PcdDdrErratumA008550
+  gLS1046aRdbTokenSpaceGuid.PcdDdrErratumA009660
+  gLS1046aRdbTokenSpaceGuid.PcdDdrErratumA009663
+  gLS1046aRdbTokenSpaceGuid.PcdDdrErratumA009442

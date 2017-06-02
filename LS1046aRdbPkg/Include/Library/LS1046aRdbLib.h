@@ -1,0 +1,3 @@
+
+UINTN LS1046aGetBootLocPtr(VOID);
+VOID LS1046aWaitForCoreRelease(UINTN);
