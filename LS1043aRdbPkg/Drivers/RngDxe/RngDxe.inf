@@ -1,0 +1,70 @@
+#/** RngDxe.inf
+#
+#  Component description file for RngDxe module
+#
+#  Copyright (c) 2017 NXP.
+#  All rights reserved.
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution. The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = RngDxe
+  FILE_GUID                      = aefc0a47-599c-4f50-b5ed-40c4e541dc5b
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = RngDriverEntryPoint
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = AARCH64
+#
+
+[Sources.common]
+  RngDxe.c
+
+[Packages]
+  ArmPkg/ArmPkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  LS1043aRdbPkg/LS1043aRdbPkg.dec
+  MdePkg/MdePkg.dec
+  SecurityPkg/SecurityPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib	
+  MemoryAllocationLib
+  SecureMonRngLib
+  TimerLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiLib
+
+[Guids]
+  gEfiRngAlgorithmRaw                 # Unique ID of the algorithm for RNG
+  gEfiRngAlgorithmSp80090Hash256Guid
+  gEfiRngAlgorithmSp80090Hash256Guid
+  gEfiRngAlgorithmSp80090Hmac256Guid
+  gEfiRngAlgorithmSp80090Hmac256Guid
+  gEfiRngAlgorithmSp80090Ctr256Guid
+  gEfiRngAlgorithmSp80090Ctr256Guid
+  gEfiRngAlgorithmX9313DesGuid
+  gEfiRngAlgorithmX9313DesGuid
+  gEfiRngAlgorithmX931AesGuid
+  gEfiRngAlgorithmX931AesGuid
+
+[Protocols]
+  gEfiRngProtocolGuid                ## PRODUCES
+
+[Depex]
+  TRUE

@@ -1,0 +1,67 @@
+#/** PpaInitDxe.inf 
+#
+#  Component description file for Ppa Initialization driver
+#
+#  Copyright (c) 2015, Freescale Semiconductor, Inc. All rights reserved.
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution.  The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = PpaInit
+  FILE_GUID                      = 4d00ef14-c4e0-426b-81b7-30a00a14abb6
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+
+  ENTRY_POINT                    = PpaInitialize
+
+[Sources.common]
+  PpaInit.c
+  PpaInitHelper.S
+
+[Packages]
+  MdePkg/MdePkg.dec
+  LS1043aRdbPkg/LS1043aRdbPkg.dec
+  ArmPkg/ArmPkg.dec
+  ArmPlatformPkg/ArmPlatformPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  UefiLib
+  UefiDriverEntryPoint
+  MemoryInitPeiLib
+  ArmLib
+  BdsLib
+
+[Guids]
+
+[Protocols]
+
+[Pcd]
+  gArmTokenSpaceGuid.PcdSystemMemoryBase
+  gArmTokenSpaceGuid.PcdSystemMemorySize
+  gLS1043aRdbTokenSpaceGuid.PcdPpaNorBaseAddr
+  gLS1043aRdbTokenSpaceGuid.PcdPpaQspiBaseAddr
+  gLS1043aRdbTokenSpaceGuid.PcdPpaFwSize
+  gLS1043aRdbTokenSpaceGuid.PcdPpaFitConfiguration
+  gLS1043aRdbTokenSpaceGuid.PcdBootMode
+  gLS1043aRdbTokenSpaceGuid.PcdPpaNandLba
+  gLS1043aRdbTokenSpaceGuid.PcdPpaSdxcLba
+  gLS1043aRdbTokenSpaceGuid.PcdPpaImageSize
+  gArmTokenSpaceGuid.PcdGicDistributorBase
+  gArmTokenSpaceGuid.PcdGicInterruptInterfaceBase
+
+[FixedPcd]
+
+
+[depex]
+  TRUE

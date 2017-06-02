@@ -1,0 +1,3 @@
+
+UINTN LS1043aGetBootLocPtr(VOID);
+VOID LS1043aWaitForCoreRelease(UINTN);
