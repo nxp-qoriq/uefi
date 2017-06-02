@@ -17,6 +17,7 @@
 #include <Library/PcdLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/BdsLib.h>
+#include <LS1046aSocLib.h>
 
 #include <Protocol/DevicePath.h>
 
@@ -98,6 +99,7 @@ InstallFdt (
   // Ensure that the FDT header is valid and that the Size of the Device Tree
   // is smaller than the size of the read file
   //
+  NumPages = EFI_SIZE_TO_PAGES (FdtBlobSize);
   if (fdt_check_header ((VOID*)(UINTN)FdtBlobBase) != 0 ||
       (UINTN)fdt_totalsize ((VOID*)(UINTN)FdtBlobBase) > FdtBlobSize) {
     DEBUG ((EFI_D_ERROR, "InstallFdt() - loaded FDT binary image seems corrupt\n"));
@@ -105,11 +107,13 @@ InstallFdt (
     goto Error;
   }
 
+  /* fdt fixup for LS1046A */
+  FdtCpuSetup((VOID *)FdtBlobBase, FdtBlobSize);
+
   //
   // Store the FDT as Runtime Service Data to prevent the Kernel from
   // overwritting its data.
   //
-  NumPages = EFI_SIZE_TO_PAGES (FdtBlobSize);
   Status = gBS->AllocatePages (
                   AllocateAnyPages, EfiRuntimeServicesData,
                   NumPages, &FdtConfigurationTableBase

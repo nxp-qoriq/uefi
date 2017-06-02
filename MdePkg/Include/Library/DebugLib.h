@@ -55,6 +55,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define DEBUG_VERBOSE   0x00400000  // Detailed debug messages that may
                                     // significantly impact boot performance
 #define DEBUG_ERROR     0x80000000  // Error
+#define DEBUG_RELEASE   0x01000000  // Error
 
 //
 // Aliases of debug message mask bits
@@ -76,6 +77,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define EFI_D_EVENT     DEBUG_EVENT
 #define EFI_D_VERBOSE   DEBUG_VERBOSE
 #define EFI_D_ERROR     DEBUG_ERROR
+#define EFI_D_RELEASE   DEBUG_RELEASE
 
 /**
   Prints a debug message to the debug output device if the specified error level is enabled.

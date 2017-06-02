@@ -33,6 +33,7 @@
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
   ShellPkg/ShellPkg.dec
+  LS1046aRdbPkg/LS1046aRdbPkg.dec
 
 [LibraryClasses]
   UefiDriverEntryPoint
@@ -45,6 +46,7 @@
   UefiRuntimeServicesTableLib
   HiiLib
   ShellLib
+  LS1046aSocLib
 
 [Protocols]
   gEfiDevicePathToTextProtocolGuid

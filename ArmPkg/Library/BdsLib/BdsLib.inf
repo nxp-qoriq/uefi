@@ -25,6 +25,7 @@
   BdsAppLoader.c
   BdsHelper.c
   BdsLoadOption.c
+  BdsLinuxFit.c
 
 [Packages]
   EmbeddedPkg/EmbeddedPkg.dec
@@ -38,6 +39,7 @@
   BaseLib
   DebugLib
   DevicePathLib
+  FdtLib
   HobLib
   PcdLib
   NetLib
