@@ -242,7 +242,6 @@ MnpAddFreeTxBuf (
       Status = EFI_OUT_OF_RESOURCES;
       break;
     }
-    DEBUG ((EFI_D_INFO, "MnpAddFreeTxBuf: Add TxBufWrap %p, TxBuf %p\n", TxBufWrap, TxBufWrap->TxBuf));
     TxBufWrap->Signature = MNP_TX_BUF_WRAP_SIGNATURE;
     TxBufWrap->InUse     = FALSE;
     InsertTailList (&MnpDeviceData->FreeTxBufList, &TxBufWrap->WrapEntry);

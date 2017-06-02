@@ -1,0 +1,39 @@
+#/** Dpaa2EthernetMacLib.inf
+#
+#  Component description file for Dpaa2EthernetMacLib module
+#
+#  Copyright (c) 2016, Freescale Semiconductor, Inc. All rights reserved.
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution. The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Dpaa2EthernetMacLib
+  FILE_GUID                      = 8b871d5a-d941-4045-92cf-392a7e34690f
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = Dpaa2EthernetMacLib
+
+[Sources.common]
+  WriopDpmac.c
+
+[LibraryClasses]
+  ArmLib
+  IoLib
+  BaseLib
+
+[Packages]
+  EmbeddedPkg/EmbeddedPkg.dec
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  ArmPlatformPkg/ArmPlatformPkg.dec
+  LS2088aRdbPkg/LS2088aRdbPkg.dec
+

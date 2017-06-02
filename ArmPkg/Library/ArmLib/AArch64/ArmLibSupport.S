@@ -68,11 +68,14 @@ ASM_FUNC(ArmSetTTBR0)
   ret
 
 ASM_FUNC(ArmGetTTBR0BaseAddress)
-  EL1_OR_EL2(x1)
+  EL1_OR_EL2_OR_EL3(x1)
 1:mrs     x0, ttbr0_el1
-  b       3f
+  b       4f
 2:mrs     x0, ttbr0_el2
-3:and     x0, x0, 0xFFFFFFFFFFFF  /* Look at bottom 48 bits */
+  b	  4f
+3:mrs     x0, ttbr0_el3
+4:MOV64 (x1, 0xFFFFFFFFFFFF) /* Look at bottom 48 bits */
+  and     x0, x0, x1
   isb
   ret
 

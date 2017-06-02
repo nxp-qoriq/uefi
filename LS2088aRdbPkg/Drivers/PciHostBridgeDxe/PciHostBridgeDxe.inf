@@ -1,0 +1,75 @@
+/* PciHostBridgeDxe.inf
+#
+#  Component description file for PCI Host Bridge driver
+#
+#  Copyright (c) 2016, Freescale Semiconductor, Inc. All rights reserved.
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution. The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#
+*/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = PciHostBridge
+  FILE_GUID                      = C62F4B20-681E-11DF-8F0D-0002A5D5C51B
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = PciHostBridgeEntryPoint
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  ArmPlatformPkg/ArmPlatformPkg.dec
+  LS2088aRdbPkg/LS2088aRdbPkg.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  PciHostBridgeLib
+  UefiBootServicesTableLib
+  DxeServicesTableLib
+  UefiLib
+  MemoryAllocationLib
+  BaseMemoryLib
+  BaseLib
+  ArmLib
+  DebugLib
+  DevicePathLib
+  IoLib
+  PcdLib
+
+[Sources]
+  PciHostBridgeDxe.c
+  PciRootBridgeIo.c
+
+[FixedPcd]
+  gLS2088aRdbTokenSpaceGuid.PcdPciBusMin
+  gLS2088aRdbTokenSpaceGuid.PcdPciBusMax
+  gLS2088aRdbTokenSpaceGuid.PcdPciIoBase
+  gLS2088aRdbTokenSpaceGuid.PcdPciIoSize
+  gLS2088aRdbTokenSpaceGuid.PcdPci1Mmio64Base
+  gLS2088aRdbTokenSpaceGuid.PcdPci2Mmio64Base
+  gLS2088aRdbTokenSpaceGuid.PcdPci3Mmio64Base
+  gLS2088aRdbTokenSpaceGuid.PcdPci4Mmio64Base
+  gLS2088aRdbTokenSpaceGuid.PcdPciMmio64Size
+  gLS2088aRdbTokenSpaceGuid.PcdPci1ExpressBaseAddress
+  gLS2088aRdbTokenSpaceGuid.PcdPci2ExpressBaseAddress
+  gLS2088aRdbTokenSpaceGuid.PcdPci3ExpressBaseAddress
+  gLS2088aRdbTokenSpaceGuid.PcdPci4ExpressBaseAddress
+  gLS2088aRdbTokenSpaceGuid.PcdKludgeMapPciMmioAsCached
+  gLS2088aRdbTokenSpaceGuid.PcdPciDebug
+
+[Protocols]
+  gEfiPciHostBridgeResourceAllocationProtocolGuid       ## PRODUCES
+  gEfiPciRootBridgeIoProtocolGuid                       ## PRODUCES
+  gEfiMetronomeArchProtocolGuid                         ## CONSUMES
+  gEfiDevicePathProtocolGuid                            ## PRODUCES
+
+[Depex]
+  TRUE

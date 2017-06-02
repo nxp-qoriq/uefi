@@ -46,7 +46,8 @@ InvalidateInstructionCache (
   VOID
   )
 {
-  ASSERT (FALSE);
+  ArmCleanDataCache();
+  ArmInvalidateInstructionCache();
 }
 
 VOID
@@ -55,7 +56,7 @@ InvalidateDataCache (
   VOID
   )
 {
-  ASSERT (FALSE);
+  ArmInvalidateDataCache();
 }
 
 VOID *
@@ -82,7 +83,7 @@ WriteBackInvalidateDataCache (
   VOID
   )
 {
-  ASSERT (FALSE);
+  ArmCleanInvalidateDataCache();
 }
 
 VOID *
@@ -103,7 +104,7 @@ WriteBackDataCache (
   VOID
   )
 {
-  ASSERT (FALSE);
+  ArmCleanDataCache();
 }
 
 VOID *

@@ -1,0 +1,3 @@
+
+UINTN LS2088aGetBootLocPtr(VOID);
+VOID LS2088aWaitForCoreRelease(UINTN);

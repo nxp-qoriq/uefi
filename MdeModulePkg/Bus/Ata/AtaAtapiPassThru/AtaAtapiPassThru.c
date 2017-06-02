@@ -1182,6 +1182,7 @@ EnumerateAttachedDevice (
 
   Status = EFI_SUCCESS;
 
+  DEBUG ((EFI_D_RELEASE, "Enumerating attached SATA devices........\n"));
   Status = Instance->PciIo->Pci.Read (
                                   Instance->PciIo,
                                   EfiPciIoWidthUint8,

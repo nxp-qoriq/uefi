@@ -1,0 +1,65 @@
+#/** PpaInitDxe.inf 
+#
+#  Component description file for Ppa Initialization driver
+#
+#  Copyright (c) 2015, Freescale Semiconductor, Inc. All rights reserved.
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution.  The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = PpaInit
+  FILE_GUID                      = 4d00ef14-c4e0-426b-81b7-30a00a14abb6
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+
+  ENTRY_POINT                    = PpaInitialize
+
+[Sources.common]
+  PpaInit.c
+  PpaInitHelper.S
+
+[Packages]
+  MdePkg/MdePkg.dec
+  LS2088aRdbPkg/LS2088aRdbPkg.dec
+  ArmPkg/ArmPkg.dec
+  ArmPlatformPkg/ArmPlatformPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  UefiLib
+  UefiDriverEntryPoint
+  MemoryInitPeiLib
+  ArmLib
+  BdsLib
+
+[Guids]
+
+[Protocols]
+
+[Pcd]
+  gArmTokenSpaceGuid.PcdSystemMemoryBase
+  gArmTokenSpaceGuid.PcdSystemMemorySize
+  gArmPlatformTokenSpaceGuid.PcdPpaNorBaseAddr
+  gLS2088aRdbTokenSpaceGuid.PcdPpaQspiBaseAddr
+  gArmPlatformTokenSpaceGuid.PcdPpaDdrOffsetAddr
+  gLS2088aRdbTokenSpaceGuid.PcdPpaFitConfiguration
+  gLS2088aRdbTokenSpaceGuid.PcdBootMode
+  gLS2088aRdbTokenSpaceGuid.PcdPpaNandLba
+  gLS2088aRdbTokenSpaceGuid.PcdPpaSdxcLba
+  gLS2088aRdbTokenSpaceGuid.PcdPpaImageSize
+
+[FixedPcd]
+
+
+[depex]
+  TRUE

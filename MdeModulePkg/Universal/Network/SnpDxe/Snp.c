@@ -154,12 +154,12 @@ SimpleNetworkDriverSupported (
 
   if (EFI_ERROR (Status)) {
     if (Status == EFI_ALREADY_STARTED) {
-      DEBUG ((EFI_D_INFO, "Support(): Already Started. on handle %p\n", Controller));
+      DEBUG ((EFI_D_RELEASE, "Support(): Already Started. on handle %p\n", Controller));
     }
     return Status;
   }
 
-  DEBUG ((EFI_D_INFO, "Support(): UNDI3.1 found on handle %p\n", Controller));
+  DEBUG ((EFI_D_RELEASE, "Support(): UNDI3.1 found on handle %p\n", Controller));
 
   //
   // check the version, we don't want to connect to the undi16
@@ -223,7 +223,7 @@ SimpleNetworkDriverSupported (
   }
 
   Status = EFI_SUCCESS;
-  DEBUG ((EFI_D_INFO, "Support(): supported on %p\n", Controller));
+  DEBUG ((EFI_D_RELEASE, "Support(): supported on %p\n", Controller));
 
 Done:
   gBS->CloseProtocol (
@@ -333,7 +333,7 @@ SimpleNetworkDriverStart (
     return Status;
   }
 
-  DEBUG ((EFI_D_INFO, "Start(): UNDI3.1 found\n"));
+  DEBUG ((EFI_D_RELEASE, "Start(): UNDI3.1 found\n"));
 
   Pxe = (PXE_UNDI *) (UINTN) (Nii->Id);
 

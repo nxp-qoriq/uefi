@@ -1,0 +1,51 @@
+#/** NandFlashDxe.inf 
+#
+#  Component description file for NAND Flash Dxe driver
+#
+#  Copyright (c) 2015, Freescale Semiconductor, Inc. All rights reserved.
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution.  The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = NandFlash
+  FILE_GUID                      = 4d00ef14-c4e0-426b-81b7-30a00a14aad6
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+
+  ENTRY_POINT                    = NandFlashInitialize
+
+[Sources.common]
+  NandFlash.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  LS2088aRdbPkg/LS2088aRdbPkg.dec
+
+[LibraryClasses]
+  NandFlashLib
+  UefiLib
+  UefiDriverEntryPoint
+
+[Guids]
+
+[Protocols]
+  gEfiBlockIoProtocolGuid
+  gEfiDiskIoProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
+  gEfiCpuArchProtocolGuid
+
+[Pcd]
+  gLS2088aRdbTokenSpaceGuid.PcdNandTest
+
+[depex]
+  TRUE

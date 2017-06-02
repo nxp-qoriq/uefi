@@ -1,0 +1,40 @@
+#/** I2cLib.inf
+#
+#  Component description file for I2cLib module
+#
+#  Copyright (c) 2015, Freescale Semiconductor, Inc. All rights reserved.
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution. The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = I2cLib
+  FILE_GUID                      = 8ecefc8f-a2c4-4091-b81f-20f7aeb0567f
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = I2cLib
+
+[Sources.common]
+  I2cLib.c
+
+[LibraryClasses]
+  ArmLib
+  IoLib
+  BaseMemoryLib
+  BaseLib
+  LS2088aSocLib
+
+[Packages]
+  EmbeddedPkg/EmbeddedPkg.dec
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  ArmPlatformPkg/ArmPlatformPkg.dec
+  LS2088aRdbPkg/LS2088aRdbPkg.dec

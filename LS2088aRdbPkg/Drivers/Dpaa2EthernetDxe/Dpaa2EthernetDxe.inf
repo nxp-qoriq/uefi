@@ -1,0 +1,61 @@
+#/** @file
+#
+#  Component description file for the Dpaa2EthernetDxe module
+#
+#  Copyright (c) 2016, Freescale Semiconductor, Inc. All rights reserved.
+#
+#  This program and the accompanying materials
+#  are licensed and made available under the terms and conditions of the BSD License
+#  which accompanies this distribution. The full text of the license may be found at
+#  http://opensource.org/licenses/bsd-license.php
+#
+#  THE PROGRAM IS DISTRIBUTED UNDER THE BSD LICENSE ON AN "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Dpaa2EthernetDxe
+  FILE_GUID                      = bc7ed83c-8227-47ea-bf20-8bc4ed86c6ca
+  MODULE_TYPE                    = UEFI_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = Dpaa2EthernetInitialize
+  UNLOAD_IMAGE                   = Dpaa2EthernetUnload
+
+[Sources.common]
+  Dpaa2EthernetDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  LS2088aRdbPkg/LS2088aRdbPkg.dec
+  ArmPlatformPkg/ArmPlatformPkg.dec
+
+[LibraryClasses]
+  IoLib
+  BaseLib
+  DebugLib
+  HobLib
+  UefiLib
+  UefiDriverEntryPoint
+  Dpaa2EthernetMacLib
+  Dpaa2EthernetPhyLib
+  Dpaa2BoardSpecificLib
+  Dpaa2ManagementComplexLib
+
+[Guids]
+
+[Protocols]
+  gEfiBlockIoProtocolGuid
+  gEfiDiskIoProtocolGuid
+  gEfiSimpleFileSystemProtocolGuid
+  gEfiCpuArchProtocolGuid
+
+[Pcd]
+  gLS2088aRdbTokenSpaceGuid.PcdDpaa2DebugFlags
+  gLS2088aRdbTokenSpaceGuid.PcdDpaa2Initialize
+  gLS2088aRdbTokenSpaceGuid.PcdDpaa2UsedDpmacsMask
+
+[depex]
+  TRUE

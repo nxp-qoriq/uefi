@@ -572,6 +572,9 @@ AhciBuildCommand (
     if (RemainedData < EFI_AHCI_MAX_DATA_PER_PRDT) {
       AhciRegisters->AhciCommandTable->PrdtTable[PrdtIndex].AhciPrdtDbc = (UINT32)RemainedData - 1;
     } else {
+        if (PcdGetBool(PcdSataErratumA008402))
+	  AhciRegisters->AhciCommandTable->PrdtTable[PrdtIndex].AhciPrdtDbc = 0;
+	else
       AhciRegisters->AhciCommandTable->PrdtTable[PrdtIndex].AhciPrdtDbc = EFI_AHCI_MAX_DATA_PER_PRDT - 1;
     }
 
@@ -1602,7 +1605,7 @@ AhciAtaSmartSupport (
     //
     // S.M.A.R.T is not supported by the device
     //
-    DEBUG ((EFI_D_INFO, "S.M.A.R.T feature is not supported at port [%d] PortMultiplier [%d]!\n",
+    DEBUG ((EFI_D_RELEASE, "S.M.A.R.T feature is not supported at port [%d] PortMultiplier [%d]!\n",
             Port, PortMultiplier));
     REPORT_STATUS_CODE (
       EFI_ERROR_CODE | EFI_ERROR_MINOR,
@@ -1679,7 +1682,7 @@ AhciAtaSmartSupport (
         }
       }
     }
-    DEBUG ((EFI_D_INFO, "Enabled S.M.A.R.T feature at port [%d] PortMultiplier [%d]!\n",
+    DEBUG ((EFI_D_RELEASE, "Enabled S.M.A.R.T feature at port [%d] PortMultiplier [%d]!\n",
             Port, PortMultiplier));
   }
 
@@ -2445,7 +2448,7 @@ AhciModeInitialization (
       } else {
         continue;
       }
-      DEBUG ((EFI_D_INFO, "port [%d] port mulitplier [%d] has a [%a]\n",
+      DEBUG ((EFI_D_RELEASE, "port [%d] port mulitplier [%d] has a [%a]\n",
               Port, 0, DeviceType == EfiIdeCdrom ? "cdrom" : "harddisk"));
 
       //
