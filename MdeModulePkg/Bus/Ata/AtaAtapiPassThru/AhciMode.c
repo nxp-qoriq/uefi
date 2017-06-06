@@ -572,7 +572,10 @@ AhciBuildCommand (
     if (RemainedData < EFI_AHCI_MAX_DATA_PER_PRDT) {
       AhciRegisters->AhciCommandTable->PrdtTable[PrdtIndex].AhciPrdtDbc = (UINT32)RemainedData - 1;
     } else {
-      AhciRegisters->AhciCommandTable->PrdtTable[PrdtIndex].AhciPrdtDbc = EFI_AHCI_MAX_DATA_PER_PRDT - 1;
+      if (PcdGetBool(PcdSataErratumA008402))
+        AhciRegisters->AhciCommandTable->PrdtTable[PrdtIndex].AhciPrdtDbc = 0;
+      else
+        AhciRegisters->AhciCommandTable->PrdtTable[PrdtIndex].AhciPrdtDbc = EFI_AHCI_MAX_DATA_PER_PRDT - 1;
     }
 
     Data64.Uint64 = (UINT64)MemAddr;

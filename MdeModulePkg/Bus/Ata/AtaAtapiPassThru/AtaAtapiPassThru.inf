@@ -47,6 +47,7 @@
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  LS1046aRdbPkg/LS1046aRdbPkg.dec
 
 [LibraryClasses]
   DevicePathLib
@@ -70,6 +71,7 @@
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdAtaSmartEnable   ## SOMETIMES_CONSUMES
+  gLS1046aRdbTokenSpaceGuid.PcdSataErratumA008402
 
 # [Event]
 # EVENT_TYPE_PERIODIC_TIMER ## SOMETIMES_CONSUMES
