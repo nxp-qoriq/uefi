@@ -487,31 +487,14 @@ Dpaa2SnpReceiveFilters (
     return EFI_INVALID_PARAMETER;
   }
 
-  if (Enable & Disable) {
-    DPAA2_ERROR_MSG(
-      "Dpaa2SnpReceiveFilter 'Enable' mask (0x%x) and 'Disable' mask (0x%x) cannot have the same bits on\n",
-      Enable, Disable);
+  /*
+   *    * As per the UEFI Specification, If the same bits are set in the Enable and
+   *       * Disable parameters, then the bits in the Disable parameter takes precedence
+   */
+  if (Enable & Disable)
+    Enable = Enable & ~Disable;
 
-    return EFI_INVALID_PARAMETER;
-  }
-
-  if (ResetMCastFilter) {
-    if (!(Disable & EFI_SIMPLE_NETWORK_RECEIVE_MULTICAST)) {
-      DPAA2_ERROR_MSG(
-        "Dpaa2SnpReceiveFilter 'Disable' mask (0x%x) does not have 'Multicast' bit set\n",
-        Disable);
-
-      return EFI_INVALID_PARAMETER;
-    }
-
-    if (MCastFilterCnt != 0) {
-      DPAA2_ERROR_MSG(
-        "Dpaa2SnpReceiveFilter 'MCastFilterCnt' (%u) has to be 0\n",
-        MCastFilterCnt);
-
-      return EFI_INVALID_PARAMETER;
-    }
-  } else {
+  if (!ResetMCastFilter) {
     if (MCastFilterCnt > SnpMode->MaxMCastFilterCount) {
       DPAA2_ERROR_MSG(
         "Dpaa2SnpReceiveFilter 'MCastFilterCnt' (%u) is out of range\n",
