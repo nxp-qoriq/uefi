@@ -1277,7 +1277,9 @@ FixupPort (
   IN UINT32  Index
   )
 {
-       UINT32 Offset = 0;
+       UINT32 Offset = 0, Ph = 0, Ph1 = 0;
+       INT32 Len, DpaOffset;
+       CONST fdt32_t *Reg;
 
        Offset = fdt_node_offset_by_compat_reg(Blob, Prop, gFdtPort[Index].CompatAddress);
        if (Offset == -FDT_ERR_NOTFOUND)
@@ -1289,9 +1291,31 @@ FixupPort (
 			gPhyStrings[gFdtPort[Index].PhyInterfaceType]);
        }
        else {
-       //Disable status if PhyInterfaceType == PHY_INTERFACE_NONE
-		return fdt_setprop_string(Blob, Offset, "status", "disabled");
-       } 
+         // Disable MAC node status if PhyInterfaceType is not XFI/RGMII/SGMII
+         // PhyInterfaceType is PHY_INTERFACE_NONE
+         fdt_setprop_string(Blob, Offset, "status", "disabled");
+
+         // Calculate "phandle" property value of disabled MAC node
+         Reg = fdt_getprop(Blob, Offset, "phandle", &Len);
+         Ph = fdt32_to_cpu(*Reg);
+
+         // Loop through each ethernet node with compatible as fsl,dpa-ethernet
+         DpaOffset= -FDT_ERR_NOTFOUND;
+         do {
+           DpaOffset = fdt_node_offset_by_compatible(Blob, DpaOffset, \
+                       "fsl,dpa-ethernet");
+           // Calculate "fsl,fman-mac" property value of dpa-ethernet node
+           Reg = fdt_getprop(Blob, DpaOffset, "fsl,fman-mac", &Len);
+           Ph1 = fdt32_to_cpu(*Reg);
+           if (Ph == Ph1) {
+           // Disable ethernet node status that points to disabled
+           // MAC node if "fsl,fman-mac" property value of dpa-ethernet
+           // node matches with "phandle" property value of disabled MAC node
+             fdt_setprop_string(Blob, DpaOffset, "status", "disabled");
+             break;
+           }
+         } while (DpaOffset != -FDT_ERR_NOTFOUND);
+       }
 
 	return EFI_SUCCESS;
 }
