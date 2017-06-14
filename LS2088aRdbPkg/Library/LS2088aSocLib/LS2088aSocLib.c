@@ -40,6 +40,10 @@
 
 #include <libfdt.h>
 
+#include <Protocol/PciRootBridgeIo.h>
+#include <PciRootBridge.h>
+#include <PciHostBridge.h>
+
 #define FDT_EXTRA_SPACE 4096
 
 /* Global Clock Information pointer */
@@ -1449,6 +1453,8 @@ static void ft_pcie_ls_setup(void *blob, const char *pci_compat,
 	GetSerdesProtocolMaps(&SerDes1ProtocolMap, &SerDes2ProtocolMap);
 	if (!IsSerDesLaneProtocolConfigured(SerDes1ProtocolMap, SerDes2ProtocolMap, dev))
 		fdt_set_node_status(blob, off, FDT_STATUS_DISABLED, 0);
+       else
+		fdt_set_node_status(blob, off, FDT_STATUS_OKAY, 0);
 }
 
 #define FSL_PCIE_COMPAT "fsl,ls2088a-pcie"
@@ -1638,6 +1644,177 @@ VOID FdtFixupJR (VOID *Blob)
   }
 }
 
+/*
+ * msi-map is a property to be added to the pci controller
+ * node.  It is a table, where each entry consists of 4 fields
+ * e.g.:
+ *
+ *      msi-map = <[devid] [phandle-to-msi-ctrl] [stream-id] [count]
+ *                 [devid] [phandle-to-msi-ctrl] [stream-id] [count]>;
+ */
+void SetMsiMapEntry(void *blob, UINTN PciBase,
+                       UINT32 devid, UINT32 streamid)
+{
+    UINT32 *prop;
+    UINT32 phandle;
+    int nodeoffset;
+    char *compat = NULL;
+
+    /* find pci controller node */
+    nodeoffset = fdt_node_offset_by_compat_reg(blob, "fsl,ls-pcie",
+            PciBase);
+
+    if (nodeoffset < 0) {
+        compat = FSL_PCIE_COMPAT;
+
+        nodeoffset = fdt_node_offset_by_compat_reg(blob,
+                compat, PciBase);
+        if (nodeoffset < 0) {
+            DEBUG((EFI_D_ERROR, "PCI %a node not found \n", compat));
+            return;
+        }
+    }
+
+    prop = (UINT32 *)fdt_getprop(blob, nodeoffset, "msi-parent", 0);
+    if (prop == NULL) {
+        DEBUG((EFI_D_ERROR, "missing msi-parent: PCIe 0x%x\n", PciBase));
+        return;
+    }
+    phandle = fdt32_to_cpu(*prop);
+
+    /* set one msi-map row */
+    fdt_appendprop_u32(blob, nodeoffset, "msi-map", devid);
+    fdt_appendprop_u32(blob, nodeoffset, "msi-map", phandle);
+    fdt_appendprop_u32(blob, nodeoffset, "msi-map", streamid);
+    fdt_appendprop_u32(blob, nodeoffset, "msi-map", 1);
+}
+
+void LutUpdate(UINTN LutBase, UINT32 Value, UINT32 Offset)
+{
+        MmioWrite32((UINTN)(LutBase + Offset), Value);
+}
+
+/*
+ *  * Program a single LUT entry
+ *   */
+void SetPcieLutMapping(UINTN PciBase, UINT32 Index, UINT32 DevId,
+        UINT32 StreamId)
+{
+    UINTN LutBase = PciBase + LS_PCIE_LUT_BASE;
+
+    LutUpdate(LutBase, DevId << 16, PCIE_LUT_UDR(Index));
+    LutUpdate(LutBase, StreamId | PCIE_LUT_ENABLE, PCIE_LUT_LDR(Index));
+}
+
+struct PciChildInfo {
+    UINT8 HasChild;
+    UINT8 SeqNum;
+}PciChildInfo[MAX_PCI_DEVICES];
+
+void UpdatePciChildInfo ()
+{
+    EFI_STATUS Status;
+    UINTN Size;
+    UINT32 Id = 0;
+    EFI_HANDLE *Handle;
+    EFI_PCI_ROOT_BRIDGE_IO_PROTOCOL *PciProtocol;
+
+    Status = gBS->LocateHandleBuffer (ByProtocol,
+            &gEfiPciRootBridgeIoProtocolGuid,
+            NULL, &Size, &Handle);
+
+    if (EFI_ERROR(Status)) {
+        DEBUG((EFI_D_ERROR, "Fail to locate PciRootBridgeIoProtocolGuid 0x%x\n",
+                    Status));
+        return;
+    }
+
+    if (Size == 0)
+        return;
+
+    for (Id = 0; Id < Size; Id++) {
+        Status = gBS->OpenProtocol (Handle[Id],
+                &gEfiPciRootBridgeIoProtocolGuid,
+                (VOID **)&PciProtocol, Handle[Id],
+                Handle[Id], EFI_OPEN_PROTOCOL_GET_PROTOCOL);
+
+        if (EFI_ERROR(Status)) {
+            DEBUG((EFI_D_ERROR, "OpenProtocol failed for handle 0x%x \n",
+                        Handle[Id]));
+            continue;
+        }
+
+        PciChildInfo[PciProtocol->SegmentNumber -1].HasChild = 1;
+    }
+}
+
+void fdt_fixup_pcie(void *blob)
+{
+    UINT32 StreamId = NXP_PEX1_STREAM_ID_START;
+    UINT32 Bdf = 0, PciNo, SeqNum;
+    UINT32 NextLutIndex = 0;
+    UINTN PciBaseAddress[] = {PCIE1_BASE_ADDR,
+                              PCIE2_BASE_ADDR,
+                              PCIE3_BASE_ADDR,
+                              PCIE4_BASE_ADDR};
+
+    UpdatePciChildInfo();
+
+    /* Scan all known buses */
+    for (PciNo = 0, SeqNum = 0; PciNo < MAX_PCI_DEVICES; PciNo++, SeqNum++) {
+        if (!IsPcieEnabled(PciBaseAddress[PciNo]))
+            continue;
+
+        if (StreamId > NXP_PEX4_STREAM_ID_END) {
+            DEBUG((EFI_D_ERROR, "No free stream ids available\n"));
+            return;
+        }
+
+        /* map PCI b.d.f to streamID in LUT */
+        SetPcieLutMapping(PciBaseAddress[PciNo], NextLutIndex, Bdf >> 8,
+                StreamId);
+
+        /* update msi-map in device tree */
+        DEBUG((EFI_D_RELEASE, "0x%x : 0x%x, %d \n", PciBaseAddress[PciNo], Bdf, StreamId));
+        SetMsiMapEntry(blob, PciBaseAddress[PciNo], Bdf >> 8,
+                StreamId);
+
+        /* Check for child */
+        if (PciChildInfo[PciNo].HasChild) {
+            SeqNum++;
+            PciChildInfo[PciNo].SeqNum = SeqNum;
+        }
+        StreamId++;
+    }
+
+    /* Scan all children */
+    NextLutIndex = 1;
+    for (PciNo = 0; PciNo < MAX_PCI_DEVICES; PciNo++) {
+        if (!PciChildInfo[PciNo].HasChild)
+            continue;
+
+        if (StreamId > NXP_PEX4_STREAM_ID_END) {
+            DEBUG((EFI_D_ERROR, "No free stream ids available\n"));
+            return;
+        }
+
+        /* the DT fixup must be relative to the hose first_busno */
+        DEBUG((EFI_D_RELEASE, "PciChildInfo[PciNo].SeqNum %d \n", PciChildInfo[PciNo].SeqNum));
+        Bdf = (PciChildInfo[PciNo].SeqNum << 16) - 
+                     PCI_BDF(PciChildInfo[PciNo].SeqNum - 1, 0, 0);
+
+        /* map PCI b.d.f to streamID in LUT */
+        SetPcieLutMapping(PciBaseAddress[PciNo], NextLutIndex, Bdf >> 8,
+                StreamId);
+
+        /* update msi-map in device tree */
+        DEBUG((EFI_D_RELEASE, "0x%x : 0x%x, %d \n", PciBaseAddress[PciNo], Bdf, StreamId));
+        SetMsiMapEntry(blob, PciBaseAddress[PciNo], Bdf >> 8, StreamId);
+
+        StreamId++;
+    }
+}
+
 void FdtCpuSetup(void *blob, UINTN blob_size)
 {
   if (PcdGet32(PcdBootMode) != QSPI_BOOT) {
@@ -1657,6 +1834,8 @@ void FdtCpuSetup(void *blob, UINTN blob_size)
 			       "clock-frequency", SysClk, 1);
 
 	ft_pci_setup(blob);
+
+       fdt_fixup_pcie(blob);
 
 	fdt_fixup_esdhc(blob);
 

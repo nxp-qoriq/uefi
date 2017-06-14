@@ -68,6 +68,10 @@
 /* LUT registers */
 #define LS_PCIE_LUT_BASE           0x80000
 #define LS_PCIE_LUT_DBG            0x407FC
+#define PCIE_LUT_UDR(n)            (0x800 + (n) * 8)
+#define PCIE_LUT_LDR(n)            (0x804 + (n) * 8)
+#define PCIE_LUT_ENABLE            (1 << 31)
+#define PCIE_LUT_ENTRY_COUNT       32
 
 /* DBI Read-Only Write Enable Register: Pg 1518 RM rev B*/
 /* Set bit 0 of this register as 1.

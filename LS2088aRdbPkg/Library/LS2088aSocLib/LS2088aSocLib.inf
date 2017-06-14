@@ -36,6 +36,7 @@
   IoLib
   ArmLib
   MemoryAllocationLib
+  PciHostBridgeLib
   SerialPortLib
   NorFlashLib
   NandFlashLib
@@ -48,6 +49,7 @@
 
 [Protocols]
   gEfiMmcHostProtocolGuid
+  gEfiPciRootBridgeIoProtocolGuid
 
 [FixedPcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdFirmwareVersionString

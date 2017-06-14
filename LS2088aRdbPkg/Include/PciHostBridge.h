@@ -45,6 +45,9 @@
 #include <Library/PciLib.h>
 #include <Library/PcdLib.h>
 
+
+#define MAX_PCI_DEVICES    4
+
 //
 // Hard code the host bridge number in the platform.
 // In this chipset, there is only one host bridge.
