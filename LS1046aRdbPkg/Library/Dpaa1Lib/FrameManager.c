@@ -539,6 +539,8 @@ EFI_STATUS EthDevInitMac (
   Mac->PhyRegs = (VOID *)PhyRegs;
   FmEth->Mac = Mac;
 
+  DPAA1_DEBUG_MSG ("Mac->Base=0x%x Mac->PhyRegs=0x%x FmEth->Mac=0x%x \n",Mac->Base, Mac->PhyRegs, FmEth->Mac);
+
   return EFI_SUCCESS;
 }
 

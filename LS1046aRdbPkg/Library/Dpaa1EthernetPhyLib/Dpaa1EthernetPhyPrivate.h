@@ -86,6 +86,21 @@
 #define REALTEK_OUI                0x000732
 #define AQUANTIA_OUI               0x00E86D
 
+/* Internal PHY Registers - SGMII */
+#define PHY_SGMII_IF_MODE_SGMII     0x0001
+#define PHY_SGMII_IF_MODE_AN        0x0002
+#define PHY_SGMII_DEV_ABILITY_SGMII 0x4001
+#define PHY_SGMII_CR_DEF_VAL        0x1140
+#define PHY_SGMII_CR_RESET_AN       0x0200
+#define PHY_SGMII_IF_SPEED_GIGABIT  0x0008
+#define PHY_SGMII_CR_PHY_RESET      0x8000
+
+/* MDIO SGMII REGISTERS */
+#define SGMII_DEV_ABIL              0x04
+#define SGMII_LINK_TMR_L            0x12
+#define SGMII_LINK_TMR_H            0x13
+#define SGMII_IF_MODE               0x14
+
 VOID
 Dpaa1PhyRegisterWrite (
   IN DPAA1_PHY *Dpaa1Phy,
