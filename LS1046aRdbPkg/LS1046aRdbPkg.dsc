@@ -570,6 +570,7 @@
   gLS1046aRdbTokenSpaceGuid.PcdSataErratumA010554|TRUE
   gLS1046aRdbTokenSpaceGuid.PcdSataErratumA010635|TRUE
   gLS1046aRdbTokenSpaceGuid.PcdSataErratumA008402|TRUE
+  gLS1046aRdbTokenSpaceGuid.PcdSdhcErratumA010539|TRUE
 
 ################################################################################
 #

@@ -24,6 +24,10 @@
 #define DCSR_SATA_ERRATA     0x20140520
 #define SERDES2_SATA_ERRATA  0x01eb1300
 
+#define DCSR_SDHC_ERRATA            0x20000000
+#define DCSR_DCFG_SDHC_ERRATA       (DCSR_SDHC_ERRATA + 0x00140000)
+#define DCSR_PORCR1_SDHC_ERRATA     0x0
+
 UINTN mGlobalVariableBase = 0;
 
 VOID CopyImage(UINT8* Dest, UINT8* Src, UINTN Size)
@@ -32,6 +36,24 @@ VOID CopyImage(UINT8* Dest, UINT8* Src, UINTN Size)
 
   for(Count = 0; Count < Size; Count++)
     Dest[Count] = Src[Count];
+}
+
+STATIC VOID ErratumA010539 (VOID)
+{
+  // Impact : SDHC_VS is pin muxed with SPI_* pins when source of RCW is QSPI
+  // Standard and high speed modes are supported for SD card connected to
+  // eSDHC interface.SDR modes(Ulta high speed) that require 1.8 V and GPIO
+  // pins releated to SPI don't work
+  // Workaround : Read DCFG_CCSR_PORSR1,clear RCW_SRC(bit 0:8) and write
+  // updated value to 0x20140000.
+  struct CcsrGur *GurBase = (VOID *)(GUTS_ADDR);
+  UINT32 Temp = 0;
+
+  Temp = MmioReadBe32((UINTN)&GurBase->porsr1);
+  Temp &= ~FSL_CHASSIS2_CCSR_PORSR1_RCW_MASK;
+  MmioWriteBe32((UINTN)(DCSR_DCFG_SDHC_ERRATA + DCSR_PORCR1_SDHC_ERRATA), Temp);
+  MmioWriteBe32((UINTN)0x015701A8, 0xFFFFFFFF);
+
 }
 
 STATIC VOID ErratumSata (VOID)
@@ -205,6 +227,9 @@ VOID CEntryPoint(
     ErratumA009007();
 
   ErratumSata();
+
+  if (PcdGetBool(PcdSdhcErratumA010539))
+    ErratumA010539();
 
   // Data Cache enabled on Primary core when MMU is enabled.
   ArmDisableDataCache ();

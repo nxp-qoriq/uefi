@@ -55,3 +55,4 @@
 	gLS1046aRdbTokenSpaceGuid.PcdUsbErratumA009007
        gLS1046aRdbTokenSpaceGuid.PcdSataErratumA010554
        gLS1046aRdbTokenSpaceGuid.PcdSataErratumA010635
+	gLS1046aRdbTokenSpaceGuid.PcdSdhcErratumA010539
