@@ -262,10 +262,12 @@ Dpaa1PhyMdioBusRead (
     return (UINT16)(-1);
   }
   RegValue = MmioReadBe32((UINTN)&MdioBusRegs->MdioData);
+
+#if DPAA_DEBUG
   DPAA1_DEBUG_MSG("MDIO bus read for PHY addr 0x%x, dev addr %d, "
                     "reg num 0x%x (MDIO stat reg: 0x%x)\n",
                     PhyAddress, MdioCtlDevAddr, PhyRegNum, RegValue);
-
+#endif
   return (UINT16)RegValue;
 }
 
@@ -640,4 +642,39 @@ Dpaa1PhyStatus (
 
 }
 
+VOID
+DtsecInitPhy (
+    IN  DPAA1_PHY_MDIO_BUS *MdioBus,
+    IN  DPAA1_PHY *Dpaa1Phy
+    )
+{
+  BOOLEAN Sgmii_2500 = (Dpaa1Phy->PhyInterfaceType == PHY_INTERFACE_SGMII_2500) ? TRUE : FALSE;
+  UINT32 Value = PHY_SGMII_IF_MODE_SGMII | PHY_SGMII_IF_MODE_AN;
+
+  if (Sgmii_2500)
+    Value = PHY_SGMII_CR_PHY_RESET | PHY_SGMII_IF_SPEED_GIGABIT | PHY_SGMII_IF_MODE_SGMII;
+  
+  Dpaa1PhyMdioBusWrite(MdioBus, 0, MDIO_CTL_DEV_NONE, SGMII_IF_MODE, Value);
+  
+  Value = PHY_SGMII_DEV_ABILITY_SGMII;
+  Dpaa1PhyMdioBusWrite(MdioBus, 0, MDIO_CTL_DEV_NONE, SGMII_DEV_ABIL, Value);
+  
+  if (Sgmii_2500) {
+   /* Adjust link timer for 2.5G SGMII,
+    * 1.6 ms in units of 3.2 ns:
+    * 1.6ms / 3.2ns = 5 * 10^5 = 0x7a120.
+    */
+    Dpaa1PhyMdioBusWrite(MdioBus, 0, MDIO_CTL_DEV_NONE, SGMII_LINK_TMR_H, 0x0007);
+    Dpaa1PhyMdioBusWrite(MdioBus, 0, MDIO_CTL_DEV_NONE, SGMII_LINK_TMR_L, 0xa120);
+  } else {
+    /* Adjust link timer for SGMII,
+     * 1.6 ms in units of 8 ns
+     * 1.6ms / 8ns = 2 * 10^5 = 0x30d40.
+     */
+    Dpaa1PhyMdioBusWrite(MdioBus, 0, MDIO_CTL_DEV_NONE, SGMII_LINK_TMR_H, 0x0003);
+    Dpaa1PhyMdioBusWrite(MdioBus, 0, MDIO_CTL_DEV_NONE, SGMII_LINK_TMR_L, 0x0d40);
+  }
+  Value = PHY_SGMII_CR_DEF_VAL | PHY_SGMII_CR_RESET_AN;
+  Dpaa1PhyMdioBusWrite(MdioBus, 0, MDIO_CTL_DEV_NONE, 0x0, Value);
+}
 

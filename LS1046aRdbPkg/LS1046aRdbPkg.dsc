@@ -468,7 +468,7 @@
 
   # Enable MEMACS 1, 2, 3, 4, 5, 6, 9
   #
-  gLS1046aRdbTokenSpaceGuid.PcdDpaa1UsedMemacsMask|0x13F
+  gLS1046aRdbTokenSpaceGuid.PcdDpaa1UsedMemacsMask|0x13C
   
 !if $(BOOT_VIA_QSPI_FLASH) == TRUE
   gLS1046aRdbTokenSpaceGuid.PcdFManFwSrc|2

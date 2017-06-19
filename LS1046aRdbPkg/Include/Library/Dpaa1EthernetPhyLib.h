@@ -29,7 +29,7 @@ typedef volatile struct _MEMAC_MDIO_BUS_REGS {
    */
   UINT32 MdioStat;
 # define MDIO_STAT_CLKDIV(_x)	((((_x) >> 1) & 0xff) << 8)
-# define MDIO_STAT_BSY		BIT(0)
+# define MDIO_STAT_BSY		BIT(31)
 # define MDIO_STAT_RD_ER		BIT(1)
 # define MDIO_STAT_PRE		BIT(5)
 # define MDIO_STAT_ENC		BIT(6)
@@ -181,5 +181,11 @@ BOOLEAN
 Dpaa1PhyStatus (
   IN  DPAA1_PHY *Dpaa1Phy
   );
+
+VOID
+DtsecInitPhy (
+    IN  DPAA1_PHY_MDIO_BUS *MdioBus, 
+    IN  DPAA1_PHY *Dpaa1Phy
+    );
 
 #endif /* __DPAA1_ETHERTNET_PHY_LIB_H__ */

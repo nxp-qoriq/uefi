@@ -92,8 +92,8 @@ Dpaa1SnpStart (
 
   ASSERT(Snp != NULL);
   Dpaa1EthDev = SNP_TO_DPAA1_DEV(Snp);
-  DPAA1_DEBUG_MSG("%a() called for DPAA1 Ethernet device 0x%p\n", __func__,
-                  Dpaa1EthDev);
+  DPAA1_DEBUG_MSG("%a() called for DPAA1 Ethernet device 0x%p (MEMAC %d) \n", __func__,
+                  Dpaa1EthDev,Dpaa1EthDev->FmanMemac->Id);
 
   SnpMode = Snp->Mode;
   ASSERT(SnpMode != NULL);
@@ -174,8 +174,8 @@ Dpaa1SnpStop (
 
   ASSERT(Snp != NULL);
   Dpaa1EthDev = SNP_TO_DPAA1_DEV(Snp);
-  DPAA1_DEBUG_MSG("%a() called for DPAA1 Ethernet device 0x%p\n", __func__,
-                  Dpaa1EthDev);
+  DPAA1_DEBUG_MSG("%a() called for DPAA1 Ethernet device 0x%p (MEMAC %d)\n", __func__,
+                  Dpaa1EthDev, Dpaa1EthDev->FmanMemac->Id);
 
   SnpMode = Snp->Mode;
   ASSERT(SnpMode != NULL);
@@ -235,8 +235,8 @@ Dpaa1SnpInitialize (
 
   ASSERT(Snp != NULL);
   Dpaa1EthDev = SNP_TO_DPAA1_DEV(Snp);
-  DPAA1_DEBUG_MSG("%a() called for DPAA1 Ethernet device 0x%p\n", __func__,
-                  Dpaa1EthDev);
+  DPAA1_DEBUG_MSG("%a() called for DPAA1 Ethernet device 0x%p (MEMAC %d)\n", __func__,
+                  Dpaa1EthDev, Dpaa1EthDev->FmanMemac->Id);
 
   SnpMode = Snp->Mode;
   ASSERT(SnpMode != NULL);
@@ -304,8 +304,8 @@ Dpaa1SnpReset (
 
   ASSERT(Snp != NULL);
   Dpaa1EthDev = SNP_TO_DPAA1_DEV(Snp);
-  DPAA1_DEBUG_MSG("%a() called for DPAA1 Ethernet device 0x%p\n", __func__,
-                  Dpaa1EthDev);
+  DPAA1_DEBUG_MSG("%a() called for DPAA1 Ethernet device 0x%p (MEMAC %d)\n", __func__,
+                  Dpaa1EthDev, Dpaa1EthDev->FmanMemac->Id);
 
   SnpMode = Snp->Mode;
   ASSERT(SnpMode != NULL);
@@ -360,8 +360,8 @@ Dpaa1SnpShutdown (
 
   ASSERT(Snp != NULL);
   Dpaa1EthDev = SNP_TO_DPAA1_DEV(Snp);
-  DPAA1_DEBUG_MSG("%a() called for DPAA1 Ethernet device 0x%p\n", __func__,
-                  Dpaa1EthDev);
+  DPAA1_DEBUG_MSG("%a() called for DPAA1 Ethernet device 0x%p (MEMAC %d )\n", __func__,
+                  Dpaa1EthDev, Dpaa1EthDev->FmanMemac->Id);
 
   SnpMode = Snp->Mode;
   ASSERT(SnpMode != NULL);
@@ -438,8 +438,8 @@ Dpaa1SnpReceiveFilters (
 
   ASSERT(Snp != NULL);
   Dpaa1EthDev = SNP_TO_DPAA1_DEV(Snp);
-  DPAA1_DEBUG_MSG("%a() called for DPAA1 Ethernet device 0x%p\n", __func__,
-                  Dpaa1EthDev);
+  DPAA1_DEBUG_MSG("%a() called for DPAA1 Ethernet device 0x%p (MEMAC %d)\n", __func__,
+                  Dpaa1EthDev,Dpaa1EthDev->FmanMemac->Id);
 
   SnpMode = Snp->Mode;
   ASSERT(SnpMode != NULL);
@@ -1255,6 +1255,16 @@ CreateDpaa1EthernetDevice(
   Status = EthDevStart(Dpaa1EthDev);
   if (Status != EFI_SUCCESS)
     return Status;
+
+  if (Dpaa1EthDev->FmanMemac->Phy.PhyInterfaceType == PHY_INTERFACE_SGMII ||
+      Dpaa1EthDev->FmanMemac->Phy.PhyInterfaceType == PHY_INTERFACE_SGMII_2500) {
+      DPAA1_PHY_MDIO_BUS MdioBus = {
+      .Signature = DPAA1_PHY_MDIO_BUS_SIGNATURE,
+      .IoRegs = (MEMAC_MDIO_BUS_REGS *)Dpaa1EthDev->FmanEthDevice->Mac->PhyRegs,
+    };
+
+    DtsecInitPhy (&MdioBus, &Memac->Phy);
+  }
 
   Status = Dpaa1PhyInit(&Memac->Phy);
   if (EFI_ERROR(Status)) {
