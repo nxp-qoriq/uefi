@@ -264,6 +264,13 @@ TimerInit (
 
 	/* Enable timebase for the cluster */
 	MmioWrite32((UINTN)TIME_BASE_ENABLE, 0xF);
+	/* Set the bit corresponding to our watchDog-id in the
+	 * PMU-Physical Core Time Base Enable Register (PCTBENR)
+	 * to allow the WDT counter to decrement and raise a reset
+	 * request (if configured in the WDTCONTROL register).
+	 */
+	MmioWrite32((WDOG1_PMU_BASE_ADDR + FSL_PMU_PCTBENR_OFFSET), PMU_PCTBEN0_WDT_BIT_MASK);
+
 	/* Enable clock for timer. This is a global setting. */
 	MmioWrite32((UINTN)TimerBase, 0x1);
 
