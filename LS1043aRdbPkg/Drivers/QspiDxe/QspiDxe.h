@@ -3,8 +3,7 @@
   Based on NorFlashDxe.h available in
   ArmPlatformPkg/Drivers/NorFlashDxe/NorFlashDxe.h
   Copyright (c) 2011 - 2014, ARM Ltd. All rights reserved.<BR>
-  Copyright (c) 2016 - 2017 NXP.
-  All rights reserved.
+  Copyright 2017 NXP
 
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License

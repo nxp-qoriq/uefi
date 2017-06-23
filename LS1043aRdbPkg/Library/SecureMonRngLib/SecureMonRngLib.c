@@ -1,7 +1,7 @@
 /** SecureMonRngLib.c
   RNG Library to provide get random number from SEC.
 
-  Copyright (c) 2017 NXP.
+  Copyright 2017 NXP
   All rights reserved.
 
   This program and the accompanying materials are licensed and made available
