@@ -1,7 +1,7 @@
 /** RngDxe.c
   RNG driver to provide gEfiRngProtocolGuid support.
 
-  Copyright (c) 2017 NXP.
+  Copyright 2017 NXP
   All rights reserved.
 
   This program and the accompanying materials are licensed and made available
