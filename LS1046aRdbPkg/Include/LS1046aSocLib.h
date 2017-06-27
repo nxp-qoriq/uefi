@@ -250,6 +250,7 @@ struct CcsrGur {
 #define DEVDISR2_DTSEC1_5	0x08000000
 #define DEVDISR2_DTSEC1_6	0x04000000
 #define DEVDISR2_DTSEC1_9	0x00800000
+#define DEVDISR2_DTSEC1_10	0x00400000
 	UINT32     devdisr2;       /* Device disable control 2 */
 	UINT32     devdisr3;       /* Device disable control 3 */
 	UINT32     devdisr4;       /* Device disable control 4 */

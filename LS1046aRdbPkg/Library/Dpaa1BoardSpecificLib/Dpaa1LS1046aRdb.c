@@ -79,6 +79,10 @@ STATIC CONST MEMAC_PHY_MAPPING gMemacToPhyMap[] = {
     .MdioBus = &gDpaa1MdioBuses[1],
     .PhyAddress = FM1_10GEC1_PHY_ADDR,
   },
+
+  [FM1_DTSEC_10] = {
+    .MdioBus = &gDpaa1MdioBuses[1],
+  },
 };
 
 C_ASSERT(ARRAY_SIZE(gMemacToPhyMap) <= NUM_FMAN_MEMACS);
@@ -107,6 +111,11 @@ GetMemacIdAndPhyType(IN     SERDES_LANE_PROTOCOL LaneProtocol,
     switch(LaneProtocol){
       case XFI_FM1_MAC9:
         *MemacId = FM1_DTSEC_9; // XFI on lane A, MAC 9
+        *PhyInterfaceType = PHY_INTERFACE_XFI;
+        *MemacIdCount = 1;
+        break;
+      case XFI_FM1_MAC10:
+        *MemacId = FM1_DTSEC_10;
         *PhyInterfaceType = PHY_INTERFACE_XFI;
         *MemacIdCount = 1;
         break;
@@ -170,6 +179,7 @@ CONST CHAR8 *SerdesPrtclToStr[] = {
   [SGMII_FM1_DTSEC9] = "SGMII_FM1_DTSEC9",
   [QSGMII_FM1_A] = "QSGMII_FM1_A",        /* A indicates MACs 1,2,5,6 */
   [XFI_FM1_MAC9] = "XFI_FM1_MAC9",
+  [XFI_FM1_MAC10] = "XFI_FM1_MAC10",
   [SGMII_2500_FM1_DTSEC2] = "SGMII_2500_FM1_DTSEC2",
   [SGMII_2500_FM1_DTSEC9] = "SGMII_2500_FM1_DTSEC9"
 };
@@ -181,14 +191,15 @@ IsMemacEnabled (
 {
   UINT32 RegValue;
   struct CcsrGur *Gur = (VOID *)(GUTS_ADDR);
-  UINT32 Enabled[7] = {
+  UINT32 Enabled[8] = {
 			DEVDISR2_DTSEC1_1,
 			DEVDISR2_DTSEC1_2,
 			DEVDISR2_DTSEC1_3,
 			DEVDISR2_DTSEC1_4,
 			DEVDISR2_DTSEC1_5,
 			DEVDISR2_DTSEC1_6,
-			DEVDISR2_DTSEC1_9
+			DEVDISR2_DTSEC1_9,
+			DEVDISR2_DTSEC1_10
 			};
 
   RegValue = MmioReadBe32((UINTN)&Gur->devdisr2);

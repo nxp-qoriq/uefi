@@ -35,6 +35,7 @@
 #define FM1_10GEC1_PHY_ADDR       0x0
 
 #define FMAN_FW_LENGTH            0x10000
+#define AQR_IRQ_MASK              0x80000000
 
 typedef struct FdtPort {
     FMAN_MEMAC_ID  Id;

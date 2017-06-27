@@ -753,7 +753,7 @@ SocInit (
   SetQBManPortals();
 
   //Invert AQR105 IRQ pins interrupt polarity
-  MmioWriteBe32((UINTN)&Scfg->intpcr, 0x40000000);
+  MmioWriteBe32((UINTN)&Scfg->intpcr, AQR_IRQ_MASK);
 
   return;
 }
@@ -1229,7 +1229,8 @@ STATIC FDT_PORT gFdtPort[] = {
     {FM1_DTSEC_4, PHY_INTERFACE_NONE , ADDRESS + offsetof(FMAN_CCSR, memac[FM1_DTSEC_4-1])},
     {FM1_DTSEC_5, PHY_INTERFACE_NONE , ADDRESS + offsetof(FMAN_CCSR, memac[FM1_DTSEC_5-1])},
     {FM1_DTSEC_6, PHY_INTERFACE_NONE , ADDRESS + offsetof(FMAN_CCSR, memac[FM1_DTSEC_6-1])},
-    {FM1_DTSEC_9, PHY_INTERFACE_NONE , ADDRESS + offsetof(FMAN_CCSR, memac[FM1_DTSEC_9-1])}
+    {FM1_DTSEC_9, PHY_INTERFACE_NONE , ADDRESS + offsetof(FMAN_CCSR, memac[FM1_DTSEC_9-1])},
+    {FM1_DTSEC_10, PHY_INTERFACE_NONE , ADDRESS + offsetof(FMAN_CCSR, memac[FM1_DTSEC_10-1])}
 };
 
 STATIC
@@ -1255,8 +1256,8 @@ GetPhy (
   {
     if (MemacId[Index] <= FM1_DTSEC_6)
       gFdtPort[MemacId[Index]-1].PhyInterfaceType = PhyInterfaceType;
-    else if (MemacId[Index] == FM1_DTSEC_9)
-      gFdtPort[FM1_DTSEC_9 - 3].PhyInterfaceType = PhyInterfaceType;
+    else if (MemacId[Index] >= FM1_DTSEC_9)
+      gFdtPort[MemacId[Index]-3].PhyInterfaceType = PhyInterfaceType;
   }
 }
 

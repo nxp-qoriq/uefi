@@ -497,10 +497,10 @@ VOID PopulateEthDev (
 
   FmanEthDevice->RxSyncLock = RxLock;
 
-  if (Id == FM1_DTSEC_9) {
+  if (Id == FM1_DTSEC_9 || Id == FM1_DTSEC_10) {
     FmanEthDevice->Type = FM_ETH_10G;
-    RxId = FMAN_RX_10G_PORT_ID_BASE;
-    TxId = FMAN_TX_10G_PORT_ID_BASE;
+    RxId = FMAN_RX_10G_PORT_ID_BASE + Id - FM1_DTSEC_9;
+    TxId = FMAN_TX_10G_PORT_ID_BASE + Id - FM1_DTSEC_9;
   } else {
     FmanEthDevice->Type = FM_ETH_1G;
     RxId = FMAN_RX_1G_PORT_ID_BASE + Id - 1;
