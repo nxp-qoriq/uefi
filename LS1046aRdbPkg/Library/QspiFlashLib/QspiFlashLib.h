@@ -5,7 +5,7 @@
   Based on NOR flash access APIs used in ArmPlatformPkg/Drivers/NorFlashDxe/NorFlashDxe.h
 
   Copyright (c) 2011 - 2014, ARM Ltd. All rights reserved.<BR>
-  Copyright 2017 NXP
+  Copyright 2016- 2017 NXP
 
   This Program And The Accompanying Materials
   Are Licensed And Made Available Under The Terms And Conditions Of The BSD
