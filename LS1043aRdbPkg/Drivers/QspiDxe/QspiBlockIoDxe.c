@@ -1,7 +1,7 @@
 /** @file  QspiBlockIoDxe.c
 
   Copyright (c) 2011-2013, ARM Ltd. All rights reserved.<BR>
-  Copyright 2017 NXP
+  Copyright 2016- 2017 NXP
 
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD

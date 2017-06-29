@@ -2,7 +2,6 @@
   RNG Library to provide get random number from SEC.
 
   Copyright 2017 NXP
-  All rights reserved.
 
   This program and the accompanying materials are licensed and made available
   under the terms and conditions of the BSD License which accompanies this
