@@ -478,9 +478,6 @@ IfcInit (
   VOID
   )
 {
-	/* NOR Init */
-	IfcNorInit();
-
 	/* CPLD Init */
 	CpldInit();
 

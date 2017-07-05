@@ -40,7 +40,6 @@
   MemoryAllocationLib
   SerialPortLib
   NandFlashLib
-  NorFlashLib
   PciHostBridgeLib
 
 [Sources.common]

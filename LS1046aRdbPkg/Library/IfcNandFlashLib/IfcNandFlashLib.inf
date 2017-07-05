@@ -30,6 +30,7 @@
   PcdLib
   DebugLib
   IoLib
+  TimerLib
 
 [Packages]
   EmbeddedPkg/EmbeddedPkg.dec

@@ -142,15 +142,9 @@ READ_LOCK_STATUS   = TRUE
   #INF ArmPkg/Filesystem/SemihostFs/SemihostFs.inf
 !endif
 
-!if $(BOOT_VIA_QSPI_FLASH) != TRUE
-  #
-  # Nor Flash
-  INF LS1046aRdbPkg/Drivers/NorFlashDxe/NorFlashDxe.inf
-  
   #
   # Nand Flash
   INF LS1046aRdbPkg/Drivers/NandFlashDxe/NandFlashDxe.inf
-!endif
   
   #
   # Dspi Flash

@@ -173,4 +173,9 @@ typedef struct {
 		          FSL_IFC_FTIM2_NAND_TREH(0xa) | \
 		          FSL_IFC_FTIM2_NAND_TWHRE(0x1e))
 #define NAND_FTIM3   0x0
+#define IFC_NAND_CS  FSL_IFC_CS0
+//On board NAND flash properties
+#define NAND_PG_SZ   NAND_PAGE_SIZE_4K //NAND flash page size
+#define NAND_SP_SZ   NAND_SPARE_AREA_SIZE_224B //NAND flash spare area
+#define NAND_BK_SZ   NAND_BLOCK_SIZE_256K //NAND flash block size
 

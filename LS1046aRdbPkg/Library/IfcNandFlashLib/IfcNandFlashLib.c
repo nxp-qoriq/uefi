@@ -302,9 +302,9 @@ NandDetectPart (
 		gNandPartInfoTable[0].BlockAddressStart;
 	gNandFlashInfo->PageAddressStart =
 		gNandPartInfoTable[0].PageAddressStart;
-	gNandFlashInfo->PageSize = NAND_PAGE_SIZE_2K;
-	gNandFlashInfo->SparePageSize = NAND_SPARE_AREA_SIZE_64B;
-	gNandFlashInfo->BlockSize = NAND_BLOCK_SIZE_128K;
+	gNandFlashInfo->PageSize = NAND_PG_SZ;
+	gNandFlashInfo->SparePageSize = NAND_SP_SZ;
+	gNandFlashInfo->BlockSize = NAND_BK_SZ;
 	Found = TRUE;
 	break;
     }
@@ -620,10 +620,7 @@ VOID IfcNandInit(
 	VOID
 )
 {
-	if(PcdGet32(PcdBootMode) == NAND_BOOT)
-		NandCs = FSL_IFC_CS0;
-	else
-		NandCs = FSL_IFC_CS1;
+  NandCs = IFC_NAND_CS;
   gNandFlashInfo = &NandFlashInfo;
   gNandFlashInfo->IfcRegs = (FSL_IFC_REGS*) FSL_IFC_REG_BASE;
 	gNandFlashInfo->BufBase = (VOID*) FSL_IFC_NAND_BUF_BASE;
@@ -684,10 +681,6 @@ IfcNandFlashInit (
 )
 {
   EFI_STATUS  Status;
-	if(PcdGet32(PcdBootMode) == NAND_BOOT)
-		NandCs = FSL_IFC_CS0;
-	else
-		NandCs = FSL_IFC_CS1;
   gNandFlashInfo = &NandFlashInfo;
 	gNandFlashInfo->IfcRegs = (FSL_IFC_REGS*) FSL_IFC_REG_BASE;
 	gNandFlashInfo->BufBase = (VOID*) FSL_IFC_NAND_BUF_BASE;

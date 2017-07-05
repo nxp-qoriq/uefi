@@ -35,10 +35,10 @@
 
 #define FSL_IFC_BANK_COUNT	4
 
-#define NAND_PAGE_SIZE_2K		(2048)
-#define NAND_SPARE_AREA_SIZE_64B	(64)
-#define NAND_BLOCK_SIZE_128K		(128*1024)
-#define NAND_BLOCK_COUNT		(2048)
+#define NAND_PAGE_SIZE_4K		(4096)
+#define NAND_SPARE_AREA_SIZE_224B	(224)
+#define NAND_BLOCK_SIZE_256K		(256*1024)
+#define NAND_BLOCK_COUNT		(512)
 #define NAND_LAST_BLOCK		(NAND_BLOCK_COUNT - 1)
 
 
@@ -61,7 +61,6 @@
 
 #define FSL_IFC_REG_BASE	 	0x1530000
 #define FSL_IFC_NAND_BUF_BASE	0x7E800000
-#define FSL_IFC_NOR_BUF_BASE	0x60000000
 
 #define FSL_IFC_NOR_RESERVED_REGION_BASE	0x60700000
 
@@ -227,8 +226,6 @@
 /* Machine Select */
 #define IFC_CSPR_MSEL		0x00000006
 #define IFC_CSPR_MSEL_SHIFT		1
-/* NOR */
-#define IFC_CSPR_MSEL_NOR		0x00000000
 /* NAND */
 #define IFC_CSPR_MSEL_NAND		0x00000002
 /* GPCM */
@@ -237,32 +234,9 @@
 #define IFC_CSPR_V			0x00000001
 #define IFC_CSPR_V_SHIFT		0
 
-/*
- * Chip Select Option Register - NOR Flash Mode
- */
-/* Enable Address shift Mode */
-#define IFC_CSOR_NOR_ADM_SHFT_MODE_EN	0x80000000
-/* Page Read Enable from NOR device */
-#define IFC_CSOR_NOR_PGRD_EN		0x10000000
-/* AVD Toggle Enable during Burst Program */
-#define IFC_CSOR_NOR_AVD_TGL_PGM_EN		0x01000000
 /* Address Data Multiplexing Shift */
-#define IFC_CSOR_NOR_ADM_MASK		0x0003E000
-#define IFC_CSOR_NOR_ADM_SHIFT_SHIFT	13
-#define IFC_CSOR_NOR_ADM_SHIFT(n)	((n) << IFC_CSOR_NOR_ADM_SHIFT_SHIFT)
-/* Type of the NOR device hooked */
-#define IFC_CSOR_NOR_NOR_MODE_AYSNC_NOR	0x00000000
-#define IFC_CSOR_NOR_NOR_MODE_AVD_NOR	0x00000020
-/* Time for Read Enable High to Output High Impedance */
-#define IFC_CSOR_NOR_TRHZ_MASK		0x0000001C
-#define IFC_CSOR_NOR_TRHZ_SHIFT		2
-#define IFC_CSOR_NOR_TRHZ_20		0x00000000
-#define IFC_CSOR_NOR_TRHZ_40		0x00000004
-#define IFC_CSOR_NOR_TRHZ_60		0x00000008
-#define IFC_CSOR_NOR_TRHZ_80		0x0000000C
-#define IFC_CSOR_NOR_TRHZ_100		0x00000010
-/* Buffer control disable */
-#define IFC_CSOR_NOR_BCTLD			0x00000001
+#define IFC_CSOR_NOR_ADM_SHIFT_SHIFT    13
+#define IFC_CSOR_NOR_ADM_SHIFT(n)       ((n) << IFC_CSOR_NOR_ADM_SHIFT_SHIFT)
 
 /*
  * Chip Select Option Register FSL_IFC_NAND Machine
@@ -326,46 +300,11 @@
 #define FSL_IFC_NAND_AMASK		0xFFFF0000
 #define FSL_IFC_NAND_CSOR    	(IFC_CSOR_NAND_ECC_ENC_EN /* ECC on encode */ \
                                 | IFC_CSOR_NAND_ECC_DEC_EN /* ECC on decode */ \
-                                | IFC_CSOR_NAND_ECC_MODE_4 /* 4-bit ECC */ \
-                                | IFC_CSOR_NAND_RAL_3       /* RAL = 3 Bytes */ \
-                                | IFC_CSOR_NAND_PGS_2K      /* Page Size = 2K */ \
-                                | IFC_CSOR_NAND_SPRZ_64     /* Spare size = 64 */ \
+                                | IFC_CSOR_NAND_ECC_MODE_8 /* 8-bit ECC */ \
+                                | IFC_CSOR_NAND_RAL_3      /* RAL = 3 Bytes */ \
+                                | IFC_CSOR_NAND_PGS_4K     /* Page Size = 4K */ \
+                                | IFC_CSOR_NAND_SPRZ_224   /* Spare size = 224 */ \
                                 | IFC_CSOR_NAND_PB(6))     /* 2^6 Pages Per Block */
-
-/*
- * FTIM0 - NOR Flash Mode
- */
-#define FSL_IFC_FTIM0_NOR			0xF03F3F3F
-#define FSL_IFC_FTIM0_NOR_TACSE_SHIFT	28
-#define FSL_IFC_FTIM0_NOR_TACSE(n)	((n) << FSL_IFC_FTIM0_NOR_TACSE_SHIFT)
-#define FSL_IFC_FTIM0_NOR_TEADC_SHIFT	16
-#define FSL_IFC_FTIM0_NOR_TEADC(n)	((n) << FSL_IFC_FTIM0_NOR_TEADC_SHIFT)
-#define FSL_IFC_FTIM0_NOR_TAVDS_SHIFT	8
-#define FSL_IFC_FTIM0_NOR_TAVDS(n)	((n) << FSL_IFC_FTIM0_NOR_TAVDS_SHIFT)
-#define FSL_IFC_FTIM0_NOR_TEAHC_SHIFT	0
-#define FSL_IFC_FTIM0_NOR_TEAHC(n)	((n) << FSL_IFC_FTIM0_NOR_TEAHC_SHIFT)
-/*
- * FTIM1 - NOR Flash Mode
- */
-#define FSL_IFC_FTIM1_NOR			0xFF003F3F
-#define FSL_IFC_FTIM1_NOR_TACO_SHIFT	24
-#define FSL_IFC_FTIM1_NOR_TACO(n)	((n) << FSL_IFC_FTIM1_NOR_TACO_SHIFT)
-#define FSL_IFC_FTIM1_NOR_TRAD_NOR_SHIFT	8
-#define FSL_IFC_FTIM1_NOR_TRAD_NOR(n)	((n) << FSL_IFC_FTIM1_NOR_TRAD_NOR_SHIFT)
-#define FSL_IFC_FTIM1_NOR_TSEQRAD_NOR_SHIFT	0
-#define FSL_IFC_FTIM1_NOR_TSEQRAD_NOR(n)	((n) << FSL_IFC_FTIM1_NOR_TSEQRAD_NOR_SHIFT)
-/*
- * FTIM2 - NOR Flash Mode
- */
-#define FSL_IFC_FTIM2_NOR			0x0F3CFCFF
-#define FSL_IFC_FTIM2_NOR_TCS_SHIFT		24
-#define FSL_IFC_FTIM2_NOR_TCS(n)	((n) << FSL_IFC_FTIM2_NOR_TCS_SHIFT)
-#define FSL_IFC_FTIM2_NOR_TCH_SHIFT		18
-#define FSL_IFC_FTIM2_NOR_TCH(n)	((n) << FSL_IFC_FTIM2_NOR_TCH_SHIFT)
-#define FSL_IFC_FTIM2_NOR_TWPH_SHIFT	10
-#define FSL_IFC_FTIM2_NOR_TWPH(n)	((n) << FSL_IFC_FTIM2_NOR_TWPH_SHIFT)
-#define FSL_IFC_FTIM2_NOR_TWP_SHIFT		0
-#define FSL_IFC_FTIM2_NOR_TWP(n)	((n) << FSL_IFC_FTIM2_NOR_TWP_SHIFT)
 
 /*
  * FTIM0 - Normal GPCM Mode
@@ -447,33 +386,6 @@ static inline int __ilog2(unsigned int x)
 #define FSL_IFC_AMASK_SHIFT			16
 #define FSL_IFC_AMASK(n)			(FSL_IFC_AMASK_MASK << \
 					(__ilog2(n) - FSL_IFC_AMASK_SHIFT))
-#define FSL_IFC_NOR_AMASK		FSL_IFC_AMASK(128*1024*1024)
-
-#define FSL_IFC_NOR_CSPR    	((FSL_IFC_NOR_BUF_BASE & FSL_IFC_NOR_BUF_MASK)\
-				| IFC_CSPR_PORT_SIZE_16 \
-                                | IFC_CSPR_MSEL_NOR        \
-                                | IFC_CSPR_V)
-#define FSL_IFC_NOR_CSPR_EXT	0x0
-#define FSL_IFC_NOR_CSOR	        (IFC_CSOR_NOR_ADM_SHIFT(4) | \
-				 IFC_CSOR_NOR_TRHZ_80)
-#define FSL_IFC_NOR_FTIM0	        (FSL_IFC_FTIM0_NOR_TACSE(0x1) | \
-				 FSL_IFC_FTIM0_NOR_TEADC(0x1) | \
-				 FSL_IFC_FTIM0_NOR_TAVDS(0x0) | \
-				 FSL_IFC_FTIM0_NOR_TEAHC(0xc))
-#define FSL_IFC_NOR_FTIM1	        (FSL_IFC_FTIM1_NOR_TACO(0x1c) | \
-			 	 FSL_IFC_FTIM1_NOR_TRAD_NOR(0xb) |\
-				 FSL_IFC_FTIM1_NOR_TSEQRAD_NOR(0x9))
-#define FSL_IFC_NOR_FTIM2	        (FSL_IFC_FTIM2_NOR_TCS(0x1) | \
-				 FSL_IFC_FTIM2_NOR_TCH(0x4) | \
-				 FSL_IFC_FTIM2_NOR_TWPH(0x8) | \
-				 FSL_IFC_FTIM2_NOR_TWP(0x10))
-#define FSL_IFC_NOR_FTIM3     	0x0
-
-#define FSL_IFC_NOR_CSPR0		FSL_IFC_NOR_CSPR
-#define FSL_IFC_NOR_AMASK0		FSL_IFC_NOR_AMASK
-#define FSL_IFC_NOR_CSOR0		FSL_IFC_NOR_CSOR
-
-#define FSL_IFC_SRAM_BUF_SIZE	0x4000
 
 /* CPLD */
 

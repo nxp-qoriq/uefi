@@ -125,7 +125,6 @@
   UefiDriverEntryPoint|MdePkg/Library/UefiDriverEntryPoint/UefiDriverEntryPoint.inf
   UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
 
-  NorFlashLib|LS1046aRdbPkg/Library/IfcNorFlashLib/IfcNorFlashLib.inf
   NandFlashLib|LS1046aRdbPkg/Library/IfcNandFlashLib/IfcNandFlashLib.inf
   FileSystemLib|LS1046aRdbPkg/Library/LS1046aFileSystemLib/LS1046aFileSystemLib.inf
   DspiFlashLib|LS1046aRdbPkg/Library/DspiFlashLib/DspiFlashLib.inf
@@ -649,11 +648,6 @@
   # Dspi
 #  LS1046aRdbPkg/Drivers/DspiDxe/DspiDxe.inf
 
-!if $(BOOT_VIA_QSPI_FLASH) != TRUE
-  #
-  # Nor Flash
-  LS1046aRdbPkg/Drivers/NorFlashDxe/NorFlashDxe.inf
-
   #
   # Nand Flash
   LS1046aRdbPkg/Drivers/NandFlashDxe/NandFlashDxe.inf
@@ -661,7 +655,6 @@
   #
   # File System
   LS1046aRdbPkg/Drivers/LS1046aFileSystemDxe/LS1046aFileSystemDxe.inf
-!endif
 
   #
   # MMC/SD
