@@ -327,6 +327,9 @@ UINTN GetQixisAddr(VOID);
 #define SATA1_REG_ADDR                        (ADDR_IMMR + 0x02200000)
 #define SATA2_REG_ADDR                        (ADDR_IMMR + 0x02210000)
 
+/* USB */
+#define USB1_REG_ADDR                         (ADDR_IMMR + 0x02100000)
+
 /*
  * DPAA2 Ethernet PHY MDIO addresses
  */

@@ -174,7 +174,7 @@
 
   UefiRuntimeLib|MdePkg/Library/UefiRuntimeLib/UefiRuntimeLib.inf
 
-  UefiUsbLib|MdePkg/Library/UefiUsbLib/UefiUsbLib.inf
+  UsbLib|MdePkg/Library/UefiUsbLib/UefiUsbLib.inf
 
   CpuLib|MdePkg/Library/BaseCpuLib/BaseCpuLib.inf
 
@@ -718,6 +718,10 @@
   #
   # File System
   #LS2088aRdbPkg/Drivers/LS2088aFileSystemDxe/LS2088aFileSystemDxe.inf
+
+  # Usb Hcd Driver
+  #
+  LS2088aRdbPkg/Drivers/UsbHcdDriver/UsbHcd.inf
 
   #
   # MMC/SD

@@ -166,6 +166,12 @@ READ_LOCK_STATUS   = TRUE
   # FileSystem
   #INF LS2088aRdbPkg/Drivers/LS2088aFileSystemDxe/LS2088aFileSystemDxe.inf
 
+  # Usb Hcd Support
+  #
+  INF LS2088aRdbPkg/Drivers/UsbHcdDriver/UsbHcd.inf
+
+
+
   # PCI support
   #
   INF MdeModulePkg/Bus/Pci/PciBusDxe/PciBusDxe.inf
