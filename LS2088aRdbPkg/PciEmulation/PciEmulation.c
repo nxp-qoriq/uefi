@@ -3,9 +3,11 @@
 
   Reference taken from PCI Emulation implementation in
   Omap35xxPkg/PciEmulation/
+  ArmPlatformPkg/ArmJunoPkg/Drivers/ArmJunoDxe/
 
   Copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
   Copyright (c) 2016, Freescale Semiconductor, Inc. All rights reserved.
+  Copyright 2017 NXP
 
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
@@ -17,9 +19,10 @@
 
  **/
 
+#include <Library/UsbHcd.h>
 #include "PciEmulation.h"
 
-#define PhysicalPortsRegSize	0x10000
+UINTN UsbRegAdd[NUM_OF_USB_CONTROLLERS] = {USB1_REG_ADDR, USB2_REG_ADDR};
 
 typedef struct {
   ACPI_HID_DEVICE_PATH      AcpiDevicePath;
@@ -53,7 +56,6 @@ EFI_PCI_IO_DEVICE_PATH PciIoDevicePathTemplate =
   },
   { END_DEVICE_PATH_TYPE, END_ENTIRE_DEVICE_PATH_SUBTYPE, { sizeof (EFI_DEVICE_PATH_PROTOCOL), 0} }
 };
-
 
 EFI_STATUS
 PciIoPollMem (
@@ -271,13 +273,13 @@ PciIoMap (
   DMA_MAP_OPERATION   DmaOperation;
 
   if (Operation == EfiPciIoOperationBusMasterRead) {
-	  DmaOperation = MapOperationBusMasterRead;
+    DmaOperation = MapOperationBusMasterRead;
   } else if (Operation == EfiPciIoOperationBusMasterWrite) {
-	  DmaOperation = MapOperationBusMasterWrite;
+    DmaOperation = MapOperationBusMasterWrite;
   } else if (Operation == EfiPciIoOperationBusMasterCommonBuffer) {
-	  DmaOperation = MapOperationBusMasterCommonBuffer;
+    DmaOperation = MapOperationBusMasterCommonBuffer;
   } else {
-	  return EFI_INVALID_PARAMETER;
+    return EFI_INVALID_PARAMETER;
   }
 
   return DmaMap (DmaOperation, HostAddress, NumberOfBytes, DeviceAddress, Mapping);
@@ -328,8 +330,8 @@ PciIoAllocateBuffer (
   )
 {
   if (Attributes &
- 		(~(EFI_PCI_ATTRIBUTE_MEMORY_WRITE_COMBINE |
-		   EFI_PCI_ATTRIBUTE_MEMORY_CACHED))) {
+      (~(EFI_PCI_ATTRIBUTE_MEMORY_WRITE_COMBINE |
+         EFI_PCI_ATTRIBUTE_MEMORY_CACHED))) {
     return EFI_UNSUPPORTED;
   }
 
@@ -521,76 +523,121 @@ EFI_PCI_IO_PROTOCOL PciIoTemplate =
 };
 
 EFI_STATUS
-EFIAPI
+PciInstallDevice (
+  IN UINTN            DeviceId,
+  IN PHYSICAL_ADDRESS MemoryStart,
+  IN UINT64           MemorySize,
+  IN UINTN            ClassCode1,
+  IN UINTN            ClassCode2,
+  IN UINTN            ClassCode3
+  )
+{
+  EFI_STATUS              Status;
+  EFI_HANDLE              Handle;
+  EFI_PCI_IO_PRIVATE_DATA *Private;
+
+  // Create a private structure
+  Private = AllocatePool (sizeof (EFI_PCI_IO_PRIVATE_DATA));
+  if (Private == NULL) {
+    Status = EFI_OUT_OF_RESOURCES;
+    return Status;
+  }
+
+  Private->Signature              = EFI_PCI_IO_PRIVATE_DATA_SIGNATURE;  // Fill in signature
+  Private->RootBridge.Signature   = PCI_ROOT_BRIDGE_SIGNATURE;          // Fake Root Bridge structure needs a signature too
+  Private->RootBridge.MemoryStart = MemoryStart; // Get the controller register base
+  Private->Segment                = 0;                                  // Default to segment zero
+
+  // Calculate the total size of the controller.
+  Private->RootBridge.MemorySize = MemorySize;
+
+  // HBA reset
+  if (PCI_CLASS_MASS_STORAGE_SATADPA == ClassCode2) {
+    MmioWrite32 ((Private->RootBridge.MemoryStart + HBA_GHC), HBA_RESET);
+  }
+
+  // Create fake PCI config space
+  Private->ConfigSpace = AllocateZeroPool (sizeof (PCI_TYPE00));
+  if (Private->ConfigSpace == NULL) {
+    Status = EFI_OUT_OF_RESOURCES;
+    FreePool (Private);
+    return Status;
+  }
+
+  //
+  // Configure PCI config space
+  //
+  Private->ConfigSpace->Hdr.VendorId = 0xFFFF; // Invalid vendor Id as it is not an actual device.
+  Private->ConfigSpace->Hdr.DeviceId = 0x0000; // Not relevant as the vendor id is not valid.
+  Private->ConfigSpace->Hdr.ClassCode[0] = ClassCode1;
+  Private->ConfigSpace->Hdr.ClassCode[1] = ClassCode2;
+  Private->ConfigSpace->Hdr.ClassCode[2] = ClassCode3;
+  Private->ConfigSpace->Device.Bar[0] = Private->RootBridge.MemoryStart;
+
+  Handle = NULL;
+
+  // Unique device path.
+  CopyMem (&Private->DevicePath, &PciIoDevicePathTemplate, sizeof (PciIoDevicePathTemplate));
+  Private->DevicePath.AcpiDevicePath.UID = 0;
+  Private->DevicePath.PciDevicePath.Device = DeviceId;
+
+  // Copy protocol structure
+  CopyMem (&Private->PciIoProtocol, &PciIoTemplate, sizeof (PciIoTemplate));
+
+  Status = gBS->InstallMultipleProtocolInterfaces (&Handle,
+                                                  &gEfiPciIoProtocolGuid,       &Private->PciIoProtocol,
+                                                  &gEfiDevicePathProtocolGuid,  &Private->DevicePath,
+                                                  NULL);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "PciInstallDevice InstallMultipleProtocolInterfaces () failed.\n"));
+    FreePool(Private->ConfigSpace);
+    FreePool(Private);
+  }
+
+  return Status;
+}
+
+EFI_STATUS
 PciEmulationEntryPoint (
   IN EFI_HANDLE       ImageHandle,
   IN EFI_SYSTEM_TABLE *SystemTable
   )
 {
   EFI_STATUS              Status;
-  EFI_HANDLE              Handle;
-  EFI_PCI_IO_PRIVATE_DATA *Private;
-  UINT8                   PhysicalPorts;
-  UINTN                   Count;
+  BOOLEAN                 SuccessFlag;
+  UINT8                   DeviceId;
 
+  Status = PciInstallDevice (0, SATA1_REG_ADDR, SIZE_64KB,
+                                   PCI_IF_MASS_STORAGE_SATA,
+                                   PCI_CLASS_MASS_STORAGE_SATADPA,
+                                   PCI_CLASS_MASS_STORAGE);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "PciEmulation: failed to install SATA device.\n"));
+  } else {
+    SuccessFlag = TRUE;
+  }
 
-  // Create a private structure
-  Private = AllocatePool(sizeof(EFI_PCI_IO_PRIVATE_DATA));
-  if (Private == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
+  for (DeviceId = 0; DeviceId < NUM_OF_USB_CONTROLLERS; DeviceId++) {
+    Status = InitializeUsbController (UsbRegAdd[DeviceId]);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((EFI_D_ERROR, "USB HC initialization Failed for %d (0x%x)\n",
+                            UsbRegAdd[DeviceId], Status));
+      continue;
+    }
+
+    Status = PciInstallDevice (DeviceId, UsbRegAdd[DeviceId], SIZE_64KB,
+                                     PCI_IF_XHCI, PCI_CLASS_SERIAL_USB,
+                                     PCI_CLASS_SERIAL);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((EFI_D_ERROR, "PciEmulation: failed to install USB %d device\n", DeviceId));
+    } else {
+      SuccessFlag = TRUE;
+    }
+  }
+
+  if (SuccessFlag) {
+    return EFI_SUCCESS;
+  } else {
     return Status;
   }
-
-  Private->Signature              = EFI_PCI_IO_PRIVATE_DATA_SIGNATURE;  // Fill in PCI device signature
-  Private->RootBridge.Signature   = PCI_ROOT_BRIDGE_SIGNATURE;          // Dummy Root Bridge structure needs a signature too
-  Private->RootBridge.MemoryStart = SATA1_REG_ADDR;                 	// Get the SATA CCSR register base
-  Private->Segment                = 0;                                  // Default to segment zero
-
-  // Set number of physical ports.
-  PhysicalPorts    = 1;
-
-  // Calculate the total size of the SATA registers.
-  Private->RootBridge.MemorySize = PhysicalPorts * PhysicalPortsRegSize;
-
-  // HBA reset
-  for (Count = 0; Count < PhysicalPorts; Count++) {
-    MmioWrite32 ((Private->RootBridge.MemoryStart + HBA_GHC + (PhysicalPortsRegSize*Count)), HBA_RESET);
-  }
-
-  // Create dummy PCI config space.
-  Private->ConfigSpace = AllocateZeroPool(sizeof(PCI_TYPE00));
-  if (Private->ConfigSpace == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    FreePool(Private);
-    return Status;
-  }
-
-  // Configure PCI config space
-  Private->ConfigSpace->Hdr.VendorId = 0xFFFF; // Invalid vendor Id as it is not an actual device.
-  Private->ConfigSpace->Hdr.DeviceId = 0x0000; // Not relevant as the vendor id is not valid.
-  // Configure Class codes for PCI SATA devices
-  Private->ConfigSpace->Hdr.ClassCode[0] = PCI_CLASS_MASS_STORAGE;
-  Private->ConfigSpace->Hdr.ClassCode[1] = PCI_CLASS_MASS_STORAGE_SATA;
-  Private->ConfigSpace->Hdr.ClassCode[2] = PCI_CLASS_MASS_STORAGE;
-  // Configure BAR 0 for SATA devices
-  Private->ConfigSpace->Device.Bar[0] = Private->RootBridge.MemoryStart;
-
-  Handle = NULL;
-
-  // Unique device path.
-  CopyMem(&Private->DevicePath, &PciIoDevicePathTemplate, sizeof(PciIoDevicePathTemplate));
-  Private->DevicePath.AcpiDevicePath.UID = 0;
-
-  // Copy protocol structure
-  CopyMem(&Private->PciIoProtocol, &PciIoTemplate, sizeof(PciIoTemplate));
-
-  Status = gBS->InstallMultipleProtocolInterfaces(&Handle,
-                                                  &gEfiPciIoProtocolGuid,     &Private->PciIoProtocol,
-                                                  &gEfiDevicePathProtocolGuid,  &Private->DevicePath,
-                                                  NULL);
-  if (EFI_ERROR(Status)) {
-    DEBUG((EFI_D_ERROR, "PciEmulationEntryPoint InstallMultipleProtocolInterfaces() failed.\n"));
-  }
-
-  return Status;
 }

@@ -17,12 +17,12 @@
   INF_VERSION                     = 0x00010005
   BASE_NAME                       = UsbHcdDxe
   FILE_GUID                       = 196e7c2a-37b2-4b85-8683-718588952449
-  MODULE_TYPE                     = DXE_DRIVER
+  MODULE_TYPE                     = BASE
   VERSION_STRING                  = 1.0
-  ENTRY_POINT                     = UsbHcdEntryPoint
+  LIBRARY_CLASS                   = UsbHcdLib
 
 [Sources.common]
-  UsbHcdDxe.c
+  UsbHcdLib.c
 
 [Packages]
   ArmPkg/ArmPkg.dec
@@ -38,27 +38,5 @@
   BaseLib
   BaseMemoryLib
   DebugLib
-  DevicePathLib
-  DxeServicesTableLib
   IoLib
   MemoryAllocationLib
-  PcdLib
-  UefiBootServicesTableLib
-  UefiDriverEntryPoint
-  UefiLib
-  UefiRuntimeServicesTableLib
-
-[FixedPcd]
-  gArmTokenSpaceGuid.PcdPciIoTranslation
-  gArmTokenSpaceGuid.PcdPciMmio32Base
-  gArmTokenSpaceGuid.PcdPciMmio32Size
-  gArmTokenSpaceGuid.PcdPciMmio64Base
-  gArmTokenSpaceGuid.PcdPciMmio64Size
-  gLS2088aRdbTokenSpaceGuid.PcdPciDebug
-  gLS2088aRdbTokenSpaceGuid.PcdPciBusMin
-  gLS2088aRdbTokenSpaceGuid.PcdPciBusMax
-
-[Protocols]
-
-[Depex]
-  TRUE

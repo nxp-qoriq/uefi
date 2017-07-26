@@ -32,10 +32,10 @@ BaseAddress   = 0x837EF30000|gArmTokenSpaceGuid.PcdFdBaseAddress  #The base addr
 !else
 BaseAddress   = 0x00E0000000|gArmTokenSpaceGuid.PcdFdBaseAddress  #The base address of the FLASH Device.
 !endif
-Size          = 0x00100000|gArmTokenSpaceGuid.PcdFdSize         #The size in bytes of the FLASH Device
+Size          = 0x00105000|gArmTokenSpaceGuid.PcdFdSize         #The size in bytes of the FLASH Device
 ErasePolarity = 1
 BlockSize     = 0x1
-NumBlocks     = 0x100000
+NumBlocks     = 0x105000
 
 ################################################################################
 #
@@ -52,7 +52,7 @@ NumBlocks     = 0x100000
 # RegionType <FV, DATA, or FILE>
 #
 ################################################################################
-0x00000000|0x00100000
+0x00000000|0x00105000
 gArmTokenSpaceGuid.PcdFvBaseAddress|gArmTokenSpaceGuid.PcdFvSize
 FV = FVMAIN_COMPACT
 
@@ -166,9 +166,14 @@ READ_LOCK_STATUS   = TRUE
   # FileSystem
   #INF LS2088aRdbPkg/Drivers/LS2088aFileSystemDxe/LS2088aFileSystemDxe.inf
 
+  #
   # Usb Hcd Support
   #
-  INF LS2088aRdbPkg/Drivers/UsbHcdDriver/UsbHcd.inf
+  INF MdeModulePkg/Bus/Pci/UhciDxe/UhciDxe.inf
+  INF MdeModulePkg/Bus/Pci/EhciDxe/EhciDxe.inf
+  INF MdeModulePkg/Bus/Pci/XhciDxe/XhciDxe.inf
+  INF MdeModulePkg/Bus/Usb/UsbBusDxe/UsbBusDxe.inf
+  INF MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
 
 
 
@@ -196,7 +201,6 @@ READ_LOCK_STATUS   = TRUE
   INF  MdeModulePkg/Universal/Network/Udp4Dxe/Udp4Dxe.inf
   INF  MdeModulePkg/Universal/Network/UefiPxeBcDxe/UefiPxeBcDxe.inf
   INF  MdeModulePkg/Universal/Network/IScsiDxe/IScsiDxe.inf
-  INF  MdeModulePkg/Bus/Pci/UhciDxe/UhciDxe.inf
 !if $(NETWORK_IP6_ENABLE) == TRUE
   INF  NetworkPkg/Ip6Dxe/Ip6Dxe.inf
   INF  NetworkPkg/TcpDxe/TcpDxe.inf

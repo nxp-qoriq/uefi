@@ -174,7 +174,7 @@
 
   UefiRuntimeLib|MdePkg/Library/UefiRuntimeLib/UefiRuntimeLib.inf
 
-  UsbLib|MdePkg/Library/UefiUsbLib/UefiUsbLib.inf
+  UsbHcdLibrary|LS2088aRdbPkg/Library/UsbHcdLibrary/UsbHcd.inf
 
   CpuLib|MdePkg/Library/BaseCpuLib/BaseCpuLib.inf
 
@@ -719,10 +719,6 @@
   # File System
   #LS2088aRdbPkg/Drivers/LS2088aFileSystemDxe/LS2088aFileSystemDxe.inf
 
-  # Usb Hcd Driver
-  #
-  LS2088aRdbPkg/Drivers/UsbHcdDriver/UsbHcd.inf
-
   #
   # MMC/SD
   LS2088aRdbPkg/Drivers/MmcDxe/MmcDxe.inf
@@ -751,7 +747,6 @@
   MdeModulePkg/Universal/Network/Udp4Dxe/Udp4Dxe.inf
   MdeModulePkg/Universal/Network/UefiPxeBcDxe/UefiPxeBcDxe.inf
   MdeModulePkg/Universal/Network/IScsiDxe/IScsiDxe.inf
-  MdeModulePkg/Bus/Pci/UhciDxe/UhciDxe.inf
 !if $(NETWORK_IP6_ENABLE) == TRUE
   NetworkPkg/Ip6Dxe/Ip6Dxe.inf
   NetworkPkg/TcpDxe/TcpDxe.inf
@@ -775,6 +770,14 @@
   LS2088aRdbPkg/Drivers/SataControllerDxe/SataControllerDxe.inf
   MdeModulePkg/Bus/Ata/AtaAtapiPassThru/AtaAtapiPassThru.inf
   MdeModulePkg/Bus/Ata/AtaBusDxe/AtaBusDxe.inf
+  #
+  # Usb Support
+  #
+  MdeModulePkg/Bus/Pci/UhciDxe/UhciDxe.inf
+  MdeModulePkg/Bus/Pci/EhciDxe/EhciDxe.inf
+  MdeModulePkg/Bus/Pci/XhciDxe/XhciDxe.inf
+  MdeModulePkg/Bus/Usb/UsbBusDxe/UsbBusDxe.inf
+  MdeModulePkg/Bus/Usb/UsbMassStorageDxe/UsbMassStorageDxe.inf
 
   #
   # Dspi

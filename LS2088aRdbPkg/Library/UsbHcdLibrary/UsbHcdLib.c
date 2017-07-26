@@ -13,10 +13,25 @@
 **/
 
 #include <Library/DebugLib.h>
-#include <LS2088aRdb.h>
 #include <Library/IoLib.h>
+#include  <Library/UsbHcd.h>
 
-#include "UsbHcd.h"
+VOID
+XhciSetBeatBurstLength (
+  IN  UINTN  UsbReg
+  )
+{
+  Dwc3 *Dwc3Reg;
+  DEBUG((EFI_D_INFO, "XhciSetBeatBurstLength\n"));
+  
+  Dwc3Reg = (VOID *)(UsbReg + DWC3_REG_OFFSET);
+
+  MmioClearSet32((UINTN)&Dwc3Reg->GSbuscfg0, USB3_ENABLE_BEAT_BURST_MASK,
+                                           USB3_ENABLE_BEAT_BURST);
+  MmioSetBits32((UINTN)&Dwc3Reg->GSbuscfg1, USB3_SET_BEAT_BURST_LIMIT);
+
+  return;
+}
 
 VOID
 Dwc3SetFladj (
@@ -25,7 +40,7 @@ Dwc3SetFladj (
   )
 {
   DEBUG((EFI_D_INFO,"Frame length adjustment.\n"));
-  MmioSetBits32((UINTN)&Dwc3Reg->GFladj, GFLADJ_30MHZ_REG_SEL |
+  MmioSetBits32((UINTN)&Dwc3Reg->GFLAdj, GFLADJ_30MHZ_REG_SEL |
                         GFLADJ_30MHZ(Val));
 }
 
@@ -41,13 +56,11 @@ Dwc3SetMode (
 		 DWC3_GCTL_PRTCAPDIR(Mode));
 }
 
-EFI_STATUS
+VOID
 Dwc3CoreSoftReset (
   IN  Dwc3 *Dwc3Reg
   )
 {
-  EFI_STATUS Status = EFI_SUCCESS;
-
   DEBUG((EFI_D_INFO,"Controller and Core reset.\n"));
 
   MmioOr32 ((UINTN)&Dwc3Reg->GCtl, DWC3_GCTL_CORESOFTRESET);
@@ -57,7 +70,7 @@ Dwc3CoreSoftReset (
   MmioClearBits32((UINTN)&Dwc3Reg->GUsb2phycfg, DWC3_GUSB2PHYCFG_PHYSOFTRST);
   MmioClearBits32((UINTN)&Dwc3Reg->GCtl, DWC3_GCTL_CORESOFTRESET);
 
-  return Status;
+  return;
 }
 
 EFI_STATUS
@@ -78,13 +91,13 @@ Dwc3CoreInit (
     DEBUG((EFI_D_ERROR,"This is not a DesignWare USB3 DRD Core.\n"));
     return EFI_NOT_FOUND;
   }
-  Status = Dwc3CoreSoftReset(Dwc3Reg);
+  Dwc3CoreSoftReset(Dwc3Reg);
 
-  Dwc3Hwparams1 = MmioRead32((UINTN)&Dwc3Reg->GHwparams1);
   Reg = MmioRead32((UINTN)&Dwc3Reg->GCtl);
   Reg &= ~DWC3_GCTL_SCALEDOWN_MASK;
   Reg &= ~DWC3_GCTL_DISSCRAMBLE;
 
+  Dwc3Hwparams1 = MmioRead32((UINTN)&Dwc3Reg->GHwparams1);
   switch (DWC3_GHWPARAMS1_EN_PWROPT(Dwc3Hwparams1)) {
     case DWC3_GHWPARAMS1_EN_PWROPT_CLK:
       Reg &= ~DWC3_GCTL_DSBLCLKGTNG;
@@ -103,17 +116,18 @@ Dwc3CoreInit (
 
 EFI_STATUS
 XhciCoreInit (
-  IN  VOID
+  IN  UINTN  UsbReg
   )
 {
   EFI_STATUS Status = EFI_SUCCESS;
-  Dwc3 *Dwc3Reg = (VOID *)(USB1_REG_ADDR + DWC3_REG_OFFSET);
+  Dwc3 *Dwc3Reg = (VOID *)(UsbReg + DWC3_REG_OFFSET);
 
   DEBUG((EFI_D_INFO, "XhciCoreInit\n"));
 
   Status = Dwc3CoreInit(Dwc3Reg);
   if (EFI_ERROR (Status)) {
-    DEBUG((EFI_D_ERROR, "Dwc3CoreInit Failed 0x%x \n", Status));
+    DEBUG((EFI_D_ERROR, "Dwc3CoreInit Failed for controller 0x%x (0x%x) \n",
+                  UsbReg, Status));
     return Status;
   }
 
@@ -125,24 +139,17 @@ XhciCoreInit (
 }
 
 EFI_STATUS
-ApplyXhciErrata (
-  IN VOID
-  )
-{
-  return EFI_SUCCESS;
-}
-
-EFI_STATUS
 EFIAPI
-UsbHcdEntryPoint (
-  IN EFI_HANDLE        ImageHandle,
-  IN EFI_SYSTEM_TABLE  *SystemTable
+InitializeUsbController (
+  IN  UINTN  UsbReg
   )
 {
   EFI_STATUS Status = EFI_SUCCESS;
 
-  Status =  ApplyXhciErrata();
-  Status = XhciCoreInit();
+  Status = XhciCoreInit(UsbReg);
+
+  /* Change beat burst and outstanding pipelined transfers requests */
+  XhciSetBeatBurstLength(UsbReg);
 
   return Status;
 }

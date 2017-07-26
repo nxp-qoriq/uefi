@@ -40,6 +40,7 @@
 #include <Protocol/PciHostBridgeResourceAllocation.h>
 
 #include <IndustryStandard/Pci22.h>
+#include <IndustryStandard/Pci30.h>
 #include <IndustryStandard/Pci.h>
 #include <IndustryStandard/Acpi.h>
 #include "LS2088aRdb.h"
@@ -91,8 +92,6 @@ typedef struct {
 
 
 #define INSTANCE_FROM_PCI_ROOT_BRIDGE_IO_THIS(a) CR (a, PCI_ROOT_BRIDGE, Io, PCI_ROOT_BRIDGE_SIGNATURE)
-#define PCI_CLASS_MASS_STORAGE		0x01
-#define PCI_CLASS_MASS_STORAGE_SATA	0x06
 
 typedef union {
   UINT8   volatile  *buf;

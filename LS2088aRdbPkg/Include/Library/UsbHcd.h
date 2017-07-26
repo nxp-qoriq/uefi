@@ -15,6 +15,11 @@
 #ifndef __USB_HCD__
 #define __USB_HCD__
 
+#include <Bitops.h>
+#include <Uefi.h>
+
+#define NUM_OF_USB_CONTROLLERS                 2
+
 /* Global constants */
 #define DWC3_ENDPOINTS_NUM                     32
 
@@ -46,7 +51,7 @@
 #define DWC3_REG_OFFSET                        0xC100
 /* Global Configuration Register */
 #define DWC3_GCTL_PWRDNSCALE(n)                ((n) << 19)
-#define DWC3_GCTL_U2RSTECN                     (1 << 16)
+#define DWC3_GCTL_U2RSTECN                     BIT(16)
 #define DWC3_GCTL_RAMCLKSEL(x)                 (((x) & DWC3_GCTL_CLK_MASK) << 6)
 #define DWC3_GCTL_CLK_BUS                      (0)
 #define DWC3_GCTL_CLK_PIPE                     (1)
@@ -57,11 +62,11 @@
 #define DWC3_GCTL_PRTCAP_HOST                  1
 #define DWC3_GCTL_PRTCAP_DEVICE                2
 #define DWC3_GCTL_PRTCAP_OTG                   3
-#define DWC3_GCTL_CORESOFTRESET                (1 << 11)
+#define DWC3_GCTL_CORESOFTRESET                BIT(11)
 #define DWC3_GCTL_SCALEDOWN(n)                 ((n) << 4)
 #define DWC3_GCTL_SCALEDOWN_MASK               DWC3_GCTL_SCALEDOWN(3)
-#define DWC3_GCTL_DISSCRAMBLE                  (1 << 3)
-#define DWC3_GCTL_DSBLCLKGTNG                  (1 << 0)
+#define DWC3_GCTL_DISSCRAMBLE                  BIT(3)
+#define DWC3_GCTL_DSBLCLKGTNG                  BIT(0)
 
 /* Global HWPARAMS1 Register */
 #define DWC3_GHWPARAMS1_EN_PWROPT(n)           (((n) & (3 << 24)) >> 24)
@@ -69,24 +74,24 @@
 #define DWC3_GHWPARAMS1_EN_PWROPT_CLK          1
 
 /* Global USB2 PHY Configuration Register */
-#define DWC3_GUSB2PHYCFG_PHYSOFTRST            (1 << 31)
-#define DWC3_GUSB2PHYCFG_SUSPHY                        (1 << 6)
+#define DWC3_GUSB2PHYCFG_PHYSOFTRST            BIT(31)
+#define DWC3_GUSB2PHYCFG_SUSPHY                BIT(6)
 /* Global USB3 PIPE Control Register */
-#define DWC3_GUSB3PIPECTL_PHYSOFTRST           (1 << 31)
-#define DWC3_GUSB3PIPECTL_DISRXDETP3           (1 << 28)
-#define DWC3_GUSB3PIPECTL_SUSPHY               (1 << 17)
+#define DWC3_GUSB3PIPECTL_PHYSOFTRST           BIT(31)
+#define DWC3_GUSB3PIPECTL_DISRXDETP3           BIT(28)
+#define DWC3_GUSB3PIPECTL_SUSPHY               BIT(17)
 
 /* Global TX Fifo Size Register */
 #define DWC3_GTXFIFOSIZ_TXFDEF(n)              ((n) & 0xffff)
 #define DWC3_GTXFIFOSIZ_TXFSTADDR(n)           ((n) & 0xffff0000)
 
 /* Device Control Register */
-#define DWC3_DCTL_RUN_STOP                     (1 << 31)
-#define DWC3_DCTL_CSFTRST                      (1 << 30)
-#define DWC3_DCTL_LSFTRST                      (1 << 29)
+#define DWC3_DCTL_RUN_STOP                     BIT(31)
+#define DWC3_DCTL_CSFTRST                      BIT(30)
+#define DWC3_DCTL_LSFTRST                      BIT(29)
 
 /* Global Frame Length Adjustment Register */
-#define GFLADJ_30MHZ_REG_SEL                   (1 << 7)
+#define GFLADJ_30MHZ_REG_SEL                   BIT(7)
 #define GFLADJ_30MHZ(n)                        ((n) & 0x3f)
 #define GFLADJ_30MHZ_DEFAULT                   0x20
 
@@ -186,7 +191,7 @@ typedef struct {
   GEventBuffer GEvntBuf[32];
   UINT32 GHwparams8;
   UINT32 Res4[11];
-  UINT32 GFladj;
+  UINT32 GFLAdj;
   UINT32 Res5[51];
   UINT32 DCfg;
   UINT32 DCtl;
@@ -214,5 +219,11 @@ typedef struct {
   UINT32 BcEvt;
   UINT32 BcEvten;
  } Dwc3;
+
+EFI_STATUS
+EFIAPI
+InitializeUsbController (
+  IN  UINTN  UsbReg
+  );
 
 #endif

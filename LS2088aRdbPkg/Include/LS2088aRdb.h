@@ -329,6 +329,7 @@ UINTN GetQixisAddr(VOID);
 
 /* USB */
 #define USB1_REG_ADDR                         (ADDR_IMMR + 0x02100000)
+#define USB2_REG_ADDR                         (ADDR_IMMR + 0x02110000)
 
 /*
  * DPAA2 Ethernet PHY MDIO addresses
