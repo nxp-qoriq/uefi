@@ -796,6 +796,10 @@
 !endif
 
   #
+  # Prefetch information
+  LS2088aRdbPkg/Drivers/ShellCommand/PreFetch/PreFetch.inf
+
+  #
   # Bds
   #
   MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
