@@ -540,6 +540,7 @@ PciInstallDevice (
   Private = AllocatePool (sizeof (EFI_PCI_IO_PRIVATE_DATA));
   if (Private == NULL) {
     Status = EFI_OUT_OF_RESOURCES;
+    DEBUG ((EFI_D_ERROR, "Failed to allocate memory for EFI_PCI_IO_PRIVATE_DATA\n"));
     return Status;
   }
 
@@ -560,6 +561,7 @@ PciInstallDevice (
   Private->ConfigSpace = AllocateZeroPool (sizeof (PCI_TYPE00));
   if (Private->ConfigSpace == NULL) {
     Status = EFI_OUT_OF_RESOURCES;
+    DEBUG ((EFI_D_ERROR, "Failed to allocate memory for PCI_TYPE00\n"));
     FreePool (Private);
     return Status;
   }
@@ -607,16 +609,6 @@ PciEmulationEntryPoint (
   BOOLEAN                 SuccessFlag;
   UINT8                   DeviceId;
 
-  Status = PciInstallDevice (0, SATA1_REG_ADDR, SIZE_64KB,
-                                   PCI_IF_MASS_STORAGE_SATA,
-                                   PCI_CLASS_MASS_STORAGE_SATADPA,
-                                   PCI_CLASS_MASS_STORAGE);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((EFI_D_ERROR, "PciEmulation: failed to install SATA device.\n"));
-  } else {
-    SuccessFlag = TRUE;
-  }
-
   for (DeviceId = 0; DeviceId < NUM_OF_USB_CONTROLLERS; DeviceId++) {
     Status = InitializeUsbController (UsbRegAdd[DeviceId]);
     if (EFI_ERROR (Status)) {
@@ -633,6 +625,16 @@ PciEmulationEntryPoint (
     } else {
       SuccessFlag = TRUE;
     }
+  }
+
+  Status = PciInstallDevice (DeviceId, SATA1_REG_ADDR, SIZE_64KB,
+                                   PCI_IF_MASS_STORAGE_SATA,
+                                   PCI_CLASS_MASS_STORAGE_SATADPA,
+                                   PCI_CLASS_MASS_STORAGE);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((EFI_D_ERROR, "PciEmulation: failed to install SATA device.\n"));
+  } else {
+    SuccessFlag = TRUE;
   }
 
   if (SuccessFlag) {
