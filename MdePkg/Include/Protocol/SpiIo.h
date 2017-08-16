@@ -127,7 +127,6 @@ typedef enum {
   @retval EFI_UNSUPPORTED        The FrameSize is not supported by the SPI bus
                                  layer or the SPI host controller
   @retval EFI_UNSUPPORTED        The SPI controller was not able to support
-
 **/
 typedef
 EFI_STATUS
