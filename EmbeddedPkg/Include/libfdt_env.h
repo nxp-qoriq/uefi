@@ -1,6 +1,7 @@
 /** @file
 *
 *  Copyright (c) 2011-2014, ARM Limited. All rights reserved.
+*  Copyright 2017 NXP
 *
 *  This program and the accompanying materials
 *  are licensed and made available under the terms and conditions of the BSD License
@@ -77,5 +78,10 @@ static inline char *strchr(const char *s, int c) {
   pattern[1] = 0;
   return AsciiStrStr (s, pattern);
 }
+
+static inline size_t strnlen (const char* str, size_t strsz ) {
+  return AsciiStrnLenS (str, strsz);
+}
+
 
 #endif /* _LIBFDT_ENV_H */
