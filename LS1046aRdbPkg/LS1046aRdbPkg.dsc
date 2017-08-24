@@ -492,7 +492,7 @@
   # PPA specific PCDs
   #
   gLS1046aRdbTokenSpaceGuid.PcdPpaNorBaseAddr|0x60400000
-  gLS1046aRdbTokenSpaceGuid.PcdPpaQspiBaseAddr|0x44400000
+  gLS1046aRdbTokenSpaceGuid.PcdPpaQspiBaseAddr|0x40400000
   gLS1046aRdbTokenSpaceGuid.PcdPpaFwSize|0x8000000 # (128MB)
   gLS1046aRdbTokenSpaceGuid.PcdPpaImageSize|0x100000
 

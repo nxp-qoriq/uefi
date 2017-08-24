@@ -54,7 +54,7 @@ FV = FVMAIN_COMPACT
 
 [FD.LS1046aRdbPi_EFI]
 !if $(BOOT_VIA_QSPI_FLASH) == TRUE
-BaseAddress	= 0x44100000|gLS1046aRdbTokenSpaceGuid.PcdPiFdBaseAddress	#The base address of the FLASH device
+BaseAddress	= 0x40100000|gLS1046aRdbTokenSpaceGuid.PcdPiFdBaseAddress	#The base address of the FLASH device
 !else
 BaseAddress   = 0x60100000|gLS1046aRdbTokenSpaceGuid.PcdPiFdBaseAddress  #The base address of the FLASH Device.
 !endif
