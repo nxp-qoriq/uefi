@@ -51,6 +51,7 @@ typedef union {
 #define SD_CCC_SWITCH           (1 << 10)
 
 #define DEVICE_STATE(x)         (((x) >> 9) & 0xf)
+
 typedef enum _EMMC_DEVICE_STATE {
   EMMC_IDLE_STATE = 0,
   EMMC_READY_STATE,
