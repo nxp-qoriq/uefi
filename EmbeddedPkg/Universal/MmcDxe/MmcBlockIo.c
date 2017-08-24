@@ -44,6 +44,7 @@ MmcGetCardStatus (
   if (MmcHost == NULL) {
     return EFI_INVALID_PARAMETER;
   }
+
   if (MmcHostInstance->State != MmcHwInitializationState) {
     //Get the Status of the card.
     CmdArg = MmcHostInstance->CardInfo.RCA << 16;
