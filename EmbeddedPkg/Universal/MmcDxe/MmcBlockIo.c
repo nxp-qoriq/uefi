@@ -206,8 +206,8 @@ MmcTransferBlock (
     if (EFI_ERROR (Status)) {
       DEBUG ((EFI_D_BLKIO, "%a(): Error and Status:%r\n", __func__, Status));
     }
+    MmcHost->ReceiveResponse (MmcHost, MMC_RESPONSE_TYPE_R1b, Response);
   }
-
   Status = MmcNotifyState (MmcHostInstance, MmcTransferState);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "MmcIoBlocks() : Error MmcTransferState\n"));
