@@ -23,7 +23,6 @@
 ASM_FUNC(PpaInit)
 //Save stack pointer for EL2
 	mov  x1, sp
-	bic  x1, x1, #16 /* Align SP to 16-bytes */
 	msr  sp_el2, x1
 
 //Set boot loc pointer to label 1f

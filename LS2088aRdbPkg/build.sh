@@ -18,7 +18,7 @@ ARCH=AARCH64
 TARGET_TOOLS=`echo $GCC_ARCH_PREFIX | cut -d _ -f 1`
 
 [ -z "$TARGET_TOOLS" ] && {
-  echo "TARGET_TOOLS not found. Please run \"source ls1043a_env.cshrc\" ."
+  echo "TARGET_TOOLS not found. Please run \"source ls2088a_env.cshrc\" ."
   exit 1
 }
 
