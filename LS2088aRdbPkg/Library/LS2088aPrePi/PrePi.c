@@ -30,11 +30,9 @@
 
 #include "PrePi.h"
 #include "LzmaDecompress.h"
+#include "LS2088aRdb.h"
 
 extern UINTN mSystemMemoryEnd;
-
-#define IS_XIP() (((UINT64)FixedPcdGet64 (PcdFdBaseAddress) > mSystemMemoryEnd) || \
-                  ((FixedPcdGet64 (PcdFdBaseAddress) + FixedPcdGet32 (PcdFdSize)) < FixedPcdGet64 (PcdSystemMemoryBase)))
 
 // Not used when PrePi in run in XIP mode
 UINTN mGlobalVariableBase = 0;
@@ -129,7 +127,7 @@ PrePiMain (
     EFI_RESOURCE_ATTRIBUTE_WRITE_THROUGH_CACHEABLE | EFI_RESOURCE_ATTRIBUTE_WRITE_BACK_CACHEABLE |
     EFI_RESOURCE_ATTRIBUTE_TESTED,
     PcdGet64 (PcdSystemMemoryExBase),
-    PcdGet64 (PcdSystemMemoryExSize)
+    DDR_MEM_SIZE
   );
 
   // Create the Stacks HOB (reserve the memory for all stacks)

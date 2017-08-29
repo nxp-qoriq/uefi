@@ -66,4 +66,5 @@
   gLS2088aRdbTokenSpaceGuid.PcdBootMode
   gLS2088aRdbTokenSpaceGuid.PcdSysClk
   gLS2088aRdbTokenSpaceGuid.PcdDdrClk
+  gLS2088aRdbTokenSpaceGuid.PcdDpaa2McPrivateRamSize
   gArmTokenSpaceGuid.PcdSystemMemorySize

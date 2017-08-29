@@ -56,7 +56,8 @@
 
   gArmPlatformTokenSpaceGuid.PcdCounterFrequency
 	
-	gLS2088aRdbTokenSpaceGuid.PcdOcramStackBase
+  gLS2088aRdbTokenSpaceGuid.PcdOcramStackBase
   gLS2088aRdbTokenSpaceGuid.PcdArmErrata828024
   gLS2088aRdbTokenSpaceGuid.PcdArmErrata826974
   gLS2088aRdbTokenSpaceGuid.PcdDdrClk
+  gLS2088aRdbTokenSpaceGuid.PcdDpaa2McPrivateRamSize

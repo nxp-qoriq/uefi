@@ -109,3 +109,4 @@
 
   gLS2088aRdbTokenSpaceGuid.PcdSystemMemoryExBase
   gLS2088aRdbTokenSpaceGuid.PcdSystemMemoryExSize
+  gLS2088aRdbTokenSpaceGuid.PcdDpaa2McPrivateRamSize

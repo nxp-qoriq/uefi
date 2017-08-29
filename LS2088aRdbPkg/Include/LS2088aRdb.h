@@ -184,7 +184,8 @@ extern UINTN mSystemMemoryEnd;
    /* MC firmware private memory uses the last 512MB of DRAM2 */
 #  define DRAM1_BASE_ADDR		0x0080000000
 #  define DRAM1_SIZE			0x0080000000    /* 2GB */
-#  define DDR_MEM_SIZE			0x360000000ULL  /* 14GB - 512MB (same as PcdSystemMemorySize) */
+#  define DDR_MEM_SIZE			(0x380000000ULL- PcdGet32(PcdDpaa2McPrivateRamSize))
+                                        /* 14GB - 512MB (same as PcdSystemMemorySize) by default */
 # endif /* DPAA2_MC_IN_LOW_MEM */
 #endif /* DPAA2_USE_UEFI_ALLOCATOR_FOR_MC_MEM */
 
