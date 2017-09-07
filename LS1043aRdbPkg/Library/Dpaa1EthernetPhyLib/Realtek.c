@@ -83,23 +83,33 @@ RealtekPhyConfig (DPAA1_PHY *Dpaa1Phy)
   UINT16 PhyRegValue;
   DPAA1_DEBUG_MSG("***** RealtekPhyConfig\n");
   ASSERT(Dpaa1Phy->Signature == DPAA1_PHY_SIGNATURE);
-  ASSERT(Dpaa1Phy->PhyInterfaceType == PHY_INTERFACE_RGMII); // 1000Base-T IEEE 802.3ab Compliant
+  ASSERT(Dpaa1Phy->PhyInterfaceType == PHY_INTERFACE_RGMII ||
+         Dpaa1Phy->PhyInterfaceType == PHY_INTERFACE_RGMII_TXID ||
+         Dpaa1Phy->PhyInterfaceType == PHY_INTERFACE_RGMII_ID); // 1000Base-T IEEE 802.3ab Compliant
 
   Dpaa1PhyRegisterWrite(Dpaa1Phy, MDIO_CTL_DEV_NONE,
                           PHY_CONTROL_REG, PHY_CONTROL_RESET);
 
-  if (Dpaa1Phy->PhyInterfaceType == PHY_INTERFACE_RGMII) {
-      Dpaa1PhyRegisterWrite(Dpaa1Phy, MDIO_CTL_DEV_NONE,
-                      REALTEK_REG_PAGSR, REALTEK_PAGE_MIICR);
-      PhyRegValue = Dpaa1PhyRegisterRead(Dpaa1Phy,
-                                       MDIO_CTL_DEV_NONE,
-                                       REALTEK_REG_RGMII_TXDLY);
+  Dpaa1PhyRegisterWrite(Dpaa1Phy, MDIO_CTL_DEV_NONE,
+                          REALTEK_REG_PAGSR, REALTEK_PAGE_MIICR);
+
+  PhyRegValue = Dpaa1PhyRegisterRead(Dpaa1Phy,
+                                   MDIO_CTL_DEV_NONE,
+                                   REALTEK_REG_RGMII_TXDLY);
+
+  /* enable TX-delay for rgmii-id and rgmii-txid, otherwise disable it */
+  if (Dpaa1Phy->PhyInterfaceType == PHY_INTERFACE_RGMII_ID ||
+      Dpaa1Phy->PhyInterfaceType == PHY_INTERFACE_RGMII_TXID ) {
       PhyRegValue |= REALTEK_RGMII_TX_DELAY;
-      Dpaa1PhyRegisterWrite(Dpaa1Phy, MDIO_CTL_DEV_NONE,
-                      REALTEK_REG_RGMII_TXDLY, PhyRegValue);
-      Dpaa1PhyRegisterWrite(Dpaa1Phy, MDIO_CTL_DEV_NONE,
-                      REALTEK_REG_PAGSR, PHY_CONTROL_REG);
+  } else {
+      PhyRegValue &= ~REALTEK_RGMII_TX_DELAY;
   }
+
+  Dpaa1PhyRegisterWrite (Dpaa1Phy, MDIO_CTL_DEV_NONE,
+                        REALTEK_REG_RGMII_TXDLY, PhyRegValue);
+   /* restore to default page 0 */
+  Dpaa1PhyRegisterWrite(Dpaa1Phy, MDIO_CTL_DEV_NONE,
+                       REALTEK_REG_PAGSR, PHY_CONTROL_REG);
 
   /* Set green LED for Link, yellow LED for Active */
   PhyRegValue = REALTEK_LED0_LINK_10 | REALTEK_LED0_LINK_100 |

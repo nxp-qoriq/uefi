@@ -1265,6 +1265,8 @@ STATIC CHAR8 *gPhyStrings[] = {
   [PHY_INTERFACE_RGMII] = "rgmii",
   [PHY_INTERFACE_SGMII_2500] = "Sgmii_2500",
   [PHY_INTERFACE_QSGMII] = "qsgmii",
+  [PHY_INTERFACE_RGMII_ID]  = "rgmii-id",
+  [PHY_INTERFACE_RGMII_TXID] = "rgmii-txid",
   [PHY_INTERFACE_NONE] = "",
 };
 
@@ -1345,8 +1347,8 @@ FdtFixupFmanEthernet (
 
 	SerDesProbeLanes(GetPhy, NULL);
 	/* Added separately to take care of RGMIIs */
-	gFdtPort[FM1_DTSEC_3-1].PhyInterfaceType = PHY_INTERFACE_RGMII;
-	gFdtPort[FM1_DTSEC_4-1].PhyInterfaceType = PHY_INTERFACE_RGMII;
+	gFdtPort[FM1_DTSEC_3-1].PhyInterfaceType = PHY_INTERFACE_RGMII_TXID;
+	gFdtPort[FM1_DTSEC_4-1].PhyInterfaceType = PHY_INTERFACE_RGMII_TXID;
 
 	for (I = 0; I < ARRAY_SIZE(gFdtPort); I++) {
 		Status = FixupPort(Blob, "fsl,fman-memac", I);

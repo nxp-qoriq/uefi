@@ -96,6 +96,8 @@ typedef enum _PHY_INTERFACE_TYPE {
   PHY_INTERFACE_SGMII_2500,
   PHY_INTERFACE_QSGMII,
   PHY_INTERFACE_RGMII,
+  PHY_INTERFACE_RGMII_ID,
+  PHY_INTERFACE_RGMII_TXID,
 
   /*
    * New values must added above this entry

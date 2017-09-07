@@ -39,6 +39,8 @@ STATIC CONST CHAR8 *CONST gPhyInterfaceTypeStrings[] = {
   [PHY_INTERFACE_SGMII_2500] = "Sgmii_2500",
   [PHY_INTERFACE_QSGMII] = "qsgmii",
   [PHY_INTERFACE_RGMII] = "rgmii",
+  [PHY_INTERFACE_RGMII_ID]  = "rgmii-id",
+  [PHY_INTERFACE_RGMII_TXID] = "rgmii-txid",
 };
 
 C_ASSERT(ARRAY_SIZE(gPhyInterfaceTypeStrings) == NUM_PHY_INTERFACE_TYPES);
@@ -261,6 +263,7 @@ VOID SetInterface (
          Mode |= (IF_MODE_GMII);
          break;
   case PHY_INTERFACE_RGMII:
+  case PHY_INTERFACE_RGMII_TXID:
          Mode |= (IF_MODE_GMII | IF_MODE_RGMII);
          break;
   case PHY_INTERFACE_XFI:
@@ -273,7 +276,8 @@ VOID SetInterface (
   /* Enable automatic speed selection for Non-XFI */
   if (Type != PHY_INTERFACE_XFI)
          Mode |= IF_MODE_EN_AUTO;
-  if (Type == PHY_INTERFACE_RGMII) {
+  if (Type == PHY_INTERFACE_RGMII ||
+      Type == PHY_INTERFACE_RGMII_TXID) {
         Mode &= ~IF_MODE_EN_AUTO;
         Mode &= ~IF_MODE_SETSP_MASK;
         switch (Speed) {
