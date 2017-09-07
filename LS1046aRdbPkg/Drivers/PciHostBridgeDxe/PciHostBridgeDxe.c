@@ -239,7 +239,7 @@ PciHostBridgeEntryPoint (
 
         FreePool(PrivateData[Loop1]);
         FreePool (HostBridge[Loop1]);
-        DEBUG ((EFI_D_ERROR, "UNInstalled HostBridge ResAlloc protocol and Freed memory\n"));
+        DEBUG ((EFI_D_INFO, "UNInstalled HostBridge ResAlloc protocol and Freed memory\n"));
         break;
       }
 
