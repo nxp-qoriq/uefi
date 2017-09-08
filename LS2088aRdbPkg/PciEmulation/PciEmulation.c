@@ -608,6 +608,7 @@ PciEmulationEntryPoint (
   EFI_STATUS              Status;
   BOOLEAN                 SuccessFlag;
   UINT8                   DeviceId;
+  SuccessFlag = FALSE;
 
   for (DeviceId = 0; DeviceId < NUM_OF_USB_CONTROLLERS; DeviceId++) {
     Status = InitializeUsbController (UsbRegAdd[DeviceId]);
