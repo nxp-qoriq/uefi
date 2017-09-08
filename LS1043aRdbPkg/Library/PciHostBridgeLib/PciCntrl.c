@@ -144,8 +144,7 @@ IsPcieEnabled(
 	return FALSE;
 }
 
-/* PEX1/2 Misc Ports Status Register */
-#define LTSSM_STATE_SHIFT	20
+#define LTSSM_STATE_SHIFT	24
 
 INTN
 PcieLinkState (
@@ -153,13 +152,14 @@ PcieLinkState (
 )
 {
 	UINT32 State;
-	State = MmioRead32(((UINTN)(Pcie->Dbi) + LS_PCIE_LUT_BASE + LS_PCIE_LUT_DBG) &
-		LS_LTSSM_STATE_MASK);
-	if (State < LS_LTSSM_PCIE_L0) {
-		DEBUG((EFI_D_ERROR," Pcie Link error. LTSSM=0x%2x\n",
-		       State));
-		return 0;
-	}
+
+       State = MmioRead32((UINTN)(Pcie->Dbi) + LS_PCIE_LUT_BASE + LS_PCIE_LUT_DBG);
+       State = (State >> LTSSM_STATE_SHIFT) & LS_LTSSM_STATE_MASK;
+       if (State < LS_LTSSM_PCIE_L0) {
+              DEBUG((EFI_D_INFO," Pcie[0x%x] Link error. LTSSM=0x%x\n",
+                          (UINTN)Pcie->Dbi, State));
+              return 0;
+       }
 	return 1;
 }
 

@@ -66,7 +66,7 @@
 #define LS_PCIE_ATU_UPPER_TARGET           0x91C
 
 /* LUT registers */
-#define LS_PCIE_LUT_BASE           0x80000
+#define LS_PCIE_LUT_BASE           0x10000
 #define LS_PCIE_LUT_DBG            0x7FC
 
 /* DBI Read-Only Write Enable Register: Pg 1518 RM rev B*/
