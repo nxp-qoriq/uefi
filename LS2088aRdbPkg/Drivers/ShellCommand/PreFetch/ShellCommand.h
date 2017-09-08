@@ -1,5 +1,6 @@
 /** ShellCommand.h
 
+  Copyright (c) 2011 - 2014, ARM Ltd. All rights reserved.<BR>
   Copyright 2017 NXP
 
   This program and the accompanying materials

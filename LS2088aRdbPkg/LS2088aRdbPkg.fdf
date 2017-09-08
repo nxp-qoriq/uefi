@@ -32,10 +32,10 @@ BaseAddress   = 0x837EF30000|gArmTokenSpaceGuid.PcdFdBaseAddress  #The base addr
 !else
 BaseAddress   = 0x00E0000000|gArmTokenSpaceGuid.PcdFdBaseAddress  #The base address of the FLASH Device.
 !endif
-Size          = 0x00105e00|gArmTokenSpaceGuid.PcdFdSize         #The size in bytes of the FLASH Device
+Size          = 0x001060f8|gArmTokenSpaceGuid.PcdFdSize         #The size in bytes of the FLASH Device
 ErasePolarity = 1
 BlockSize     = 0x1
-NumBlocks     = 0x105e00
+NumBlocks     = 0x1060f8
 
 ################################################################################
 #
@@ -52,7 +52,7 @@ NumBlocks     = 0x105e00
 # RegionType <FV, DATA, or FILE>
 #
 ################################################################################
-0x00000000|0x00105e00
+0x00000000|0x001060f8
 gArmTokenSpaceGuid.PcdFvBaseAddress|gArmTokenSpaceGuid.PcdFvSize
 FV = FVMAIN_COMPACT
 

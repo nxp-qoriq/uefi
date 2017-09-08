@@ -24,11 +24,11 @@ XhciSetBeatBurstLength (
   Dwc3 *Dwc3Reg;
   DEBUG((EFI_D_INFO, "XhciSetBeatBurstLength\n"));
   
-  Dwc3Reg = (VOID *)(UsbReg + DWC3_REG_OFFSET);
+  Dwc3Reg = (VOID *)(UsbReg + USB_REG_OFFSET);
 
-  MmioClearSet32((UINTN)&Dwc3Reg->GSbuscfg0, USB3_ENABLE_BEAT_BURST_MASK,
-                                           USB3_ENABLE_BEAT_BURST);
-  MmioSetBits32((UINTN)&Dwc3Reg->GSbuscfg1, USB3_SET_BEAT_BURST_LIMIT);
+  MmioClearSet32((UINTN)&Dwc3Reg->GSbuscfg0, USB_ENABLE_BEAT_BURST_MASK,
+                                           USB_ENABLE_BEAT_BURST);
+  MmioSetBits32((UINTN)&Dwc3Reg->GSbuscfg1, USB_SET_BEAT_BURST_LIMIT);
 
   return;
 }
@@ -52,8 +52,8 @@ Dwc3SetMode (
 {
   DEBUG((EFI_D_INFO,"Configure controller in host mode.\n"));
   MmioClearSet32((UINTN)&Dwc3Reg->GCtl,
-		 DWC3_GCTL_PRTCAPDIR(DWC3_GCTL_PRTCAP_OTG),
-		 DWC3_GCTL_PRTCAPDIR(Mode));
+		 USB_GCTL_PRTCAPDIR(USB_GCTL_PRTCAP_OTG),
+		 USB_GCTL_PRTCAPDIR(Mode));
 }
 
 VOID
@@ -63,12 +63,12 @@ Dwc3CoreSoftReset (
 {
   DEBUG((EFI_D_INFO,"Controller and Core reset.\n"));
 
-  MmioOr32 ((UINTN)&Dwc3Reg->GCtl, DWC3_GCTL_CORESOFTRESET);
-  MmioOr32 ((UINTN)&Dwc3Reg->GUsb3pipectl[0], DWC3_GUSB3PIPECTL_PHYSOFTRST);
-  MmioOr32 ((UINTN)&Dwc3Reg->GUsb2phycfg, DWC3_GUSB2PHYCFG_PHYSOFTRST);
-  MmioClearBits32((UINTN)&Dwc3Reg->GUsb3pipectl[0], DWC3_GUSB3PIPECTL_PHYSOFTRST);
-  MmioClearBits32((UINTN)&Dwc3Reg->GUsb2phycfg, DWC3_GUSB2PHYCFG_PHYSOFTRST);
-  MmioClearBits32((UINTN)&Dwc3Reg->GCtl, DWC3_GCTL_CORESOFTRESET);
+  MmioOr32 ((UINTN)&Dwc3Reg->GCtl, USB_GCTL_CORESOFTRESET);
+  MmioOr32 ((UINTN)&Dwc3Reg->GUsb3pipectl[0], USB_GUSB3PIPECTL_PHYSOFTRST);
+  MmioOr32 ((UINTN)&Dwc3Reg->GUsb2phycfg, USB_GUSB2PHYCFG_PHYSOFTRST);
+  MmioClearBits32((UINTN)&Dwc3Reg->GUsb3pipectl[0], USB_GUSB3PIPECTL_PHYSOFTRST);
+  MmioClearBits32((UINTN)&Dwc3Reg->GUsb2phycfg, USB_GUSB2PHYCFG_PHYSOFTRST);
+  MmioClearBits32((UINTN)&Dwc3Reg->GCtl, USB_GCTL_CORESOFTRESET);
 
   return;
 }
@@ -87,27 +87,27 @@ Dwc3CoreInit (
 
   Revision = MmioRead32((UINTN)&Dwc3Reg->GSnpsid);
   /* This should read as U3 followed by revision number */
-  if ((Revision & DWC3_GSNPSID_MASK) != 0x55330000) {
+  if ((Revision & USB_GSNPSID_MASK) != 0x55330000) {
     DEBUG((EFI_D_ERROR,"This is not a DesignWare USB3 DRD Core.\n"));
     return EFI_NOT_FOUND;
   }
   Dwc3CoreSoftReset(Dwc3Reg);
 
   Reg = MmioRead32((UINTN)&Dwc3Reg->GCtl);
-  Reg &= ~DWC3_GCTL_SCALEDOWN_MASK;
-  Reg &= ~DWC3_GCTL_DISSCRAMBLE;
+  Reg &= ~USB_GCTL_SCALEDOWN_MASK;
+  Reg &= ~USB_GCTL_DISSCRAMBLE;
 
   Dwc3Hwparams1 = MmioRead32((UINTN)&Dwc3Reg->GHwparams1);
-  switch (DWC3_GHWPARAMS1_EN_PWROPT(Dwc3Hwparams1)) {
-    case DWC3_GHWPARAMS1_EN_PWROPT_CLK:
-      Reg &= ~DWC3_GCTL_DSBLCLKGTNG;
+  switch (USB_GHWPARAMS1_EN_PWROPT(Dwc3Hwparams1)) {
+    case USB_GHWPARAMS1_EN_PWROPT_CLK:
+      Reg &= ~USB_GCTL_DSBLCLKGTNG;
       break;
     default:
       DEBUG((EFI_D_ERROR,"No power optimization available.\n"));
   }
 
-  if ((Revision & DWC3_REVISION_MASK) < 0x190a)
-    Reg |= DWC3_GCTL_U2RSTECN;
+  if ((Revision & USB_REVISION_MASK) < 0x190a)
+    Reg |= USB_GCTL_U2RSTECN;
 
   MmioWrite32 ((UINTN)&Dwc3Reg->GCtl, Reg);
 
@@ -120,7 +120,7 @@ XhciCoreInit (
   )
 {
   EFI_STATUS Status = EFI_SUCCESS;
-  Dwc3 *Dwc3Reg = (VOID *)(UsbReg + DWC3_REG_OFFSET);
+  Dwc3 *Dwc3Reg = (VOID *)(UsbReg + USB_REG_OFFSET);
 
   DEBUG((EFI_D_INFO, "XhciCoreInit\n"));
 
@@ -131,7 +131,7 @@ XhciCoreInit (
     return Status;
   }
 
-  Dwc3SetMode(Dwc3Reg, DWC3_GCTL_PRTCAP_HOST);
+  Dwc3SetMode(Dwc3Reg, USB_GCTL_PRTCAP_HOST);
 
   Dwc3SetFladj(Dwc3Reg, GFLADJ_30MHZ_DEFAULT);
 
