@@ -3175,5 +3175,188 @@ MmioClearBitsBe64 (
   IN      UINT64                    Mask
   );
 
-#endif
+/**
+  Clear and set a 16-bit MMIO register.
 
+  Mask the 16-bit MMIO register specified by Address with the mask specified
+  by Mask and then Writes the 16-bit MMIO register specified by Address with
+  the value specified by Value and returns current value on register. This
+  function must guarantee that all MMIO read and write operations are serialized.
+
+  If 16-bit MMIO register operations are not supported, then ASSERT().
+
+  @param  Address The MMIO register to write.
+  @param  Mask    The Mask to clear the MMIO register.
+  @param  Value   The value to write to the MMIO register.
+
+**/
+UINT16
+EFIAPI
+MmioClearSet16 (
+  IN      UINTN                     Address,
+  IN      UINT16                    Mask,
+  IN      UINT16                    Value
+  );
+
+/**
+  Clear and set a 32-bit MMIO register.
+
+  Mask the 32-bit MMIO register specified by Address with the mask specified
+  by Mask and then Writes the 32-bit MMIO register specified by Address with
+  the value specified by Value and returns current value on register. This
+  function must guarantee that all MMIO read and write operations are serialized.
+
+
+  If 32-bit MMIO register operations are not supported, then ASSERT().
+
+  @param  Address The MMIO register to write.
+  @param  Mask    The Mask to clear the MMIO register.
+  @param  Value   The value to write to the MMIO register.
+
+**/
+UINT32
+EFIAPI
+MmioClearSet32 (
+  IN      UINTN                     Address,
+  IN      UINT32                    Mask,
+  IN      UINT32                    Value
+  );
+
+/**
+  Clear and set a 64-bit MMIO register.
+
+  Mask the 64-bit MMIO register specified by Address with the mask specified
+  by Mask and then Writes the 64-bit MMIO register specified by Address with
+  the value specified by Value and returns current value on register. This
+  function must guarantee that all MMIO read and write operations are serialized.
+
+  If 64-bit MMIO register operations are not supported, then ASSERT().
+
+  @param  Address The MMIO register to write.
+  @param  Mask    The Mask to clear the MMIO register.
+  @param  Value   The value to write to the MMIO register.
+
+**/
+UINT64
+EFIAPI
+MmioClearSet64 (
+  IN      UINTN                     Address,
+  IN      UINT64                    Mask,
+  IN      UINT64                    Value
+  );
+
+/**
+  Set a 16-bit MMIO register.
+
+  Set bits of the 16-bit MMIO register specified by Address with the Bits
+  specified by Bits and returns register content. This function must
+  guarantee that all MMIO read and write operations are serialized.
+
+  If 16-bit MMIO register operations are not supported, then ASSERT().
+
+  @param  Address The MMIO register to write.
+  @param  Bits    The Bits to set in MMIO register.
+
+**/
+UINT16
+EFIAPI
+MmioSetBits16 (
+  IN      UINTN                     Address,
+  IN      UINT16                    Bits
+  );
+
+/**
+  Set a 32-bit MMIO register.
+
+  Set bits of the 32-bit MMIO register specified by Address with the Bits
+  specified by Bits and returns register content. This function must
+  guarantee that all MMIO read and write operations are serialized.
+
+  If 32-bit MMIO register operations are not supported, then ASSERT().
+
+  @param  Address The MMIO register to write.
+  @param  Bits    The Bits to set in MMIO register.
+
+**/
+UINT32
+EFIAPI
+MmioSetBits32 (
+  IN      UINTN                     Address,
+  IN      UINT32                    Bits
+  );
+
+/**
+  Set a 64-bit MMIO register.
+
+  Set bits of the 64-bit MMIO register specified by Address with the Bits
+  specified by Bits and returns register content. This function must
+  guarantee that all MMIO read and write operations are serialized.
+
+  If 64-bit MMIO register operations are not supported, then ASSERT().
+
+  @param  Address The MMIO register to write.
+  @param  Bits    The Bits to set in MMIO register.
+
+**/
+UINT64
+EFIAPI
+MmioSetBits64 (
+  IN      UINTN                     Address,
+  IN      UINT64                    Bits
+  );
+
+/**
+  Clear bits of the 16-bit MMIO register specified by Address with the Mask
+  specified by Mask and returns register content. This function must
+  guarantee that all MMIO read and write operations are serialized.
+
+  If 16-bit MMIO register operations are not supported, then ASSERT().
+
+  @param  Address The MMIO register to write.
+  @param  Mask    The Bits to clear in MMIO register.
+
+**/
+UINT16
+EFIAPI
+MmioClearBits16 (
+  IN      UINTN                     Address,
+  IN      UINT16                    Mask
+  );
+
+/**
+  Clear bits of the 32-bit MMIO register specified by Address with the Mask
+  specified by Mask and returns register content. This function must
+  guarantee that all MMIO read and write operations are serialized.
+
+  If 32-bit MMIO register operations are not supported, then ASSERT().
+
+  @param  Address The MMIO register to write.
+  @param  Mask    The Bits to clear in MMIO register.
+
+**/
+UINT32
+EFIAPI
+MmioClearBits32 (
+  IN      UINTN                     Address,
+  IN      UINT32                    Mask
+  );
+
+/**
+  Clear bits of the 64-bit MMIO register specified by Address with the Mask
+  specified by Mask and returns register content. This function must
+  guarantee that all MMIO read and write operations are serialized.
+
+  If 64-bit MMIO register operations are not supported, then ASSERT().
+
+  @param  Address The MMIO register to write.
+  @param  Mask    The Bits to clear in MMIO register.
+
+**/
+UINT64
+EFIAPI
+MmioClearBits64 (
+  IN      UINTN                     Address,
+  IN      UINT64                    Mask
+  );
+
+#endif
