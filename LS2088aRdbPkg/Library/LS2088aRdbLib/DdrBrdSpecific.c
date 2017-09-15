@@ -128,8 +128,8 @@ Found:
       Popts->DdrCdr2 = DDRCDR2_ODT(DDRCDR_ODT_80ohm);
       Popts->TwotEn = 1;	/* enable 2T timing */
     } else {
-      Popts->DdrCdr1 = DDRCDR1_DHC_EN | DDRCDR1_ODT(DDRCDR_ODT_80ohm);
-      Popts->DdrCdr2 = DDRCDR2_ODT(DDRCDR_ODT_80ohm) | DDRCDR2_VREF_RANGE_2;
+      Popts->DdrCdr1 = DDRCDR1_DHC_EN | DDRCDR1_ODT(DDRCDR_ODT_60ohm);
+      Popts->DdrCdr2 = DDRCDR2_ODT(DDRCDR_ODT_60ohm) | DDRCDR2_VREF_RANGE_2;
     }
   } else {
       Popts->DdrCdr1 = DDRCDR1_DHC_EN | DDRCDR1_ODT(DDRCDR_ODT_100ohm);
