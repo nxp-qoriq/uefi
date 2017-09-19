@@ -1696,6 +1696,61 @@ void SetMsiMapEntry(void *blob, UINTN PciBase,
     fdt_appendprop_u32(blob, nodeoffset, "msi-map", 1);
 }
 
+/*
+ * An iommu-map is a property to be added to the pci controller
+ * node.  It is a table, where each entry consists of 4 fields
+ * e.g.:
+ * 
+ * iommu-map = <[devid] [phandle-to-iommu-ctrl] [stream-id] [count]
+ *              [devid] [phandle-to-iommu-ctrl] [stream-id] [count]>;
+ */
+
+void SetIommuMapEntry(void *blob, UINTN PciBase,
+                       UINT32 devid, UINT32 streamid)
+{
+    UINT32 *prop;
+    UINT32 iommu_map[4];
+    int lenp;
+    int nodeoffset;
+    char *compat = NULL;
+
+    /* find pci controller node */
+    nodeoffset = fdt_node_offset_by_compat_reg(blob, "fsl,ls-pcie",
+            PciBase);
+
+    if (nodeoffset < 0) {
+        compat = FSL_PCIE_COMPAT;
+
+        nodeoffset = fdt_node_offset_by_compat_reg(blob,
+                compat, PciBase);
+        if (nodeoffset < 0) {
+            DEBUG((EFI_D_ERROR, "PCI %a node not found \n", compat));
+            return;
+        }
+    }
+
+    /* get phandle to iommu controller */
+    prop = fdt_getprop_w(blob, nodeoffset, "iommu-map", &lenp);
+
+    if (prop == NULL) {
+        DEBUG((EFI_D_ERROR, "missing iommu-map: PCIe 0x%x\n", PciBase));
+        return;
+    }
+
+    /* set iommu-map row */
+    iommu_map[0] = cpu_to_fdt32(devid);
+    iommu_map[1] = *++prop;
+    iommu_map[2] = cpu_to_fdt32(streamid);
+    iommu_map[3] = cpu_to_fdt32(1);
+
+    if (devid == 0) {
+      fdt_setprop_inplace(blob, nodeoffset, "iommu-map",
+          iommu_map, 16);
+    } else {
+      fdt_appendprop(blob, nodeoffset, "iommu-map", iommu_map, 16);
+    }
+}
+
 void LutUpdate(UINTN LutBase, UINT32 Value, UINT32 Offset)
 {
         MmioWrite32((UINTN)(LutBase + Offset), Value);
@@ -1785,6 +1840,9 @@ void fdt_fixup_pcie(void *blob)
         DEBUG((EFI_D_RELEASE, "0x%x : 0x%x, %d \n", PciBaseAddress[PciNo], Bdf, StreamId));
         SetMsiMapEntry(blob, PciBaseAddress[PciNo], Bdf >> 8,
                 StreamId);
+        
+        SetIommuMapEntry(blob, PciBaseAddress[PciNo], Bdf >> 8,
+                StreamId);
 
         /* Check for child */
         if (PciChildInfo[PciNo].HasChild) {
@@ -1817,6 +1875,8 @@ void fdt_fixup_pcie(void *blob)
         /* update msi-map in device tree */
         DEBUG((EFI_D_RELEASE, "0x%x : 0x%x, %d \n", PciBaseAddress[PciNo], Bdf, StreamId));
         SetMsiMapEntry(blob, PciBaseAddress[PciNo], Bdf >> 8, StreamId);
+
+        SetIommuMapEntry(blob, PciBaseAddress[PciNo], Bdf >> 8, StreamId);
 
         StreamId++;
     }
