@@ -205,13 +205,6 @@ PxeTransmit (
     Status = EFI_DEVICE_ERROR;
   }
 
-  DEBUG (
-    (EFI_D_ERROR,
-    "\nSnp->undi.transmit()  %xh:%xh\n",
-    Snp->Cdb.StatFlags,
-    Snp->Cdb.StatCode)
-    );
-
   return Status;
 }
 
