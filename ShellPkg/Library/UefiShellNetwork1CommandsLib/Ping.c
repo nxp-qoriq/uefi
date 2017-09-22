@@ -770,6 +770,7 @@ PingSendEchoRequest (
     return EFI_OUT_OF_RESOURCES;
   }
 
+  InsertTailList (&Private->TxList, &TxInfo->Link);
   TxInfo->TimeStamp   = ReadTime (Private);
   TxInfo->SequenceNum = (UINT16) (Private->TxCount + 1);
   TxInfo->Token       = PingGenerateToken (
@@ -791,7 +792,6 @@ PingSendEchoRequest (
     return Status;
   }
 
-  InsertTailList (&Private->TxList, &TxInfo->Link);
   Private->TxCount++;
 
   return EFI_SUCCESS;
