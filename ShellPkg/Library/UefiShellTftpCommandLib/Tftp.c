@@ -509,6 +509,7 @@ ShellCommandRunTftp (
       );
       goto NextHandle;
     }
+    DataSize = FileSize;
 
     Status = DownloadFile (Mtftp4, RemoteFilePath, AsciiRemoteFilePath, FileSize, BlockSize, &Data);
     if (EFI_ERROR (Status)) {
@@ -539,7 +540,6 @@ ShellCommandRunTftp (
       goto NextHandle;
     }
 
-    DataSize = FileSize;
     Status = ShellWriteFile (FileHandle, &FileSize, Data);
     if (!EFI_ERROR (Status)) {
       ShellStatus = SHELL_SUCCESS;
