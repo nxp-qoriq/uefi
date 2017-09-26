@@ -82,10 +82,10 @@ static void ErratumA008751(void)
 	Svr = MmioRead32((UINTN)&GurBase->Svr);
        Ver = SVR_SOC_VER(Svr);
        switch (Ver) {
-       case SVR_LS2080:
-       case SVR_LS2085:
-       case SVR_LS2040:
-       case SVR_LS2045:
+       case SVR_LS2080A:
+       case SVR_LS2085A:
+       case SVR_LS2040A:
+       case SVR_LS2045A:
               MmioWrite32((UINTN)(SCFG_BASE_ADDR + SCFG_USB3PRM1CR / 4), 0x27672b2a);
               break;
        default:
