@@ -482,7 +482,8 @@ PrintBoardPersonality (
 		AsciiStrCpy(Buf, (CONST CHAR8 *)"unknown");
 	}
 
-	DEBUG((EFI_D_RELEASE, "SoC: %a (0x%x)\n", Buf, Svr));
+	DEBUG((EFI_D_RELEASE, "SoC: %a Rev%d.%d (0x%x)\n", Buf,
+		SVR_MAJ(Svr), SVR_MIN(Svr), Svr));
 	DEBUG((EFI_D_RELEASE, "Board: LS2088A-RDB\n"));
 
 	SwitchConf = QIXIS_READ(arch);
