@@ -1,7 +1,8 @@
 /** LS2088aRdb.h
 *  Header defining the LS2088aRdb constants (Base addresses, sizes, flags)
 *
-*  Copyright (c) 2015, Freescale Semiconductor, Inc. All rights reserved.
+*  Copyright 2015-2016, Freescale semiconductor, Inc.
+*  Copyright 2017 NXP
 *
 *  This program and the accompanying materials
 *  are licensed and made available under the terms and conditions of the BSD License

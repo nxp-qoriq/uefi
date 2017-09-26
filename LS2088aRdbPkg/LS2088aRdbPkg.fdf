@@ -1,6 +1,8 @@
 # FLASH layout file for LS2088a board.
 #
-# Copyright (c) 2013, Freescale Ltd. All rights reserved.
+# Copyright 2015-2016, Freescale semiconductor, Inc.
+# Copyright 2017 NXP
+#
 # Author: Bhupesh Sharma <bhupesh.sharma@freescale.com>
 #
 #    This program and the accompanying materials
