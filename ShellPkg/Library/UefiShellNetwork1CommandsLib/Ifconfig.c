@@ -576,11 +576,14 @@ IfConfigShowInterfaceInfo (
     //
     // Get Media State.
     //
-    NetLibDetectMedia (IfCb->NicHandle, &MediaPresent);
-    if (!MediaPresent) {
+    if (EFI_SUCCESS == NetLibDetectMedia (IfCb->NicHandle, &MediaPresent)) {
+      if (!MediaPresent) {
       ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_IFCONFIG_INFO_MEDIA_STATE), gShellNetwork1HiiHandle, L"Media disconnected");
-    } else {
+      } else {
       ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_IFCONFIG_INFO_MEDIA_STATE), gShellNetwork1HiiHandle, L"Media present");
+      }
+    } else {
+      ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_IFCONFIG_INFO_MEDIA_STATE), gShellNetwork1HiiHandle, L"Media disconnected");
     }
 
     //
