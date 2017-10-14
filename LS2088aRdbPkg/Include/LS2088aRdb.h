@@ -166,7 +166,7 @@ extern UINTN mSystemMemoryEnd;
 #define IFC_REGION2_BASE_SIZE		0xF0000000ULL /* 3.75GB */
 
 #undef  DPAA2_USE_UEFI_ALLOCATOR_FOR_MC_MEM
-#define DPAA2_MC_IN_LOW_MEM
+#undef DPAA2_MC_IN_LOW_MEM
 
 #ifdef DPAA2_USE_UEFI_ALLOCATOR_FOR_MC_MEM
   /* MC firmware private memory dynamically allocated */
@@ -175,17 +175,29 @@ extern UINTN mSystemMemoryEnd;
 # define DDR_MEM_SIZE			0x380000000ULL  /* 14GB */
 #else
   /* MC firmware private memory statically allocated */
+#  define MC_LOW_MEM_FIXED_SIZE 0x20000000
+#  define DDR_TOTAL_SIZE        0x380000000ULL  // 14GB
 # ifdef DPAA2_MC_IN_LOW_MEM
    /* MC firmware private memory uses the first 512MB of DRAM1 */
 #  define DRAM1_BASE_ADDR		0x00A0000000    /* Actual base address + 512MB */
-#  define DRAM1_SIZE			0x0060000000    /* 2GB - 512MB (same as PcdSystemMemorySize) */
-#  define DDR_MEM_SIZE			0x380000000ULL  /* 14GB */
+#  define DRAM1_SIZE        0x0060000000    /* 2GB - 512MB (same as PcdSystemMemorySize) */
+#  define DDR_MEM_SIZE      DDR_TOTAL_SIZE
+
+   /* For MC LOW_MEM support, MC region is fixed size of 512MB reserved before DRAM1_BASE_ADDR, that
+    * comes out to be (DRAM1_BASE_ADDR - MC_LOW_MEM_FIXED_SIZE)
+    */
+#  define MC_ADDR   (DRAM1_BASE_ADDR - MC_LOW_MEM_FIXED_SIZE) // last 512 MB block required for MC
 # else
    /* MC firmware private memory uses the last 512MB of DRAM2 */
-#  define DRAM1_BASE_ADDR		0x0080000000
-#  define DRAM1_SIZE			0x0080000000    /* 2GB */
-#  define DDR_MEM_SIZE			(0x380000000ULL- PcdGet32(PcdDpaa2McPrivateRamSize))
+#  define DRAM1_BASE_ADDR   0x0080000000
+#  define DRAM1_SIZE        0x0080000000    /* 2GB */
+#  define DDR_MEM_SIZE      (DDR_TOTAL_SIZE- PcdGet32(PcdDpaa2McPrivateRamSize))
                                         /* 14GB - 512MB (same as PcdSystemMemorySize) by default */
+   /* For MC HIGH_MEM support, MC region is reserved from top of DRAM (DRAM2_BASE_ADDR + DDR_TOTAL_SIZE),
+    * MC_ADDR should be the top 512MB from memory region allocated for MC, that comes
+    * out to be (DRAM2_BASE_ADDR + DDR_TOTAL_SIZE - MC_LOW_MEM_FIXED_SIZE)
+    */
+#  define MC_ADDR  (DRAM2_BASE_ADDR + DDR_TOTAL_SIZE - MC_LOW_MEM_FIXED_SIZE)
 # endif /* DPAA2_MC_IN_LOW_MEM */
 #endif /* DPAA2_USE_UEFI_ALLOCATOR_FOR_MC_MEM */
 
@@ -207,7 +219,7 @@ extern UINTN mSystemMemoryEnd;
 #define DPAA2_QBMAN_PORTALS_SIZE                0x8000000
 #define DPAA2_QBMAN_PORTALS_CACHE_ENABLED_SIZE  0x4000000
 
-#define DPAA2_MC_RAM_SIZE               (512UL*1024*1024)
+#define DPAA2_MC_RAM_SIZE               PcdGet32(PcdDpaa2McPrivateRamSize)
 
 /* Cache Coherent Interconnect */
 #define CCI_MN_BASE_ADDR             	0x04000000

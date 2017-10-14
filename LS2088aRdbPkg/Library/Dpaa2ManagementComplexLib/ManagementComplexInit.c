@@ -96,13 +96,13 @@ DumpMcCcsrRegs(
  * Allocate MC private memory block from the top of DDR
  */
 static EFI_STATUS
-Dpaa2McAllocatePrivateMem(DPAA2_MANAGEMENT_COMPLEX *Mc)
+Dpaa2McAllocatePrivateMem(DPAA2_MANAGEMENT_COMPLEX *Mc, UINT8 *Num256MbBlocks)
 {
   VOID *McRamBlock;
   UINT32 McRamSize = PcdGet32(PcdDpaa2McPrivateRamSize);
 
   ASSERT(Mc->McPrivateMemoryBaseAddr == 0x0);
-  ASSERT(McRamSize != 0 && McRamSize % MC_RAM_SIZE_ALIGNMENT == 0);
+  ASSERT(McRamSize != 0);
 
 # ifdef DPAA2_USE_UEFI_ALLOCATOR_FOR_MC_MEM
   UINTN Pages = EFI_SIZE_TO_PAGES(McRamSize);
@@ -119,17 +119,23 @@ Dpaa2McAllocatePrivateMem(DPAA2_MANAGEMENT_COMPLEX *Mc)
    */
   (VOID)ZeroMem(McRamBlock, McRamSize);
 #else
-  ASSERT(McRamSize <= DPAA2_MC_RAM_SIZE);
+  
+  /* MC address sould be the top 512 MB aligned address from MC allocated region */
+  McRamBlock = (VOID *)MC_ADDR;
+
 # ifdef DPAA2_MC_IN_LOW_MEM
-  McRamBlock = (VOID *)DRAM1_BASE_ADDR - DPAA2_MC_RAM_SIZE;
+  /* 512MB is fixed reserved size in MC Low Mem */
+  ASSERT(McRamSize == MC_LOW_MEM_FIXED_SIZE);
 # else
-  McRamBlock = (VOID *)DRAM2_BASE_ADDR + DDR_MEM_SIZE;
+  /* Make MC region 512 MB aligned and calculate number of 256MB aligned blocks from it */
+  McRamSize = McRamSize & MC_RAM_BASE_ADDR_ALIGNMENT_MASK;
 # endif
 #endif
 
-  ASSERT((UINT64)McRamBlock % MC_RAM_BASE_ADDR_ALIGNMENT == 0);
   Mc->McPrivateMemoryBaseAddr = (EFI_PHYSICAL_ADDRESS)McRamBlock;
   Mc->McPrivateMemorySize = McRamSize;
+  *Num256MbBlocks = Mc->McPrivateMemorySize / MC_RAM_SIZE_ALIGNMENT;
+
   DPAA2_INFO_MSG(
      "Allocated DPAA2 Mangement Complex private memory block (%lu MiB) at 0x%p\n",
      Mc->McPrivateMemorySize / (1024UL * 1024),
@@ -159,51 +165,6 @@ Dpaa2McFreePrivateMem(DPAA2_MANAGEMENT_COMPLEX *Mc)
   ASSERT(FALSE);
 #endif
 }
-
-
-/*
- * Calculates the values to be used to specify the address range
- * for the MC private DRAM block, in the MCFBALR/MCFBAHR registers.
- * It returns the highest 512MiB-aligned address within the given
- * address range, in '*aligned_base_addr', and the number of 256 MiB
- * blocks in it, in 'num_256mb_blocks'.
- */
-static EFI_STATUS
-CalculateMcPrivateRamParams(DPAA2_MANAGEMENT_COMPLEX *Mc,
-			    EFI_PHYSICAL_ADDRESS *AlignedBaseAddr,
-			    UINT8 *Num256MbBlocks)
-{
-  UINT64 Addr;
-  UINT16 NumBlocks;
-  UINTN McRamSize = Mc->McPrivateMemorySize;
-
-  if (McRamSize % MC_RAM_SIZE_ALIGNMENT != 0) {
-    DPAA2_ERROR_MSG("Invalid MC private RAM size (%lu)\n", McRamSize);
-    return EFI_INVALID_PARAMETER;
-  }
-
-  NumBlocks = McRamSize / MC_RAM_SIZE_ALIGNMENT;
-  if (NumBlocks < 1 || NumBlocks > 0xff) {
-    DPAA2_ERROR_MSG(
-      "Invalid number of 256MiB blocks for MC private RAM (%lu)\n",
-      NumBlocks);
-    return EFI_INVALID_PARAMETER;
-  }
-
-  Addr = (Mc->McPrivateMemoryBaseAddr + McRamSize - 1) &
-         MC_RAM_BASE_ADDR_ALIGNMENT_MASK;
-
-  if (Addr < Mc->McPrivateMemoryBaseAddr) {
-    DPAA2_ERROR_MSG("Bad start address for MC private RAM (0x%p)\n",
-                 Mc->McPrivateMemoryBaseAddr);
-    return EFI_INVALID_PARAMETER;
-  }
-
-  *AlignedBaseAddr = Addr;
-  *Num256MbBlocks = NumBlocks;
-  return EFI_SUCCESS;
-}
-
 
 /**
  * Copying an MC image (firmware, DPC or DPL) from NOR flash to DDR
@@ -950,14 +911,18 @@ Dpaa2McInit(VOID)
     return EFI_INVALID_PARAMETER;
   }
 
-  Status = Dpaa2McAllocatePrivateMem(Mc);
+  Status = Dpaa2McAllocatePrivateMem(Mc, &McRamNum256mbBlocks);
   if (EFI_ERROR(Status)) {
     goto Out;
   }
 
-  Status = CalculateMcPrivateRamParams(Mc, &McRamAlignedBaseAddr,
-                                       &McRamNum256mbBlocks);
-  if (EFI_ERROR(Status)) {
+  McRamAlignedBaseAddr = Mc->McPrivateMemoryBaseAddr;
+  
+  if (McRamNum256mbBlocks < 1 || McRamNum256mbBlocks > 0xff) {
+    DPAA2_ERROR_MSG(
+      "Invalid number of 256MiB blocks for MC private RAM (%lu)\n",
+      McRamNum256mbBlocks);
+    Status = EFI_INVALID_PARAMETER;
     goto Out;
   }
 
