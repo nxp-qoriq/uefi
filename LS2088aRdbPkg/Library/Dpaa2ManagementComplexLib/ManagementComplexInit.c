@@ -383,6 +383,82 @@ FdtImageFixupPropString(
 
 
 /**
+ * Disable MC and aiop logging in DPC blob (FDT)
+ */
+static EFI_STATUS
+DisbleDpcMcLogging(DPAA2_MANAGEMENT_COMPLEX *Mc,
+                     EFI_PHYSICAL_ADDRESS DpcRamAddr)
+{
+  EFI_STATUS Status;
+  INT32 NodeOffset;
+  VOID *DpcBlob;
+
+  DpcBlob = (VOID *)DpcRamAddr;
+
+  /* Disable mc_general log mode */
+  NodeOffset = fdt_path_offset(DpcBlob, "/mc_general/log");
+  if (NodeOffset < 0) {
+    DPAA2_ERROR_MSG("DPC /mc_general/log node is missing\n");
+    return EFI_INVALID_PARAMETER;
+  }
+
+  Status = FdtImageFixupPropString(DpcRamAddr,
+      NodeOffset,
+      "mode",
+      "LOG_MODE_OFF");
+  if (EFI_ERROR(Status)) {
+    return Status;
+  }
+
+  /* Disable mc_general console mode */
+  NodeOffset = fdt_path_offset(DpcBlob, "/mc_general/console");
+  if (NodeOffset < 0) {
+    DPAA2_ERROR_MSG("DPC /mc_general/console node is missing\n");
+    return EFI_INVALID_PARAMETER;
+  }
+
+  Status = FdtImageFixupPropString(DpcRamAddr,
+      NodeOffset,
+      "mode",
+      "CONSOLE_MODE_OFF");
+  if (EFI_ERROR(Status)) {
+    return Status;
+  }
+
+  /* Disable aiop log mode */
+  NodeOffset = fdt_path_offset(DpcBlob, "/aiop/log");
+  if (NodeOffset < 0) {
+    DPAA2_ERROR_MSG("DPC /aiop/log node is missing\n");
+    return EFI_INVALID_PARAMETER;
+  }
+
+  Status = FdtImageFixupPropString(DpcRamAddr,
+      NodeOffset,
+      "mode",
+      "LOG_MODE_OFF");
+  if (EFI_ERROR(Status)) {
+    return Status;
+  }
+
+  /* Disable aiop console mode */
+  NodeOffset = fdt_path_offset(DpcBlob, "/aiop/console");
+  if (NodeOffset < 0) {
+    DPAA2_ERROR_MSG("DPC /aiop/console node is missing\n");
+    return EFI_INVALID_PARAMETER;
+  }
+
+  Status = FdtImageFixupPropString(DpcRamAddr,
+      NodeOffset,
+      "mode",
+      "CONSOLE_MODE_OFF");
+  if (EFI_ERROR(Status)) {
+    return Status;
+  }
+
+  return EFI_SUCCESS;
+}
+
+/**
  * Fix up MC log level in the DPC blob (FDT)
  */
 static EFI_STATUS
@@ -460,6 +536,16 @@ McFixupDpc(DPAA2_MANAGEMENT_COMPLEX *Mc,
   UINT32 Dpaa2StreamIdStart = PcdGet32(PcdDpaa2StreamIdStart);
   UINT32 Dpaa2StreamIdEnd = PcdGet32(PcdDpaa2StreamIdEnd);
   DPAA2_MC_LOG_LEVEL McLogLevel = (DPAA2_MC_LOG_LEVEL)PcdGet8(PcdDpaa2McLogLevel);
+  BOOLEAN  DisableMcLogging;
+  DisableMcLogging = PcdGetBool(PcdDisableMcLogging);
+
+  /* Use Extra memory for Dpc bloc (Required for Dpc Fixup) */
+  Status = fdt_open_into(DpcBlob, DpcBlob, fdt_totalsize(DpcRamAddr) + EFI_PAGE_SIZE);
+  if (EFI_ERROR(Status)) {
+    DPAA2_ERROR_MSG("%a : Unable to allocate memory (0x%x) for DPC blob \n",__FUNCTION__,
+                   (fdt_totalsize(DpcRamAddr) + EFI_PAGE_SIZE));
+    return Status;
+  }
 
   ASSERT(Dpaa2StreamIdEnd > Dpaa2StreamIdStart);
   DPAA2_DEBUG_MSG("Fixing up DPC ...\n");
@@ -532,7 +618,13 @@ McFixupDpc(DPAA2_MANAGEMENT_COMPLEX *Mc,
     DPAA2_DEBUG_MSG("MC num ICIDs fixed up in DPC to %u\n", fdt32_to_cpu(*Num));
   }
 
-  if (McLogLevel != MC_LOG_LEVEL_DPC_DEFAULT) {
+  if (TRUE == DisableMcLogging) {
+    Status = DisbleDpcMcLogging(Mc, DpcRamAddr);
+    if (EFI_ERROR(Status)) {
+      return Status;
+    }
+  }
+  else if (McLogLevel != MC_LOG_LEVEL_DPC_DEFAULT) {
     Status = McFixupDpcMcLogLevel(Mc, DpcRamAddr, McLogLevel);
     if (EFI_ERROR(Status)) {
       return Status;

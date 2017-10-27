@@ -507,6 +507,7 @@
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2CortinaFwSrc|0x02
 !endif
 
+  gLS2088aRdbTokenSpaceGuid.PcdDisableMcLogging|TRUE
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2McLogLevel|0x02
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2DebugFlags|0x0
 

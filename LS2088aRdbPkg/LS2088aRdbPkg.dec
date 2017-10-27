@@ -207,7 +207,7 @@
   # - 0x01: NOR flash
   # - 0x02: QSPI flash
   #
-  # Valid values for PcdDpaa2McLogLevel:
+  # Valid values for PcdDpaa2McLogLevel (effective when MC Logging is not disabled (PcdDisableMcLogging)):
   # - 0x01: LOG_LEVEL_DEBUG
   # - 0x02: LOG_LEVEL_INFO
   # - 0x03: LOG_LEVEL_WARNING
@@ -244,6 +244,7 @@
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2CortinaFwSrc|0x01|UINT8|0x00000068
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2CortinaFwNorAddr|0x580980000|UINT64|0x00000069
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2CortinaFwMaxLen|0x40000|UINT32|0x0000006A
+  gLS2088aRdbTokenSpaceGuid.PcdDisableMcLogging|FALSE|BOOLEAN|0x00000090
 
   #
   # Debugging support specific PCDs

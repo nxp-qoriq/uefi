@@ -65,5 +65,6 @@
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2McBootTimeoutMs
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2McLogMcDramOffset
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2McLogLevel
+  gLS2088aRdbTokenSpaceGuid.PcdDisableMcLogging
   gArmTokenSpaceGuid.PcdSystemMemoryBase
   gArmTokenSpaceGuid.PcdSystemMemorySize
