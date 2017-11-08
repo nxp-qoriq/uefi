@@ -327,7 +327,6 @@ IfConfigPrintMacAddr (
       ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_IFCONFIG_INFO_COLON), gShellNetwork1HiiHandle);
     }
   }
-
   ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_IFCONFIG_INFO_NEWLINE), gShellNetwork1HiiHandle);
 }
 
