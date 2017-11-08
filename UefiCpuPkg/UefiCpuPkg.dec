@@ -18,7 +18,7 @@
   PACKAGE_NAME                   = UefiCpuPkg
   PACKAGE_UNI_FILE               = UefiCpuPkg.uni
   PACKAGE_GUID                   = 2171df9b-0d39-45aa-ac37-2de190010d23
-  PACKAGE_VERSION                = 0.3
+  PACKAGE_VERSION                = 0.80
 
 [Includes]
   Include
@@ -32,7 +32,7 @@
   ##  @libraryclass  Defines some routines that are used to register/manage/program
   ##                 CPU features.
   ##
-  UefiCpuLib|Include/Library/RegisterCpuFeaturesLib.h
+  RegisterCpuFeaturesLib|Include/Library/RegisterCpuFeaturesLib.h
 
 [LibraryClasses.IA32, LibraryClasses.X64]
   ##  @libraryclass  Provides functions to manage MTRR settings on IA32 and X64 CPUs.
@@ -284,6 +284,40 @@
   # @Prompt Actual processor feature settings.
   # @ValidList   0x80000001 | 0
   gUefiCpuPkgTokenSpaceGuid.PcdCpuFeaturesSetting|{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}|VOID*|0x00000019
+
+  ## Contains the size of memory required when CPU processor trace is enabled.<BR><BR>
+  #  Processor trace is enabled through set BIT44(CPU_FEATURE_PROC_TRACE) in PcdCpuFeaturesSetting.<BR><BR>
+  #  This PCD is ignored if CPU processor trace is disabled.<BR><BR>
+  #  Default value is 0x00 which means 4KB of memory is allocated if CPU processor trace is enabled.<BR>
+  #  0x0  -  4K.<BR>
+  #  0x1  -  8K.<BR>
+  #  0x2  -  16K.<BR>
+  #  0x3  -  32K.<BR>
+  #  0x4  -  64K.<BR>
+  #  0x5  -  128K.<BR>
+  #  0x6  -  256K.<BR>
+  #  0x7  -  512K.<BR>
+  #  0x8  -  1M.<BR>
+  #  0x9  -  2M.<BR>
+  #  0xA  -  4M.<BR>
+  #  0xB  -  8M.<BR>
+  #  0xC  -  16M.<BR>
+  #  0xD  -  32M.<BR>
+  #  0xE  -  64M.<BR>
+  #  0xF  -  128M.<BR>
+  # @Prompt The memory size used for processor trace if processor trace is enabled.
+  # @ValidRange  0x80000001 | 0 - 0xF
+  gUefiCpuPkgTokenSpaceGuid.PcdCpuProcTraceMemSize|0x0|UINT32|0x60000012
+
+  ## Contains the processor trace output scheme when CPU processor trace is enabled.<BR><BR>
+  #  Processor trace is enabled through set BIT44(CPU_FEATURE_PROC_TRACE) in PcdCpuFeaturesSetting.<BR><BR>
+  #  This PCD is ignored if CPU processor trace is disabled.<BR><BR>
+  #  Default value is 0 which means single range output scheme will be used if CPU processor trace is enabled.<BR>
+  #  0 - Single Range output scheme.<BR>
+  #  1 - ToPA(Table of physical address) scheme.<BR>
+  # @Prompt The processor trace output scheme used when processor trace is enabled.
+  # @ValidRange  0x80000001 | 0 - 1
+  gUefiCpuPkgTokenSpaceGuid.PcdCpuProcTraceOutputScheme|0x0|UINT8|0x60000015
 
 [UserExtensions.TianoCore."ExtraFiles"]
   UefiCpuPkgExtra.uni

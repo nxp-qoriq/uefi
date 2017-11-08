@@ -1,7 +1,7 @@
 /** @file
   The file for AHCI mode of ATA host controller.
 
-  Copyright (c) 2010 - 2016, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2010 - 2017, Intel Corporation. All rights reserved.<BR>
   (C) Copyright 2015 Hewlett Packard Enterprise Development LP<BR>
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
@@ -2314,7 +2314,7 @@ AhciModeInitialization (
   }
 
   for (Port = 0; Port < EFI_AHCI_MAX_PORTS; Port ++) {
-    if ((PortImplementBitMap & (BIT0 << Port)) != 0) {
+    if ((PortImplementBitMap & (((UINT32)BIT0) << Port)) != 0) {
       //
       // According to AHCI spec, MaxPortNumber should be equal or greater than the number of implemented ports.
       //
@@ -2376,8 +2376,7 @@ AhciModeInitialization (
       AhciOrReg (PciIo, Offset, EFI_AHCI_PORT_CMD_FRE);
 
       //
-      // Wait no longer than 10 ms to wait the Phy to detect the presence of a device.
-      // It's the requirment from SATA1.0a spec section 5.2.
+      // Wait for the Phy to detect the presence of a device.
       //
       PhyDetectDelay = EFI_AHCI_BUS_PHY_DETECT_TIMEOUT;
       Offset = EFI_AHCI_PORT_START + Port * EFI_AHCI_PORT_REG_WIDTH + EFI_AHCI_PORT_SSTS;

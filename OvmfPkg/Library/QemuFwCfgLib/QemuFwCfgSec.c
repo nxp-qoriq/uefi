@@ -6,6 +6,7 @@
 
   Copyright (C) 2013, Red Hat, Inc.
   Copyright (c) 2011 - 2013, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2017, Advanced Micro Devices. All rights reserved.<BR>
 
   This program and the accompanying materials are licensed and made available
   under the terms and conditions of the BSD License which accompanies this
@@ -16,6 +17,7 @@
   WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 **/
 
+#include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 #include <Library/QemuFwCfgLib.h>
 
@@ -93,4 +95,33 @@ InternalQemuFwCfgDmaIsAvailable (
   )
 {
   return FALSE;
+}
+
+/**
+  Transfer an array of bytes, or skip a number of bytes, using the DMA
+  interface.
+
+  @param[in]     Size     Size in bytes to transfer or skip.
+
+  @param[in,out] Buffer   Buffer to read data into or write data from. Ignored,
+                          and may be NULL, if Size is zero, or Control is
+                          FW_CFG_DMA_CTL_SKIP.
+
+  @param[in]     Control  One of the following:
+                          FW_CFG_DMA_CTL_WRITE - write to fw_cfg from Buffer.
+                          FW_CFG_DMA_CTL_READ  - read from fw_cfg into Buffer.
+                          FW_CFG_DMA_CTL_SKIP  - skip bytes in fw_cfg.
+**/
+VOID
+InternalQemuFwCfgDmaBytes (
+  IN     UINT32   Size,
+  IN OUT VOID     *Buffer OPTIONAL,
+  IN     UINT32   Control
+  )
+{
+  //
+  // We should never reach here
+  //
+  ASSERT (FALSE);
+  CpuDeadLoop ();
 }

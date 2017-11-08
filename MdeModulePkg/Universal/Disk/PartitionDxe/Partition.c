@@ -1,10 +1,10 @@
 /** @file
   Partition driver that produces logical BlockIo devices from a physical
   BlockIo device. The logical BlockIo devices are based on the format
-  of the raw block devices media. Currently "El Torito CD-ROM", Legacy
+  of the raw block devices media. Currently "El Torito CD-ROM", UDF, Legacy
   MBR, and GPT partition schemes are supported.
 
-Copyright (c) 2006 - 2014, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2006 - 2017, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -45,6 +45,7 @@ PARTITION_DETECT_ROUTINE mPartitionDetectRoutineTable[] = {
   PartitionInstallGptChildHandles,
   PartitionInstallElToritoChildHandles,
   PartitionInstallMbrChildHandles,
+  PartitionInstallUdfChildHandles,
   NULL
 };
 
@@ -305,9 +306,9 @@ PartitionDriverBindingStart (
   if (BlockIo->Media->MediaPresent ||
       (BlockIo->Media->RemovableMedia && !BlockIo->Media->LogicalPartition)) {
     //
-    // Try for GPT, then El Torito, and then legacy MBR partition types. If the
-    // media supports a given partition type install child handles to represent
-    // the partitions described by the media.
+    // Try for GPT, then El Torito, then UDF, and then legacy MBR partition
+    // types. If the media supports a given partition type install child handles
+    // to represent the partitions described by the media.
     //
     Routine = &mPartitionDetectRoutineTable[0];
     while (*Routine != NULL) {
@@ -514,6 +515,8 @@ PartitionDriverBindingStop (
                          &Private->BlockIo,
                          &gEfiBlockIo2ProtocolGuid,
                          &Private->BlockIo2,
+                         &gEfiPartitionInfoProtocolGuid,
+                         &Private->PartitionInfo,
                          Private->EspGuid,
                          NULL,
                          NULL
@@ -526,6 +529,8 @@ PartitionDriverBindingStop (
                        Private->DevicePath,
                        &gEfiBlockIoProtocolGuid,
                        &Private->BlockIo,
+                       &gEfiPartitionInfoProtocolGuid,
+                       &Private->PartitionInfo,
                        Private->EspGuid,
                        NULL,
                        NULL
@@ -1092,10 +1097,10 @@ PartitionFlushBlocksEx (
   @param[in]  ParentBlockIo2    Parent BlockIo2 interface.
   @param[in]  ParentDevicePath  Parent Device Path.
   @param[in]  DevicePathNode    Child Device Path node.
+  @param[in]  PartitionInfo     Child Partition Information interface.
   @param[in]  Start             Start Block.
   @param[in]  End               End Block.
   @param[in]  BlockSize         Child block size.
-  @param[in]  InstallEspGuid    Flag to install EFI System Partition GUID on handle.
 
   @retval EFI_SUCCESS       A child handle was added.
   @retval other             A child handle was not added.
@@ -1111,10 +1116,10 @@ PartitionInstallChildHandle (
   IN  EFI_BLOCK_IO2_PROTOCOL       *ParentBlockIo2,
   IN  EFI_DEVICE_PATH_PROTOCOL     *ParentDevicePath,
   IN  EFI_DEVICE_PATH_PROTOCOL     *DevicePathNode,
+  IN  EFI_PARTITION_INFO_PROTOCOL  *PartitionInfo,
   IN  EFI_LBA                      Start,
   IN  EFI_LBA                      End,
-  IN  UINT32                       BlockSize,
-  IN  BOOLEAN                      InstallEspGuid
+  IN  UINT32                       BlockSize
   )
 {
   EFI_STATUS              Status;
@@ -1203,7 +1208,12 @@ PartitionInstallChildHandle (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  if (InstallEspGuid) {
+  //
+  // Set the PartitionInfo into Private Data.
+  //
+  CopyMem (&Private->PartitionInfo, PartitionInfo, sizeof (EFI_PARTITION_INFO_PROTOCOL));
+
+  if ((PartitionInfo->System == 1)) {
     Private->EspGuid = &gEfiPartTypeSystemPartGuid;
   } else {
     //
@@ -1225,6 +1235,8 @@ PartitionInstallChildHandle (
                     &Private->BlockIo,
                     &gEfiBlockIo2ProtocolGuid,
                     &Private->BlockIo2,
+                    &gEfiPartitionInfoProtocolGuid,
+                    &Private->PartitionInfo,
                     Private->EspGuid,
                     NULL,
                     NULL
@@ -1236,6 +1248,8 @@ PartitionInstallChildHandle (
                     Private->DevicePath,
                     &gEfiBlockIoProtocolGuid,
                     &Private->BlockIo,
+                    &gEfiPartitionInfoProtocolGuid,
+                    &Private->PartitionInfo,
                     Private->EspGuid,
                     NULL,
                     NULL

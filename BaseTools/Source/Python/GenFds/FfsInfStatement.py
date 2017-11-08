@@ -1,7 +1,7 @@
 ## @file
 # process FFS generation from INF statement
 #
-#  Copyright (c) 2007 - 2016, Intel Corporation. All rights reserved.<BR>
+#  Copyright (c) 2007 - 2017, Intel Corporation. All rights reserved.<BR>
 #  Copyright (c) 2014-2016 Hewlett-Packard Development Company, L.P.<BR>
 #
 #  This program and the accompanying materials
@@ -223,6 +223,9 @@ class FfsInfStatement(FfsInfStatementClassObject):
 
         if self.ModuleType == 'SMM_CORE' and int(self.PiSpecVersion, 16) < 0x0001000A:
             EdkLogger.error("GenFds", FORMAT_NOT_SUPPORTED, "SMM_CORE module type can't be used in the module with PI_SPECIFICATION_VERSION less than 0x0001000A", File=self.InfFileName)      
+
+        if self.ModuleType == 'MM_CORE_STANDALONE' and int(self.PiSpecVersion, 16) < 0x00010032:
+            EdkLogger.error("GenFds", FORMAT_NOT_SUPPORTED, "MM_CORE_STANDALONE module type can't be used in the module with PI_SPECIFICATION_VERSION less than 0x00010032", File=self.InfFileName)
 
         if Inf._Defs != None and len(Inf._Defs) > 0:
             self.OptRomDefs.update(Inf._Defs)
@@ -728,8 +731,10 @@ class FfsInfStatement(FfsInfStatementClassObject):
                     ImageObj = PeImageClass (File)
                     if ImageObj.SectionAlignment < 0x400:
                         self.Alignment = str (ImageObj.SectionAlignment)
-                    else:
+                    elif ImageObj.SectionAlignment < 0x100000:
                         self.Alignment = str (ImageObj.SectionAlignment / 0x400) + 'K'
+                    else:
+                        self.Alignment = str (ImageObj.SectionAlignment / 0x100000) + 'M'
 
                 if not NoStrip:
                     FileBeforeStrip = os.path.join(self.OutputPath, ModuleName + '.reloc')
@@ -767,8 +772,10 @@ class FfsInfStatement(FfsInfStatementClassObject):
                 ImageObj = PeImageClass (GenSecInputFile)
                 if ImageObj.SectionAlignment < 0x400:
                     self.Alignment = str (ImageObj.SectionAlignment)
-                else:
+                elif ImageObj.SectionAlignment < 0x100000:
                     self.Alignment = str (ImageObj.SectionAlignment / 0x400) + 'K'
+                else:
+                    self.Alignment = str (ImageObj.SectionAlignment / 0x100000) + 'M'
 
             if not NoStrip:
                 FileBeforeStrip = os.path.join(self.OutputPath, ModuleName + '.reloc')

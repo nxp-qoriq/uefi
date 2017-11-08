@@ -1,7 +1,7 @@
 ## @file
 #  Boot Maintenance Manager Library used by UiApp.
 #
-#  Copyright (c) 2011 - 2015, Intel Corporation. All rights reserved.<BR>
+#  Copyright (c) 2011 - 2017, Intel Corporation. All rights reserved.<BR>
 #  This program and the accompanying materials are licensed and made available under
 #  the terms and conditions of the BSD License that accompanies this distribution.
 #  The full text of the license may be found at
@@ -79,9 +79,7 @@
                                                 ## SOMETIMES_CONSUMES ## Variable:L"ConIn" (The device path of console in device)
                                                 ## SOMETIMES_CONSUMES ## Variable:L"ConOut" (The device path of console out device)
                                                 ## SOMETIMES_CONSUMES ## Variable:L"ErrOut" (The device path of error out device)
-  gEfiFileSystemVolumeLabelInfoIdGuid           ## CONSUMES ## GUID (Indicate the information type is volume)
-  gEfiFileInfoGuid                              ## CONSUMES ## GUID (Indicate the information type is file)
-  gEfiIfrTianoGuid                              ## CONSUMES ## GUID (Extended IFR Guid Opcode)
+  gEfiIfrTianoGuid                              ## SOMETIMES_CONSUMES ## GUID (Extended IFR Guid Opcode)
   gEfiIfrFrontPageGuid                          ## CONSUMES ## GUID
   gEfiIfrBootMaintenanceGuid                    ## CONSUMES ## GUID
  
@@ -91,6 +89,7 @@
   gEfiHiiConfigAccessProtocolGuid               ## CONSUMES
   gEfiSerialIoProtocolGuid                      ## CONSUMES
   gEfiDevicePathToTextProtocolGuid              ## CONSUMES
+  gEdkiiFormBrowserEx2ProtocolGuid              ## CONSUMES
 
 [FeaturePcd]
 

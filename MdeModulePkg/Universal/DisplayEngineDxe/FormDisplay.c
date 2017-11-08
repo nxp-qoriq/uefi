@@ -151,6 +151,15 @@ CHAR16            *gConfirmExitMsg2nd;
 CHAR16            *gConfirmOpt;
 CHAR16            *gConfirmOptYes;
 CHAR16            *gConfirmOptNo;
+CHAR16            *gConfirmOptOk;
+CHAR16            *gConfirmOptCancel;
+CHAR16            *gYesOption;
+CHAR16            *gNoOption;
+CHAR16            *gOkOption;
+CHAR16            *gCancelOption;
+CHAR16            *gErrorPopup;
+CHAR16            *gWarningPopup;
+CHAR16            *gInfoPopup;
 CHAR16            *gConfirmMsgConnect;
 CHAR16            *gConfirmMsgEnd;
 CHAR16            *gPasswordUnsupported;
@@ -167,6 +176,10 @@ FORM_DISPLAY_DRIVER_PRIVATE_DATA  mPrivateData = {
     FormDisplay,
     DriverClearDisplayPage,
     ConfirmDataChange
+  },
+  {
+    EFI_HII_POPUP_PROTOCOL_REVISION,
+    CreatePopup
   }
 };
 
@@ -247,6 +260,15 @@ InitializeDisplayStrings (
   gConfirmOpt           = GetToken (STRING_TOKEN (CONFIRM_OPTION), gHiiHandle);
   gConfirmOptYes        = GetToken (STRING_TOKEN (CONFIRM_OPTION_YES), gHiiHandle);
   gConfirmOptNo         = GetToken (STRING_TOKEN (CONFIRM_OPTION_NO), gHiiHandle);
+  gConfirmOptOk         = GetToken (STRING_TOKEN (CONFIRM_OPTION_OK), gHiiHandle);
+  gConfirmOptCancel     = GetToken (STRING_TOKEN (CONFIRM_OPTION_CANCEL), gHiiHandle);
+  gYesOption            = GetToken (STRING_TOKEN (YES_SELECTABLE_OPTION), gHiiHandle);
+  gNoOption             = GetToken (STRING_TOKEN (NO_SELECTABLE_OPTION), gHiiHandle);
+  gOkOption             = GetToken (STRING_TOKEN (OK_SELECTABLE_OPTION), gHiiHandle);
+  gCancelOption         = GetToken (STRING_TOKEN (CANCEL_SELECTABLE_OPTION), gHiiHandle);
+  gErrorPopup           = GetToken (STRING_TOKEN (ERROR_POPUP_STRING), gHiiHandle);
+  gWarningPopup         = GetToken (STRING_TOKEN (WARNING_POPUP_STRING), gHiiHandle);
+  gInfoPopup            = GetToken (STRING_TOKEN (INFO_POPUP_STRING), gHiiHandle);
   gConfirmMsgConnect    = GetToken (STRING_TOKEN (CONFIRM_OPTION_CONNECT), gHiiHandle);
   gConfirmMsgEnd        = GetToken (STRING_TOKEN (CONFIRM_OPTION_END), gHiiHandle);
   gPasswordUnsupported  = GetToken (STRING_TOKEN (PASSWORD_NOT_SUPPORTED ), gHiiHandle);
@@ -301,6 +323,15 @@ FreeDisplayStrings (
   FreePool (gConfirmOpt);
   FreePool (gConfirmOptYes);
   FreePool (gConfirmOptNo);
+  FreePool (gConfirmOptOk);
+  FreePool (gConfirmOptCancel);
+  FreePool (gYesOption);
+  FreePool (gNoOption);
+  FreePool (gOkOption);
+  FreePool (gCancelOption);
+  FreePool (gErrorPopup);
+  FreePool (gWarningPopup);
+  FreePool (gInfoPopup);
   FreePool (gConfirmMsgConnect);
   FreePool (gConfirmMsgEnd);
   FreePool (gPasswordUnsupported);
@@ -877,7 +908,7 @@ UpdateSkipInfoForMenu (
   CHAR16  *OutputString;
   UINT16  GlyphWidth;
 
-  Width         = (UINT16) gOptionBlockWidth;
+  Width         = (UINT16) gOptionBlockWidth - 1;
   GlyphWidth    = 1;
   Row           = 1;
 
@@ -1718,23 +1749,56 @@ IsTopOfScreeMenuOption (
 }
 
 /**
-  Find the Top of screen menu.
+  Calculate the distance between two menus and include the skip value of StartMenu.
 
-  If the input is NULL, base on the record highlight info in
-  gHighligthMenuInfo to find the last highlight menu.
+  @param  StartMenu             The link_entry pointer to start menu.
+  @param  EndMenu               The link_entry pointer to end menu.
 
-  @param  HighLightedStatement      The input highlight statement.
+**/
+UINTN
+GetDistanceBetweenMenus(
+  IN LIST_ENTRY  *StartMenu,
+  IN LIST_ENTRY  *EndMenu
+)
+{
+  LIST_ENTRY                 *Link;
+  UI_MENU_OPTION             *MenuOption;
+  UINTN                      Distance;
 
-  @retval  The highlight menu index.
+  Distance = 0;
+
+  Link = StartMenu;
+  while (Link != EndMenu) {
+    MenuOption = MENU_OPTION_FROM_LINK (Link);
+    if (MenuOption->Row == 0) {
+      UpdateOptionSkipLines (MenuOption);
+    }
+    Distance += MenuOption->Skip;
+    Link = Link->BackLink;
+  }
+  return Distance;
+}
+
+/**
+  Find the top of screen menu base on the previous record menu info.
+
+  @param  HighLightMenu      The link_entry pointer to highlight menu.
+
+  @retval  Return the the link_entry pointer top of screen menu.
 
 **/
 LIST_ENTRY *
 FindTopOfScreenMenuOption (
- VOID
- )
+  IN LIST_ENTRY                   *HighLightMenu
+  )
 {
   LIST_ENTRY                      *NewPos;
   UI_MENU_OPTION                  *MenuOption;
+  UINTN                           TopRow;
+  UINTN                           BottomRow;
+
+  TopRow    = gStatementDimensions.TopRow    + SCROLL_ARROW_HEIGHT;
+  BottomRow = gStatementDimensions.BottomRow - SCROLL_ARROW_HEIGHT;
 
   NewPos = gMenuOption.ForwardLink;
   MenuOption = MENU_OPTION_FROM_LINK (NewPos);
@@ -1754,7 +1818,16 @@ FindTopOfScreenMenuOption (
   // Last time top of screen menu has disappeared.
   //
   if (NewPos == &gMenuOption) {
-    NewPos = NULL;
+    return NULL;
+  }
+  //
+  // Check whether highlight menu and top of screen menu can be shown within one page,
+  // if can't, return NULL to re-calcaulate the top of scrren menu. Because some new menus
+  // may be dynamically inserted between highlightmenu and previous top of screen menu,
+  // So previous record top of screen menu is not appropriate for current display.
+  //
+  if (GetDistanceBetweenMenus (HighLightMenu, NewPos) + 1 > BottomRow - TopRow) {
+    return NULL;
   }
 
   return NewPos;
@@ -1805,7 +1878,7 @@ FindTopMenu (
       //
       // Found the last time highlight menu.
       //
-      *TopOfScreen = FindTopOfScreenMenuOption();
+      *TopOfScreen = FindTopOfScreenMenuOption(*HighlightMenu);
       if (*TopOfScreen != NULL) {
         //
         // Found the last time selectable top of screen menu.
@@ -1858,7 +1931,7 @@ FindTopMenu (
       MenuOption = MENU_OPTION_FROM_LINK (*HighlightMenu);
       UpdateOptionSkipLines (MenuOption);
       
-      *TopOfScreen = FindTopOfScreenMenuOption();
+      *TopOfScreen = FindTopOfScreenMenuOption(*HighlightMenu);
       if (*TopOfScreen == NULL) {
         //
         // Not found last time top of screen menu, so base on current highlight menu
@@ -4117,6 +4190,17 @@ InitializeDisplayEngine (
                   EFI_NATIVE_INTERFACE,
                   &mPrivateData.FromDisplayProt
                   );
+  ASSERT_EFI_ERROR (Status);
+
+  //
+  // Install HII Popup Protocol.
+  //
+  Status = gBS->InstallProtocolInterface (
+                 &mPrivateData.Handle,
+                 &gEfiHiiPopupProtocolGuid,
+                 EFI_NATIVE_INTERFACE,
+                 &mPrivateData.HiiPopup
+                );
   ASSERT_EFI_ERROR (Status);
 
   InitializeDisplayStrings();

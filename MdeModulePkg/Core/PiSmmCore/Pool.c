@@ -1,7 +1,7 @@
 /** @file
   SMM Memory pool management functions.
 
-  Copyright (c) 2009 - 2016, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2009 - 2017, Intel Corporation. All rights reserved.<BR>
   This program and the accompanying materials are licensed and made available 
   under the terms and conditions of the BSD License which accompanies this 
   distribution.  The full text of the license may be found at        
@@ -133,9 +133,11 @@ InternalAllocPoolByIndex (
 {
   EFI_STATUS            Status;
   FREE_POOL_HEADER      *Hdr;
+  POOL_TAIL             *Tail;
   EFI_PHYSICAL_ADDRESS  Address;
   SMM_POOL_TYPE         SmmPoolType;
 
+  Address     = 0;
   SmmPoolType = UefiMemoryTypeToSmmPoolType(PoolType);
 
   ASSERT (PoolIndex <= MAX_POOL_INDEX);
@@ -153,18 +155,26 @@ InternalAllocPoolByIndex (
   } else {
     Status = InternalAllocPoolByIndex (PoolType, PoolIndex + 1, &Hdr);
     if (!EFI_ERROR (Status)) {
+      Hdr->Header.Signature = 0;
       Hdr->Header.Size >>= 1;
       Hdr->Header.Available = TRUE;
-      Hdr->Header.Type = PoolType;
+      Hdr->Header.Type = 0;
+      Tail = HEAD_TO_TAIL(&Hdr->Header);
+      Tail->Signature = 0;
+      Tail->Size = 0;
       InsertHeadList (&mSmmPoolLists[SmmPoolType][PoolIndex], &Hdr->Link);
       Hdr = (FREE_POOL_HEADER*)((UINT8*)Hdr + Hdr->Header.Size);
     }
   }
 
   if (!EFI_ERROR (Status)) {
+    Hdr->Header.Signature = POOL_HEAD_SIGNATURE;
     Hdr->Header.Size = MIN_POOL_SIZE << PoolIndex;
     Hdr->Header.Available = FALSE;
     Hdr->Header.Type = PoolType;
+    Tail = HEAD_TO_TAIL(&Hdr->Header);
+    Tail->Signature = POOL_TAIL_SIGNATURE;
+    Tail->Size = Hdr->Header.Size;
   }
 
   *FreePoolHdr = Hdr;
@@ -175,13 +185,15 @@ InternalAllocPoolByIndex (
   Internal Function. Free a pool by specified PoolIndex.
 
   @param  FreePoolHdr           The pool to free.
+  @param  PoolTail              The pointer to the pool tail.
 
   @retval EFI_SUCCESS           Pool successfully freed.
 
 **/
 EFI_STATUS
 InternalFreePoolByIndex (
-  IN FREE_POOL_HEADER  *FreePoolHdr
+  IN FREE_POOL_HEADER  *FreePoolHdr,
+  IN POOL_TAIL         *PoolTail
   )
 {
   UINTN                 PoolIndex;
@@ -194,7 +206,11 @@ InternalFreePoolByIndex (
   SmmPoolType = UefiMemoryTypeToSmmPoolType(FreePoolHdr->Header.Type);
 
   PoolIndex = (UINTN) (HighBitSet32 ((UINT32)FreePoolHdr->Header.Size) - MIN_POOL_SHIFT);
+  FreePoolHdr->Header.Signature = 0;
   FreePoolHdr->Header.Available = TRUE;
+  FreePoolHdr->Header.Type = 0;
+  PoolTail->Signature = 0;
+  PoolTail->Size = 0;
   ASSERT (PoolIndex < MAX_POOL_INDEX);
   InsertHeadList (&mSmmPoolLists[SmmPoolType][PoolIndex], &FreePoolHdr->Link);
   return EFI_SUCCESS;
@@ -222,17 +238,23 @@ SmmInternalAllocatePool (
   )
 {
   POOL_HEADER           *PoolHdr;
+  POOL_TAIL             *PoolTail;
   FREE_POOL_HEADER      *FreePoolHdr;
   EFI_STATUS            Status;
   EFI_PHYSICAL_ADDRESS  Address;
   UINTN                 PoolIndex;
+
+  Address = 0;
 
   if (PoolType != EfiRuntimeServicesCode &&
       PoolType != EfiRuntimeServicesData) {
     return EFI_INVALID_PARAMETER;
   }
 
-  Size += sizeof (*PoolHdr);
+  //
+  // Adjust the size by the pool header & tail overhead
+  //
+  Size += POOL_OVERHEAD;
   if (Size > MAX_POOL_SIZE) {
     Size = EFI_SIZE_TO_PAGES (Size);
     Status = SmmInternalAllocatePages (AllocateAnyPages, PoolType, Size, &Address);
@@ -241,9 +263,13 @@ SmmInternalAllocatePool (
     }
 
     PoolHdr = (POOL_HEADER*)(UINTN)Address;
+    PoolHdr->Signature = POOL_HEAD_SIGNATURE;
     PoolHdr->Size = EFI_PAGES_TO_SIZE (Size);
     PoolHdr->Available = FALSE;
     PoolHdr->Type = PoolType;
+    PoolTail = HEAD_TO_TAIL(PoolHdr);
+    PoolTail->Signature = POOL_TAIL_SIGNATURE;
+    PoolTail->Size = PoolHdr->Size;
     *Buffer = PoolHdr + 1;
     return Status;
   }
@@ -314,13 +340,30 @@ SmmInternalFreePool (
   )
 {
   FREE_POOL_HEADER  *FreePoolHdr;
+  POOL_TAIL         *PoolTail;
 
   if (Buffer == NULL) {
     return EFI_INVALID_PARAMETER;
   }
 
   FreePoolHdr = (FREE_POOL_HEADER*)((POOL_HEADER*)Buffer - 1);
+  ASSERT (FreePoolHdr->Header.Signature == POOL_HEAD_SIGNATURE);
   ASSERT (!FreePoolHdr->Header.Available);
+  PoolTail = HEAD_TO_TAIL(&FreePoolHdr->Header);
+  ASSERT (PoolTail->Signature == POOL_TAIL_SIGNATURE);
+  ASSERT (FreePoolHdr->Header.Size == PoolTail->Size);
+
+  if (FreePoolHdr->Header.Signature != POOL_HEAD_SIGNATURE) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if (PoolTail->Signature != POOL_TAIL_SIGNATURE) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  if (FreePoolHdr->Header.Size != PoolTail->Size) {
+    return EFI_INVALID_PARAMETER;
+  }
 
   if (FreePoolHdr->Header.Size > MAX_POOL_SIZE) {
     ASSERT (((UINTN)FreePoolHdr & EFI_PAGE_MASK) == 0);
@@ -330,7 +373,7 @@ SmmInternalFreePool (
              EFI_SIZE_TO_PAGES (FreePoolHdr->Header.Size)
              );
   }
-  return InternalFreePoolByIndex (FreePoolHdr);
+  return InternalFreePoolByIndex (FreePoolHdr, PoolTail);
 }
 
 /**

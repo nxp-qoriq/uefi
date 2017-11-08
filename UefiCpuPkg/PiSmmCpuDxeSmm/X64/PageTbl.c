@@ -1,7 +1,7 @@
 /** @file
 Page Fault (#PF) handler for X64 processors
 
-Copyright (c) 2009 - 2016, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2009 - 2017, Intel Corporation. All rights reserved.<BR>
 Copyright (c) 2017, AMD Incorporated. All rights reserved.<BR>
 
 This program and the accompanying materials
@@ -21,7 +21,6 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 LIST_ENTRY                          mPagePool = INITIALIZE_LIST_HEAD_VARIABLE (mPagePool);
 BOOLEAN                             m1GPageTableSupport = FALSE;
-UINT8                               mPhysicalAddressBits;
 BOOLEAN                             mCpuSmmStaticPageTable;
 
 /**
@@ -802,8 +801,8 @@ SmiDefaultPFHandler (
 VOID
 EFIAPI
 SmiPFHandler (
-    IN EFI_EXCEPTION_TYPE   InterruptType,
-    IN EFI_SYSTEM_CONTEXT   SystemContext
+  IN EFI_EXCEPTION_TYPE   InterruptType,
+  IN EFI_SYSTEM_CONTEXT   SystemContext
   )
 {
   UINTN             PFAddress;
@@ -817,6 +816,7 @@ SmiPFHandler (
   PFAddress = AsmReadCr2 ();
 
   if (mCpuSmmStaticPageTable && (PFAddress >= LShiftU64 (1, (mPhysicalAddressBits - 1)))) {
+    DumpCpuContext (InterruptType, SystemContext);
     DEBUG ((DEBUG_ERROR, "Do not support address 0x%lx by processor!\n", PFAddress));
     CpuDeadLoop ();
   }
@@ -827,6 +827,7 @@ SmiPFHandler (
   //
   if ((PFAddress >= mCpuHotPlugData.SmrrBase) &&
       (PFAddress < (mCpuHotPlugData.SmrrBase + mCpuHotPlugData.SmrrSize))) {
+    DumpCpuContext (InterruptType, SystemContext);
     CpuIndex = GetCpuIndex ();
     GuardPageAddress = (mSmmStackArrayBase + EFI_PAGE_SIZE + CpuIndex * mSmmStackSize);
     if ((FeaturePcdGet (PcdCpuSmmStackGuard)) &&
@@ -834,15 +835,6 @@ SmiPFHandler (
         (PFAddress < (GuardPageAddress + EFI_PAGE_SIZE))) {
       DEBUG ((DEBUG_ERROR, "SMM stack overflow!\n"));
     } else {
-      DEBUG ((DEBUG_ERROR, "SMM exception data - 0x%lx(", SystemContext.SystemContextX64->ExceptionData));
-      DEBUG ((DEBUG_ERROR, "I:%x, R:%x, U:%x, W:%x, P:%x",
-        (SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_ID) != 0,
-        (SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_RSVD) != 0,
-        (SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_US) != 0,
-        (SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_WR) != 0,
-        (SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_P) != 0
-        ));
-      DEBUG ((DEBUG_ERROR, ")\n"));
       if ((SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_ID) != 0) {
         DEBUG ((DEBUG_ERROR, "SMM exception at execution (0x%lx)\n", PFAddress));
         DEBUG_CODE (
@@ -863,6 +855,7 @@ SmiPFHandler (
   //
   if ((PFAddress < mCpuHotPlugData.SmrrBase) ||
       (PFAddress >= mCpuHotPlugData.SmrrBase + mCpuHotPlugData.SmrrSize)) {
+    DumpCpuContext (InterruptType, SystemContext);
     if ((SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_ID) != 0) {
       DEBUG ((DEBUG_ERROR, "Code executed on IP(0x%lx) out of SMM range after SMM is locked!\n", PFAddress));
       DEBUG_CODE (
@@ -877,6 +870,18 @@ SmiPFHandler (
       );
       CpuDeadLoop ();
     }
+  }
+
+  //
+  // If NULL pointer was just accessed
+  //
+  if ((PcdGet8 (PcdNullPointerDetectionPropertyMask) & BIT1) != 0 &&
+      (PFAddress < EFI_PAGE_SIZE)) {
+    DEBUG ((DEBUG_ERROR, "!!! NULL pointer access !!!\n"));
+    DEBUG_CODE (
+      DumpModuleInfoByIp ((UINTN)SystemContext.SystemContextX64->Rip);
+    );
+    CpuDeadLoop ();
   }
 
   if (FeaturePcdGet (PcdCpuSmmProfileEnable)) {

@@ -214,10 +214,11 @@ print "Done!";
 #
 print "\n--> Duplicating opensslconf.h into Include/openssl ... ";
 copy($OPENSSL_PATH . "/include/openssl/opensslconf.h",
-     $OPENSSL_PATH . "/../../../Include/openssl/") ||
+     $OPENSSL_PATH . "/../../Include/openssl/") ||
    die "Cannot copy opensslconf.h!";
 print "Done!\n";
 
 print "\nProcessing Files Done!\n";
 
 exit(0);
+

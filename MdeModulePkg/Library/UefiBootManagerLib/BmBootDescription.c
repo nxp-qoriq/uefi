@@ -155,6 +155,7 @@ BmGetDescriptionFromDiskInfo (
   CONST UINTN                  SerialNumberLength = 20;
   CHAR8                        *StrPtr;
   UINT8                        Temp;
+  EFI_DEVICE_PATH_PROTOCOL     *DevicePath;
 
   Description  = NULL;
 
@@ -229,6 +230,28 @@ BmGetDescriptionFromDiskInfo (
 
       BmEliminateExtraSpaces (Description);
     }
+  } else if (CompareGuid (&DiskInfo->Interface, &gEfiDiskInfoSdMmcInterfaceGuid)) {
+    DevicePath = DevicePathFromHandle (Handle);
+    if (DevicePath == NULL) {
+      return NULL;
+    }
+
+    while (!IsDevicePathEnd (DevicePath) && (DevicePathType (DevicePath) != MESSAGING_DEVICE_PATH)) {
+      DevicePath = NextDevicePathNode (DevicePath);
+    }
+    if (IsDevicePathEnd (DevicePath)) {
+      return NULL;
+    }
+
+    if (DevicePathSubType (DevicePath) == MSG_SD_DP) {
+      Description = L"SD Device";
+    } else if (DevicePathSubType (DevicePath) == MSG_EMMC_DP) {
+      Description = L"eMMC Device";
+    } else {
+      return NULL;
+    }
+
+    Description = AllocateCopyPool (StrSize (Description), Description);
   }
 
   return Description;
@@ -382,13 +405,13 @@ BmGetNetworkDescription (
 
   //
   // The PXE device path is like:
-  //   ....../Mac(...)[/Vlan(...)]
-  //   ....../Mac(...)[/Vlan(...)]/IPv4(...)
-  //   ....../Mac(...)[/Vlan(...)]/IPv6(...)
+  //   ....../Mac(...)[/Vlan(...)][/Wi-Fi(...)]
+  //   ....../Mac(...)[/Vlan(...)][/Wi-Fi(...)]/IPv4(...)
+  //   ....../Mac(...)[/Vlan(...)][/Wi-Fi(...)]/IPv6(...)
   //
   // The HTTP device path is like:
-  //   ....../Mac(...)[/Vlan(...)]/IPv4(...)/Uri(...)
-  //   ....../Mac(...)[/Vlan(...)]/IPv6(...)/Uri(...)
+  //   ....../Mac(...)[/Vlan(...)][/Wi-Fi(...)]/IPv4(...)[/Dns(...)]/Uri(...)
+  //   ....../Mac(...)[/Vlan(...)][/Wi-Fi(...)]/IPv6(...)[/Dns(...)]/Uri(...)
   //
   while (!IsDevicePathEnd (DevicePath) &&
          ((DevicePathType (DevicePath) != MESSAGING_DEVICE_PATH) ||
@@ -404,6 +427,9 @@ BmGetNetworkDescription (
   Mac = (MAC_ADDR_DEVICE_PATH *) DevicePath;
   DevicePath = NextDevicePathNode (DevicePath);
 
+  //
+  // Locate the optional Vlan node
+  //
   if ((DevicePathType (DevicePath) == MESSAGING_DEVICE_PATH) &&
       (DevicePathSubType (DevicePath) == MSG_VLAN_DP)
       ) {
@@ -413,6 +439,18 @@ BmGetNetworkDescription (
     Vlan = NULL;
   }
 
+  //
+  // Skip the optional Wi-Fi node
+  //
+  if ((DevicePathType (DevicePath) == MESSAGING_DEVICE_PATH) &&
+      (DevicePathSubType (DevicePath) == MSG_WIFI_DP)
+      ) {
+    DevicePath = NextDevicePathNode (DevicePath);
+  }
+
+  //
+  // Locate the IP node
+  //
   if ((DevicePathType (DevicePath) == MESSAGING_DEVICE_PATH) &&
       ((DevicePathSubType (DevicePath) == MSG_IPv4_DP) ||
        (DevicePathSubType (DevicePath) == MSG_IPv6_DP))
@@ -422,7 +460,19 @@ BmGetNetworkDescription (
   } else {
     Ip = NULL;
   }
+  
+  //
+  // Skip the optional DNS node
+  //
+  if ((DevicePathType (DevicePath) == MESSAGING_DEVICE_PATH) &&
+      (DevicePathSubType (DevicePath) == MSG_DNS_DP)
+      ) {
+    DevicePath = NextDevicePathNode (DevicePath);
+  }
 
+  //
+  // Locate the URI node
+  //
   if ((DevicePathType (DevicePath) == MESSAGING_DEVICE_PATH) &&
       (DevicePathSubType (DevicePath) == MSG_URI_DP)
       ) {

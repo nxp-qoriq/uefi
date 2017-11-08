@@ -2006,7 +2006,7 @@ class SkuClass():
             except Exception:
                 EdkLogger.error("build", PARAMETER_INVALID,
                             ExtraData = "SKU-ID [%s] is not supported by the platform. [Valid SKU-ID: %s]"
-                                      % (k, " ".join(SkuIds.keys())))
+                                      % (k, " | ".join(SkuIds.keys())))
         if len(self.SkuIdSet) == 2 and 'DEFAULT' in self.SkuIdSet and SkuIdentifier != 'ALL':
             self.SkuIdSet.remove('DEFAULT')
             self.SkuIdNumberSet.remove('0U')
@@ -2016,7 +2016,7 @@ class SkuClass():
             else:
                 EdkLogger.error("build", PARAMETER_INVALID,
                             ExtraData="SKU-ID [%s] is not supported by the platform. [Valid SKU-ID: %s]"
-                                      % (each, " ".join(SkuIds.keys())))
+                                      % (each, " | ".join(SkuIds.keys())))
         
     def __SkuUsageType(self): 
         
@@ -2061,6 +2061,32 @@ def PackRegistryFormatGuid(Guid):
                 int(Guid[4][-4:-2], 16),
                 int(Guid[4][-2:], 16)
                 )
+
+def BuildOptionPcdValueFormat(TokenSpaceGuidCName, TokenCName, PcdDatumType, Value):
+    if PcdDatumType == 'VOID*':
+        if Value.startswith('L'):
+            if not Value[1]:
+                EdkLogger.error("build", FORMAT_INVALID, 'For Void* type PCD, when specify the Value in the command line, please use the following format: "string", L"string", H"{...}"')
+            Value = Value[0] + '"' + Value[1:] + '"'
+        elif Value.startswith('H'):
+            if not Value[1]:
+                EdkLogger.error("build", FORMAT_INVALID, 'For Void* type PCD, when specify the Value in the command line, please use the following format: "string", L"string", H"{...}"')
+            Value = Value[1:]
+        else:
+            if not Value[0]:
+                EdkLogger.error("build", FORMAT_INVALID, 'For Void* type PCD, when specify the Value in the command line, please use the following format: "string", L"string", H"{...}"')
+            Value = '"' + Value + '"'
+
+    IsValid, Cause = CheckPcdDatum(PcdDatumType, Value)
+    if not IsValid:
+        EdkLogger.error("build", FORMAT_INVALID, Cause, ExtraData="%s.%s" % (TokenSpaceGuidCName, TokenCName))
+    if PcdDatumType == 'BOOLEAN':
+        Value = Value.upper()
+        if Value == 'TRUE' or Value == '1':
+            Value = '1'
+        elif Value == 'FALSE' or Value == '0':
+            Value = '0'
+    return  Value
 
 ##
 #

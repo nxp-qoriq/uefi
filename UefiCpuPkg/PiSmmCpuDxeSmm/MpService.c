@@ -27,6 +27,7 @@ SMM_CPU_SEMAPHORES                          mSmmCpuSemaphores;
 UINTN                                       mSemaphoreSize;
 SPIN_LOCK                                   *mPFLock = NULL;
 SMM_CPU_SYNC_MODE                           mCpuSmmSyncMode;
+BOOLEAN                                     mMachineCheckSupported = FALSE;
 
 /**
   Performs an atomic compare exchange operation to get semaphore.
@@ -196,6 +197,56 @@ AllCpusInSmmWithExceptions (
   return TRUE;
 }
 
+/**
+  Has OS enabled Lmce in the MSR_IA32_MCG_EXT_CTL
+  
+  @retval TRUE     Os enable lmce.
+  @retval FALSE    Os not enable lmce.
+
+**/
+BOOLEAN
+IsLmceOsEnabled (
+  VOID
+  )
+{
+  MSR_IA32_MCG_CAP_REGISTER          McgCap;
+  MSR_IA32_FEATURE_CONTROL_REGISTER  FeatureCtrl;
+  MSR_IA32_MCG_EXT_CTL_REGISTER      McgExtCtrl;
+
+  McgCap.Uint64 = AsmReadMsr64 (MSR_IA32_MCG_CAP);
+  if (McgCap.Bits.MCG_LMCE_P == 0) {
+    return FALSE;
+  }
+
+  FeatureCtrl.Uint64 = AsmReadMsr64 (MSR_IA32_FEATURE_CONTROL);
+  if (FeatureCtrl.Bits.LmceOn == 0) {
+    return FALSE;
+  }
+
+  McgExtCtrl.Uint64 = AsmReadMsr64 (MSR_IA32_MCG_EXT_CTL);
+  return (BOOLEAN) (McgExtCtrl.Bits.LMCE_EN == 1);
+}
+
+/**
+  Return if Local machine check exception signaled. 
+
+  Indicates (when set) that a local machine check exception was generated. This indicates that the current machine-check event was 
+  delivered to only the logical processor.
+
+  @retval TRUE    LMCE was signaled.
+  @retval FALSE   LMCE was not signaled.
+
+**/
+BOOLEAN
+IsLmceSignaled (
+  VOID
+  )
+{
+  MSR_IA32_MCG_STATUS_REGISTER McgStatus;
+
+  McgStatus.Uint64 = AsmReadMsr64 (MSR_IA32_MCG_STATUS);
+  return (BOOLEAN) (McgStatus.Bits.LMCE_S == 1);
+}
 
 /**
   Given timeout constraint, wait for all APs to arrive, and insure when this function returns, no AP will execute normal mode code before
@@ -209,8 +260,17 @@ SmmWaitForApArrival (
 {
   UINT64                            Timer;
   UINTN                             Index;
+  BOOLEAN                           LmceEn;
+  BOOLEAN                           LmceSignal;
 
   ASSERT (*mSmmMpSyncData->Counter <= mNumberOfCpus);
+
+  LmceEn     = FALSE;
+  LmceSignal = FALSE;
+  if (mMachineCheckSupported) {
+    LmceEn     = IsLmceOsEnabled ();
+    LmceSignal = IsLmceSignaled();
+  }
 
   //
   // Platform implementor should choose a timeout value appropriately:
@@ -227,7 +287,7 @@ SmmWaitForApArrival (
   // Sync with APs 1st timeout
   //
   for (Timer = StartSyncTimer ();
-       !IsSyncTimerTimeout (Timer) &&
+       !IsSyncTimerTimeout (Timer) && !(LmceEn && LmceSignal) &&
        !AllCpusInSmmWithExceptions (ARRIVAL_EXCEPTION_BLOCKED | ARRIVAL_EXCEPTION_SMI_DISABLED );
        ) {
     CpuPause ();
@@ -407,7 +467,7 @@ BSPHandler (
   //
   // The BUSY lock is initialized to Acquired state
   //
-  AcquireSpinLockOrFail (mSmmMpSyncData->CpuData[CpuIndex].Busy);
+  AcquireSpinLock (mSmmMpSyncData->CpuData[CpuIndex].Busy);
 
   //
   // Perform the pre tasks
@@ -795,10 +855,10 @@ Gen4GPageTable (
     Pte[Index] = (Index << 21) | mAddressEncMask | IA32_PG_PS | PAGE_ATTRIBUTE_BITS;
   }
 
+  Pdpte = (UINT64*)PageTable;
   if (FeaturePcdGet (PcdCpuSmmStackGuard)) {
     Pages = (UINTN)PageTable + EFI_PAGES_TO_SIZE (5);
     GuardPage = mSmmStackArrayBase + EFI_PAGE_SIZE;
-    Pdpte = (UINT64*)PageTable;
     for (PageIndex = Low2MBoundary; PageIndex <= High2MBoundary; PageIndex += SIZE_2MB) {
       Pte = (UINT64*)(UINTN)(Pdpte[BitFieldRead32 ((UINT32)PageIndex, 30, 31)] & ~mAddressEncMask & ~(EFI_PAGE_SIZE - 1));
       Pte[BitFieldRead32 ((UINT32)PageIndex, 21, 29)] = (UINT64)Pages | mAddressEncMask | PAGE_ATTRIBUTE_BITS;
@@ -823,6 +883,29 @@ Gen4GPageTable (
         PageAddress+= EFI_PAGE_SIZE;
       }
       Pages += EFI_PAGE_SIZE;
+    }
+  }
+
+  if ((PcdGet8 (PcdNullPointerDetectionPropertyMask) & BIT1) != 0) {
+    Pte = (UINT64*)(UINTN)(Pdpte[0] & ~mAddressEncMask & ~(EFI_PAGE_SIZE - 1));
+    if ((Pte[0] & IA32_PG_PS) == 0) {
+      // 4K-page entries are already mapped. Just hide the first one anyway.
+      Pte = (UINT64*)(UINTN)(Pte[0] & ~mAddressEncMask & ~(EFI_PAGE_SIZE - 1));
+      Pte[0] &= ~(UINT64)IA32_PG_P; // Hide page 0
+    } else {
+      // Create 4K-page entries
+      Pages = (UINTN)AllocatePageTableMemory (1);
+      ASSERT (Pages != 0);
+
+      Pte[0] = (UINT64)(Pages | mAddressEncMask | PAGE_ATTRIBUTE_BITS);
+
+      Pte = (UINT64*)Pages;
+      PageAddress = 0;
+      Pte[0] = PageAddress | mAddressEncMask; // Hide page 0 but present left
+      for (Index = 1; Index < EFI_PAGE_SIZE / sizeof (*Pte); Index++) {
+        PageAddress += EFI_PAGE_SIZE;
+        Pte[Index] = PageAddress | mAddressEncMask | PAGE_ATTRIBUTE_BITS;
+      }
     }
   }
 
@@ -858,6 +941,9 @@ InternalSmmStartupThisAp (
   }
   if (CpuIndex == gSmmCpuPrivate->SmmCoreEntryContext.CurrentlyExecutingCpu) {
     DEBUG((DEBUG_ERROR, "CpuIndex(%d) == gSmmCpuPrivate->SmmCoreEntryContext.CurrentlyExecutingCpu\n", CpuIndex));
+    return EFI_INVALID_PARAMETER;
+  }
+  if (gSmmCpuPrivate->ProcessorInfo[CpuIndex].ProcessorId == INVALID_APIC_ID) {
     return EFI_INVALID_PARAMETER;
   }
   if (!(*(mSmmMpSyncData->CpuData[CpuIndex].Present))) {
@@ -1308,6 +1394,13 @@ InitializeMpServiceData (
   UINTN                     Index;
   UINT8                     *GdtTssTables;
   UINTN                     GdtTableStepSize;
+  CPUID_VERSION_INFO_EDX    RegEdx;
+
+  //
+  // Determine if this CPU supports machine check
+  //
+  AsmCpuid (CPUID_VERSION_INFO, NULL, NULL, NULL, &RegEdx.Uint32);
+  mMachineCheckSupported = (BOOLEAN)(RegEdx.Bits.MCA == 1);
 
   //
   // Allocate memory for all locks and semaphores

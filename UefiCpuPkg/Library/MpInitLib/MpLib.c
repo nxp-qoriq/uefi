@@ -382,13 +382,13 @@ ApInitializeSync (
 
   CpuMpData = (CPU_MP_DATA *) Buffer;
   //
-  // Sync BSP's MTRR table to AP
-  //
-  MtrrSetAllMtrrs (&CpuMpData->MtrrTable);
-  //
   // Load microcode on AP
   //
   MicrocodeDetect (CpuMpData);
+  //
+  // Sync BSP's MTRR table to AP
+  //
+  MtrrSetAllMtrrs (&CpuMpData->MtrrTable);
 }
 
 /**
@@ -434,6 +434,8 @@ CollectProcessorCount (
   IN CPU_MP_DATA         *CpuMpData
   )
 {
+  UINTN                  Index;
+
   //
   // Send 1st broadcast IPI to APs to wakeup APs
   //
@@ -449,6 +451,12 @@ CollectProcessorCount (
     CpuPause ();
   }
 
+  if (CpuMpData->CpuCount > 255) {
+    //
+    // If there are more than 255 processor found, force to enable X2APIC
+    //
+    CpuMpData->X2ApicEnable = TRUE;
+  }
   if (CpuMpData->X2ApicEnable) {
     DEBUG ((DEBUG_INFO, "Force x2APIC mode!\n"));
     //
@@ -465,6 +473,12 @@ CollectProcessorCount (
     // Enable x2APIC on BSP
     //
     SetApicMode (LOCAL_APIC_MODE_X2APIC);
+    //
+    // Set BSP/Aps state to IDLE
+    //
+    for (Index = 0; Index < CpuMpData->CpuCount; Index++) {
+      SetApState (&CpuMpData->CpuData[Index], CpuStateIdle);
+    }
   }
   DEBUG ((DEBUG_INFO, "APIC MODE is %d\n", GetApicMode ()));
   //
@@ -528,7 +542,7 @@ VOID
 EFIAPI
 ApWakeupFunction (
   IN MP_CPU_EXCHANGE_INFO      *ExchangeInfo,
-  IN UINTN                     NumApsExecuting
+  IN UINTN                     ApIndex
   )
 {
   CPU_MP_DATA                *CpuMpData;
@@ -539,6 +553,7 @@ ApWakeupFunction (
   volatile UINT32            *ApStartupSignalBuffer;
   CPU_INFO_IN_HOB            *CpuInfoInHob;
   UINT64                     ApTopOfStack;
+  UINTN                      CurrentApicMode;
 
   //
   // AP finished assembly code and begin to execute C code
@@ -552,13 +567,14 @@ ApWakeupFunction (
   ProgramVirtualWireMode ();
   SyncLocalApicTimerSetting (CpuMpData);
 
+  CurrentApicMode = GetApicMode ();
   while (TRUE) {
     if (CpuMpData->InitFlag == ApInitConfig) {
       //
       // Add CPU number
       //
       InterlockedIncrement ((UINT32 *) &CpuMpData->CpuCount);
-      ProcessorNumber = NumApsExecuting;
+      ProcessorNumber = ApIndex;
       //
       // This is first time AP wakeup, get BIST information from AP stack
       //
@@ -619,11 +635,23 @@ ApWakeupFunction (
             ApStartupSignalBuffer = CpuMpData->CpuData[ProcessorNumber].StartupApSignal;
             CpuInfoInHob[ProcessorNumber].ApTopOfStack = CpuInfoInHob[CpuMpData->NewBspNumber].ApTopOfStack;
           } else {
-            //
-            // Re-get the CPU APICID and Initial APICID
-            //
-            CpuInfoInHob[ProcessorNumber].ApicId        = GetApicId ();
-            CpuInfoInHob[ProcessorNumber].InitialApicId = GetInitialApicId ();
+            if (CpuInfoInHob[ProcessorNumber].ApicId != GetApicId () ||
+                CpuInfoInHob[ProcessorNumber].InitialApicId != GetInitialApicId ()) {
+              if (CurrentApicMode != GetApicMode ()) {
+                //
+                // If APIC mode change happened during AP function execution,
+                // we do not support APIC ID value changed.
+                //
+                ASSERT (FALSE);
+                CpuDeadLoop ();
+              } else {
+                //
+                // Re-get the CPU APICID and Initial APICID if they are changed
+                //
+                CpuInfoInHob[ProcessorNumber].ApicId        = GetApicId ();
+                CpuInfoInHob[ProcessorNumber].InitialApicId = GetInitialApicId ();
+              }
+            }
           }
         }
         SetApState (&CpuMpData->CpuData[ProcessorNumber], CpuStateFinished);
@@ -634,6 +662,7 @@ ApWakeupFunction (
     // AP finished executing C code
     //
     InterlockedIncrement ((UINT32 *) &CpuMpData->FinishedCount);
+    InterlockedDecrement ((UINT32 *) &CpuMpData->MpCpuExchangeInfo->NumApsExecuting);
 
     //
     // Place AP is specified loop mode
@@ -736,12 +765,15 @@ FillExchangeInfoData (
   ExchangeInfo->Cr3             = AsmReadCr3 ();
 
   ExchangeInfo->CFunction       = (UINTN) ApWakeupFunction;
+  ExchangeInfo->ApIndex         = 0;
   ExchangeInfo->NumApsExecuting = 0;
   ExchangeInfo->InitFlag        = (UINTN) CpuMpData->InitFlag;
   ExchangeInfo->CpuInfo         = (CPU_INFO_IN_HOB *) (UINTN) CpuMpData->CpuInfoInHob;
   ExchangeInfo->CpuMpData       = CpuMpData;
 
   ExchangeInfo->EnableExecuteDisable = IsBspExecuteDisableEnabled ();
+
+  ExchangeInfo->InitializeFloatingPointUnitsAddress = (UINTN)InitializeFloatingPointUnits;
 
   //
   // Get the BSP's data of GDT and IDT
@@ -764,6 +796,81 @@ TimedWaitForApFinish (
   IN UINT32                    FinishedApLimit,
   IN UINT32                    TimeLimit
   );
+
+/**
+  Get available system memory below 1MB by specified size.
+
+  @param[in]  CpuMpData  The pointer to CPU MP Data structure.
+**/
+VOID
+BackupAndPrepareWakeupBuffer(
+  IN CPU_MP_DATA              *CpuMpData
+  )
+{
+  CopyMem (
+    (VOID *) CpuMpData->BackupBuffer,
+    (VOID *) CpuMpData->WakeupBuffer,
+    CpuMpData->BackupBufferSize
+    );
+  CopyMem (
+    (VOID *) CpuMpData->WakeupBuffer,
+    (VOID *) CpuMpData->AddressMap.RendezvousFunnelAddress,
+    CpuMpData->AddressMap.RendezvousFunnelSize
+    );
+}
+
+/**
+  Restore wakeup buffer data.
+
+  @param[in]  CpuMpData  The pointer to CPU MP Data structure.
+**/
+VOID
+RestoreWakeupBuffer(
+  IN CPU_MP_DATA              *CpuMpData
+  )
+{
+  CopyMem (
+    (VOID *) CpuMpData->WakeupBuffer,
+    (VOID *) CpuMpData->BackupBuffer,
+    CpuMpData->BackupBufferSize
+    );
+}
+
+/**
+  Allocate reset vector buffer.
+
+  @param[in, out]  CpuMpData  The pointer to CPU MP Data structure.
+**/
+VOID
+AllocateResetVector (
+  IN OUT CPU_MP_DATA          *CpuMpData
+  )
+{
+  UINTN           ApResetVectorSize;
+
+  if (CpuMpData->WakeupBuffer == (UINTN) -1) {
+    ApResetVectorSize = CpuMpData->AddressMap.RendezvousFunnelSize +
+                          sizeof (MP_CPU_EXCHANGE_INFO);
+
+    CpuMpData->WakeupBuffer      = GetWakeupBuffer (ApResetVectorSize);
+    CpuMpData->MpCpuExchangeInfo = (MP_CPU_EXCHANGE_INFO *) (UINTN)
+                    (CpuMpData->WakeupBuffer + CpuMpData->AddressMap.RendezvousFunnelSize);
+  }
+  BackupAndPrepareWakeupBuffer (CpuMpData);
+}
+
+/**
+  Free AP reset vector buffer.
+
+  @param[in]  CpuMpData  The pointer to CPU MP Data structure.
+**/
+VOID
+FreeResetVector (
+  IN CPU_MP_DATA              *CpuMpData
+  )
+{
+  RestoreWakeupBuffer (CpuMpData);
+}
 
 /**
   This function will be called by BSP to wakeup AP.
@@ -829,13 +936,19 @@ WakeUpAP (
     }
     if (CpuMpData->InitFlag == ApInitConfig) {
       //
-      // Wait for all potential APs waken up in one specified period
+      // Wait for one potential AP waken up in one specified period
       //
-      TimedWaitForApFinish (
-        CpuMpData,
-        PcdGet32 (PcdCpuMaxLogicalProcessorNumber) - 1,
-        PcdGet32 (PcdCpuApInitTimeOutInMicroSeconds)
-        );
+      if (CpuMpData->CpuCount == 0) {
+        TimedWaitForApFinish (
+          CpuMpData,
+          PcdGet32 (PcdCpuMaxLogicalProcessorNumber) - 1,
+          PcdGet32 (PcdCpuApInitTimeOutInMicroSeconds)
+          );
+      }
+
+      while (CpuMpData->MpCpuExchangeInfo->NumApsExecuting != 0) {
+        CpuPause();
+      }
     } else {
       //
       // Wait all APs waken up if this is not the 1st broadcast of SIPI
@@ -896,6 +1009,9 @@ CalculateTimeout (
   OUT UINT64  *CurrentTime
   )
 {
+  UINT64 TimeoutInSeconds;
+  UINT64 TimestampCounterFreq;
+
   //
   // Read the current value of the performance counter
   //
@@ -911,16 +1027,36 @@ CalculateTimeout (
 
   //
   // GetPerformanceCounterProperties () returns the timestamp counter's frequency
-  // in Hz. So multiply the return value with TimeoutInMicroseconds and then divide
-  // it by 1,000,000, to get the number of ticks for the timeout value.
+  // in Hz. 
   //
-  return DivU64x32 (
-           MultU64x64 (
-             GetPerformanceCounterProperties (NULL, NULL),
-             TimeoutInMicroseconds
-             ),
-           1000000
-           );
+  TimestampCounterFreq = GetPerformanceCounterProperties (NULL, NULL);
+
+  //
+  // Check the potential overflow before calculate the number of ticks for the timeout value.
+  //
+  if (DivU64x64Remainder (MAX_UINT64, TimeoutInMicroseconds, NULL) < TimestampCounterFreq) {
+    //
+    // Convert microseconds into seconds if direct multiplication overflows
+    //
+    TimeoutInSeconds = DivU64x32 (TimeoutInMicroseconds, 1000000);
+    //
+    // Assertion if the final tick count exceeds MAX_UINT64
+    //
+    ASSERT (DivU64x64Remainder (MAX_UINT64, TimeoutInSeconds, NULL) >= TimestampCounterFreq);
+    return MultU64x64 (TimestampCounterFreq, TimeoutInSeconds);
+  } else {
+    //
+    // No overflow case, multiply the return value with TimeoutInMicroseconds and then divide
+    // it by 1,000,000, to get the number of ticks for the timeout value.
+    //
+    return DivU64x32 (
+             MultU64x64 (
+               TimestampCounterFreq,
+               TimeoutInMicroseconds
+               ),
+             1000000
+             );
+  }
 }
 
 /**
@@ -1323,7 +1459,6 @@ MpInitLibInitialize (
   CpuMpData->CpuApStackSize   = ApStackSize;
   CpuMpData->BackupBuffer     = BackupBufferAddr;
   CpuMpData->BackupBufferSize = ApResetVectorSize;
-  CpuMpData->SaveRestoreFlag  = FALSE;
   CpuMpData->WakeupBuffer     = (UINTN) -1;
   CpuMpData->CpuCount         = 1;
   CpuMpData->BspNumber        = 0;
@@ -1331,6 +1466,8 @@ MpInitLibInitialize (
   CpuMpData->SwitchBspFlag    = FALSE;
   CpuMpData->CpuData          = (CPU_AP_DATA *) (CpuMpData + 1);
   CpuMpData->CpuInfoInHob     = (UINT64) (UINTN) (CpuMpData->CpuData + MaxLogicalProcessorNumber);
+  CpuMpData->MicrocodePatchAddress    = PcdGet64 (PcdCpuMicrocodePatchAddress);
+  CpuMpData->MicrocodePatchRegionSize = PcdGet64 (PcdCpuMicrocodePatchRegionSize);
   InitializeSpinLock(&CpuMpData->MpLock);
   //
   // Save BSP's Control registers to APs
@@ -1364,6 +1501,10 @@ MpInitLibInitialize (
   // Store BSP's MTRR setting
   //
   MtrrGetAllMtrrs (&CpuMpData->MtrrTable);
+  //
+  // Enable the local APIC for Virtual Wire Mode.
+  //
+  ProgramVirtualWireMode ();
 
   if (OldCpuMpData == NULL) {
     if (MaxLogicalProcessorNumber > 1) {
@@ -1384,7 +1525,7 @@ MpInitLibInitialize (
     CpuInfoInHob = (CPU_INFO_IN_HOB *) (UINTN) CpuMpData->CpuInfoInHob;
     for (Index = 0; Index < CpuMpData->CpuCount; Index++) {
       InitializeSpinLock(&CpuMpData->CpuData[Index].ApLock);
-      if (CpuInfoInHob[Index].InitialApicId >= 255) {
+      if (CpuInfoInHob[Index].InitialApicId >= 255 || Index > 254) {
         CpuMpData->X2ApicEnable = TRUE;
       }
       CpuMpData->CpuData[Index].CpuHealthy = (CpuInfoInHob[Index].Health == 0)? TRUE:FALSE;
@@ -1550,7 +1691,7 @@ SwitchBSPWorker (
   //
   MpInitLibWhoAmI (&CallerNumber);
   if (CallerNumber != CpuMpData->BspNumber) {
-    return EFI_SUCCESS;
+    return EFI_DEVICE_ERROR;
   }
 
   if (ProcessorNumber >= CpuMpData->CpuCount) {
@@ -1683,7 +1824,7 @@ EnableDisableApWorker (
   if (!EnableAP) {
     SetApState (&CpuMpData->CpuData[ProcessorNumber], CpuStateDisabled);
   } else {
-    SetApState (&CpuMpData->CpuData[ProcessorNumber], CpuStateIdle);
+    ResetProcessorToIdleState (ProcessorNumber);
   }
 
   if (HealthFlag != NULL) {
@@ -2086,41 +2227,3 @@ GetCpuMpDataFromGuidedHob (
   return CpuMpData;
 }
 
-/**
-  Get available system memory below 1MB by specified size.
-
-  @param[in]  CpuMpData  The pointer to CPU MP Data structure.
-**/
-VOID
-BackupAndPrepareWakeupBuffer(
-  IN CPU_MP_DATA              *CpuMpData
-  )
-{
-  CopyMem (
-    (VOID *) CpuMpData->BackupBuffer,
-    (VOID *) CpuMpData->WakeupBuffer,
-    CpuMpData->BackupBufferSize
-    );
-  CopyMem (
-    (VOID *) CpuMpData->WakeupBuffer,
-    (VOID *) CpuMpData->AddressMap.RendezvousFunnelAddress,
-    CpuMpData->AddressMap.RendezvousFunnelSize
-    );
-}
-
-/**
-  Restore wakeup buffer data.
-
-  @param[in]  CpuMpData  The pointer to CPU MP Data structure.
-**/
-VOID
-RestoreWakeupBuffer(
-  IN CPU_MP_DATA              *CpuMpData
-  )
-{
-  CopyMem (
-    (VOID *) CpuMpData->WakeupBuffer,
-    (VOID *) CpuMpData->BackupBuffer,
-    CpuMpData->BackupBufferSize
-    );
-}

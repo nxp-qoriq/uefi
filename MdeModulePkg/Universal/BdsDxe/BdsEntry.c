@@ -5,7 +5,7 @@
   After DxeCore finish DXE phase, gEfiBdsArchProtocolGuid->BdsEntry will be invoked
   to enter BDS phase.
 
-Copyright (c) 2004 - 2016, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2004 - 2017, Intel Corporation. All rights reserved.<BR>
 (C) Copyright 2016 Hewlett Packard Enterprise Development LP<BR>
 (C) Copyright 2015 Hewlett-Packard Development Company, L.P.<BR>
 This program and the accompanying materials
@@ -368,6 +368,11 @@ BootBootOptions (
   )
 {
   UINTN                              Index;
+
+  //
+  // Report Status Code to indicate BDS starts attempting booting from the UEFI BootOrder list.
+  //
+  REPORT_STATUS_CODE (EFI_PROGRESS_CODE, (EFI_SOFTWARE_DXE_BS_DRIVER | EFI_SW_DXE_BS_PC_ATTEMPT_BOOT_ORDER_EVENT));
 
   //
   // Attempt boot each boot option
@@ -803,7 +808,8 @@ BdsEntry (
   ASSERT_EFI_ERROR (Status);
 
   //
-  // Cache and remove the "BootNext" NV variable.
+  // Cache the "BootNext" NV variable before calling any PlatformBootManagerLib APIs
+  // This could avoid the "BootNext" set by PlatformBootManagerLib be consumed in this boot.
   //
   GetEfiGlobalVariable2 (EFI_BOOT_NEXT_VARIABLE_NAME, (VOID **) &BootNext, &DataSize);
   if (DataSize != sizeof (UINT16)) {
@@ -812,17 +818,6 @@ BdsEntry (
     }
     BootNext = NULL;
   }
-  Status = gRT->SetVariable (
-                  EFI_BOOT_NEXT_VARIABLE_NAME,
-                  &gEfiGlobalVariableGuid,
-                  0,
-                  0,
-                  NULL
-                  );
-  //
-  // Deleting NV variable shouldn't fail unless it doesn't exist.
-  //
-  ASSERT (Status == EFI_SUCCESS || Status == EFI_NOT_FOUND);
 
   //
   // Initialize the platform language variables
@@ -1047,10 +1042,25 @@ BdsEntry (
 
     EfiBootManagerHotkeyBoot ();
 
-    //
-    // Boot to "BootNext"
-    //
     if (BootNext != NULL) {
+      //
+      // Delete "BootNext" NV variable before transferring control to it to prevent loops.
+      //
+      Status = gRT->SetVariable (
+                      EFI_BOOT_NEXT_VARIABLE_NAME,
+                      &gEfiGlobalVariableGuid,
+                      0,
+                      0,
+                      NULL
+                      );
+      //
+      // Deleting NV variable shouldn't fail unless it doesn't exist.
+      //
+      ASSERT (Status == EFI_SUCCESS || Status == EFI_NOT_FOUND);
+
+      //
+      // Boot to "BootNext"
+      //
       UnicodeSPrint (BootNextVariableName, sizeof (BootNextVariableName), L"Boot%04x", *BootNext);
       Status = EfiBootManagerVariableToLoadOption (BootNextVariableName, &LoadOption);
       if (!EFI_ERROR (Status)) {

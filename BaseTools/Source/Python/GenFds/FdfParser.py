@@ -167,6 +167,10 @@ class IncludeFileProfile :
             fsock = open(FileName, "rb", 0)
             try:
                 self.FileLinesList = fsock.readlines()
+                for index, line in enumerate(self.FileLinesList):
+                    if not line.endswith('\n'):
+                        self.FileLinesList[index] += '\n'
+
             finally:
                 fsock.close()
 
@@ -2307,7 +2311,7 @@ class FdfParser:
                            "WRITE_DISABLED_CAP", "WRITE_STATUS", "READ_ENABLED_CAP", \
                            "READ_DISABLED_CAP", "READ_STATUS", "READ_LOCK_CAP", \
                            "READ_LOCK_STATUS", "WRITE_LOCK_CAP", "WRITE_LOCK_STATUS", \
-                           "WRITE_POLICY_RELIABLE", "WEAK_ALIGNMENT"):
+                           "WRITE_POLICY_RELIABLE", "WEAK_ALIGNMENT", "FvUsedSizeEnable"):
                 self.__UndoToken()
                 return False
 
@@ -2361,7 +2365,7 @@ class FdfParser:
 
     def __GetFvExtEntryStatement(self, FvObj):
 
-        if not self.__IsKeyword( "FV_EXT_ENTRY"):
+        if not (self.__IsKeyword( "FV_EXT_ENTRY") or self.__IsKeyword( "FV_EXT_ENTRY_TYPE")):
             return False
 
         if not self.__IsKeyword ("TYPE"):
@@ -2763,7 +2767,8 @@ class FdfParser:
         while True:
             AlignValue = None
             if self.__GetAlignment():
-                if self.__Token not in ("Auto", "8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K"):
+                if self.__Token not in ("Auto", "8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K", "128K",
+                                        "256K", "512K", "1M", "2M", "4M", "8M", "16M"):
                     raise Warning("Incorrect alignment '%s'" % self.__Token, self.FileName, self.CurrentLineNumber)
                 #For FFS, Auto is default option same to ""
                 if not self.__Token == "Auto":
@@ -2822,7 +2827,8 @@ class FdfParser:
             FfsFileObj.CheckSum = True
 
         if self.__GetAlignment():
-            if self.__Token not in ("Auto", "8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K"):
+            if self.__Token not in ("Auto", "8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K", "128K",
+                                    "256K", "512K", "1M", "2M", "4M", "8M", "16M"):
                 raise Warning("Incorrect alignment '%s'" % self.__Token, self.FileName, self.CurrentLineNumber)
             #For FFS, Auto is default option same to ""
             if not self.__Token == "Auto":
@@ -2893,7 +2899,8 @@ class FdfParser:
 
         AlignValue = None
         if self.__GetAlignment():
-            if self.__Token not in ("Auto", "8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K"):
+            if self.__Token not in ("Auto", "8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K", "128K",
+                                    "256K", "512K", "1M", "2M", "4M", "8M", "16M"):
                 raise Warning("Incorrect alignment '%s'" % self.__Token, self.FileName, self.CurrentLineNumber)
             AlignValue = self.__Token
 
@@ -3182,7 +3189,8 @@ class FdfParser:
 
         AlignValue = None
         if self.__GetAlignment():
-            if self.__Token not in ("8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K"):
+            if self.__Token not in ("8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K", "128K",
+                                    "256K", "512K", "1M", "2M", "4M", "8M", "16M"):
                 raise Warning("Incorrect alignment '%s'" % self.__Token, self.FileName, self.CurrentLineNumber)
             AlignValue = self.__Token
 
@@ -3672,7 +3680,7 @@ class FdfParser:
                              "DXE_SMM_DRIVER", "DXE_RUNTIME_DRIVER", \
                              "UEFI_DRIVER", "UEFI_APPLICATION", "USER_DEFINED", "DEFAULT", "BASE", \
                              "SECURITY_CORE", "COMBINED_PEIM_DRIVER", "PIC_PEIM", "RELOCATABLE_PEIM", \
-                             "PE32_PEIM", "BS_DRIVER", "RT_DRIVER", "SAL_RT_DRIVER", "APPLICATION", "ACPITABLE", "SMM_CORE"):
+                                        "PE32_PEIM", "BS_DRIVER", "RT_DRIVER", "SAL_RT_DRIVER", "APPLICATION", "ACPITABLE", "SMM_CORE", "MM_STANDALONE", "MM_CORE_STANDALONE"):
             raise Warning("Unknown Module type '%s'" % self.__Token, self.FileName, self.CurrentLineNumber)
         return self.__Token
 
@@ -3716,7 +3724,7 @@ class FdfParser:
 
         Type = self.__Token.strip().upper()
         if Type not in ("RAW", "FREEFORM", "SEC", "PEI_CORE", "PEIM",\
-                             "PEI_DXE_COMBO", "DRIVER", "DXE_CORE", "APPLICATION", "FV_IMAGE", "SMM", "SMM_CORE"):
+                             "PEI_DXE_COMBO", "DRIVER", "DXE_CORE", "APPLICATION", "FV_IMAGE", "SMM", "SMM_CORE", "MM_STANDALONE", "MM_CORE_STANDALONE"):
             raise Warning("Unknown FV type '%s'" % self.__Token, self.FileName, self.CurrentLineNumber)
 
         if not self.__IsToken("="):
@@ -3773,7 +3781,8 @@ class FdfParser:
 
         AlignValue = ""
         if self.__GetAlignment():
-            if self.__Token not in ("Auto", "8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K"):
+            if self.__Token not in ("Auto", "8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K", "128K",
+                                    "256K", "512K", "1M", "2M", "4M", "8M", "16M"):
                 raise Warning("Incorrect alignment '%s'" % self.__Token, self.FileName, self.CurrentLineNumber)
             #For FFS, Auto is default option same to ""
             if not self.__Token == "Auto":
@@ -3822,7 +3831,8 @@ class FdfParser:
 
             SectAlignment = ""
             if self.__GetAlignment():
-                if self.__Token not in ("Auto", "8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K"):
+                if self.__Token not in ("Auto", "8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K", "128K",
+                                        "256K", "512K", "1M", "2M", "4M", "8M", "16M"):
                     raise Warning("Incorrect alignment '%s'" % self.__Token, self.FileName, self.CurrentLineNumber)
                 if self.__Token == 'Auto' and (not SectionName == 'PE32') and (not SectionName == 'TE'):
                     raise Warning("Auto alignment can only be used in PE32 or TE section ", self.FileName, self.CurrentLineNumber)
@@ -3901,7 +3911,8 @@ class FdfParser:
                 FvImageSectionObj.FvFileType = self.__Token
 
                 if self.__GetAlignment():
-                    if self.__Token not in ("8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K"):
+                    if self.__Token not in ("8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K", "128K",
+                                            "256K", "512K", "1M", "2M", "4M", "8M", "16M"):
                         raise Warning("Incorrect alignment '%s'" % self.__Token, self.FileName, self.CurrentLineNumber)
                     FvImageSectionObj.Alignment = self.__Token
 
@@ -3968,7 +3979,8 @@ class FdfParser:
                 EfiSectionObj.BuildNum = self.__Token
 
         if self.__GetAlignment():
-            if self.__Token not in ("Auto", "8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K"):
+            if self.__Token not in ("Auto", "8", "16", "32", "64", "128", "512", "1K", "4K", "32K" ,"64K", "128K",
+                                    "256K", "512K", "1M", "2M", "4M", "8M", "16M"):
                 raise Warning("Incorrect alignment '%s'" % self.__Token, self.FileName, self.CurrentLineNumber)
             if self.__Token == 'Auto' and (not SectionName == 'PE32') and (not SectionName == 'TE'):
                 raise Warning("Auto alignment can only be used in PE32 or TE section ", self.FileName, self.CurrentLineNumber)

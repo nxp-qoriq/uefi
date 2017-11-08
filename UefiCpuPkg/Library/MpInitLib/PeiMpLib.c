@@ -1,7 +1,7 @@
 /** @file
   MP initialize support functions for PEI phase.
 
-  Copyright (c) 2016, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2016 - 2017, Intel Corporation. All rights reserved.<BR>
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -13,18 +13,6 @@
 **/
 
 #include "MpLib.h"
-#include <Ppi/EndOfPeiPhase.h>
-#include <Library/PeiServicesLib.h>
-
-//
-// Global PEI notify function descriptor on EndofPei event
-//
-GLOBAL_REMOVE_IF_UNREFERENCED EFI_PEI_NOTIFY_DESCRIPTOR mMpInitLibNotifyList = {
-  (EFI_PEI_PPI_DESCRIPTOR_NOTIFY_CALLBACK | EFI_PEI_PPI_DESCRIPTOR_TERMINATE_LIST),
-  &gEfiEndOfPeiSignalPpiGuid,
-  CpuMpEndOfPeiCallback
-};
-
 
 /**
   Enable Debug Agent to support source debugging on AP function.
@@ -74,66 +62,6 @@ SaveCpuMpData (
     (VOID *) &Data64,
     sizeof (UINT64)
     );
-}
-
-/**
-  Notify function on End Of PEI PPI.
-
-  On S3 boot, this function will restore wakeup buffer data.
-  On normal boot, this function will flag wakeup buffer to be un-used type.
-
-  @param[in]  PeiServices        The pointer to the PEI Services Table.
-  @param[in]  NotifyDescriptor   Address of the notification descriptor data structure.
-  @param[in]  Ppi                Address of the PPI that was installed.
-
-  @retval EFI_SUCCESS        When everything is OK.
-**/
-EFI_STATUS
-EFIAPI
-CpuMpEndOfPeiCallback (
-  IN EFI_PEI_SERVICES             **PeiServices,
-  IN EFI_PEI_NOTIFY_DESCRIPTOR    *NotifyDescriptor,
-  IN VOID                         *Ppi
-  )
-{
-  EFI_STATUS                Status;
-  EFI_BOOT_MODE             BootMode;
-  CPU_MP_DATA               *CpuMpData;
-  EFI_PEI_HOB_POINTERS      Hob;
-  EFI_HOB_MEMORY_ALLOCATION *MemoryHob;
-
-  DEBUG ((DEBUG_INFO, "PeiMpInitLib: CpuMpEndOfPeiCallback () invoked\n"));
-
-  Status = PeiServicesGetBootMode (&BootMode);
-  ASSERT_EFI_ERROR (Status);
-
-  CpuMpData = GetCpuMpData ();
-  if (BootMode != BOOT_ON_S3_RESUME) {
-    //
-    // Get the HOB list for processing
-    //
-    Hob.Raw = GetHobList ();
-    //
-    // Collect memory ranges
-    //
-    while (!END_OF_HOB_LIST (Hob)) {
-      if (Hob.Header->HobType == EFI_HOB_TYPE_MEMORY_ALLOCATION) {
-        MemoryHob = Hob.MemoryAllocation;
-        if (MemoryHob->AllocDescriptor.MemoryBaseAddress == CpuMpData->WakeupBuffer) {
-          //
-          // Flag this HOB type to un-used
-          //
-          GET_HOB_TYPE (Hob) = EFI_HOB_TYPE_UNUSED;
-          break;
-        }
-      }
-      Hob.Raw = GET_NEXT_HOB (Hob);
-    }
-  } else {
-    CpuMpData->SaveRestoreFlag = TRUE;
-    RestoreWakeupBuffer (CpuMpData);
-  }
-  return EFI_SUCCESS;
 }
 
 /**
@@ -246,14 +174,6 @@ GetWakeupBuffer (
           }
           DEBUG ((DEBUG_INFO, "WakeupBufferStart = %x, WakeupBufferSize = %x\n",
                                WakeupBufferStart, WakeupBufferSize));
-          //
-          // Create a memory allocation HOB.
-          //
-          BuildMemoryAllocationHob (
-            WakeupBufferStart,
-            WakeupBufferSize,
-            EfiBootServicesData
-            );
           return WakeupBufferStart;
         }
       }
@@ -265,48 +185,6 @@ GetWakeupBuffer (
   }
 
   return (UINTN) -1;
-}
-
-/**
-  Allocate reset vector buffer.
-
-  @param[in, out]  CpuMpData  The pointer to CPU MP Data structure.
-**/
-VOID
-AllocateResetVector (
-  IN OUT CPU_MP_DATA          *CpuMpData
-  )
-{
-  UINTN           ApResetVectorSize;
-
-  if (CpuMpData->WakeupBuffer == (UINTN) -1) {
-    ApResetVectorSize = CpuMpData->AddressMap.RendezvousFunnelSize +
-                          sizeof (MP_CPU_EXCHANGE_INFO);
-
-    CpuMpData->WakeupBuffer      = GetWakeupBuffer (ApResetVectorSize);
-    CpuMpData->MpCpuExchangeInfo = (MP_CPU_EXCHANGE_INFO *) (UINTN)
-                    (CpuMpData->WakeupBuffer + CpuMpData->AddressMap.RendezvousFunnelSize);
-    BackupAndPrepareWakeupBuffer (CpuMpData);
-  }
-
-  if (CpuMpData->SaveRestoreFlag) {
-    BackupAndPrepareWakeupBuffer (CpuMpData);
-  }
-}
-
-/**
-  Free AP reset vector buffer.
-
-  @param[in]  CpuMpData  The pointer to CPU MP Data structure.
-**/
-VOID
-FreeResetVector (
-  IN CPU_MP_DATA              *CpuMpData
-  )
-{
-  if (CpuMpData->SaveRestoreFlag) {
-    RestoreWakeupBuffer (CpuMpData);
-  }
 }
 
 /**
@@ -330,22 +208,7 @@ InitMpGlobalData (
   IN CPU_MP_DATA               *CpuMpData
   )
 {
-  EFI_STATUS      Status;
-
   SaveCpuMpData (CpuMpData);
-
-  if (CpuMpData->CpuCount == 1) {
-    //
-    // If only BSP exists, return
-    //
-    return;
-  }
-
-  //
-  // Register an event for EndOfPei
-  //
-  Status  = PeiServicesNotifyPpi (&mMpInitLibNotifyList);
-  ASSERT_EFI_ERROR (Status);
 }
 
 /**

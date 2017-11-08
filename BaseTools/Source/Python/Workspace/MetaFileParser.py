@@ -1139,6 +1139,13 @@ class DscParser(MetaFileParser):
             EdkLogger.error('Parser', FORMAT_INVALID, "The datum type '%s' of PCD is wrong" % ValueList[1],
                             ExtraData=self._CurrentLine, File=self.MetaFile, Line=self._LineIndex + 1)
 
+        # Validate the VariableName of DynamicHii and DynamicExHii for PCD Entry must not be an empty string
+        if self._ItemType in [MODEL_PCD_DYNAMIC_HII, MODEL_PCD_DYNAMIC_EX_HII]:
+            DscPcdValueList = GetSplitValueList(TokenList[1], TAB_VALUE_SPLIT, 1)
+            if len(DscPcdValueList[0].replace('L','').replace('"','').strip()) == 0:
+                EdkLogger.error('Parser', FORMAT_INVALID, "The VariableName field in the HII format PCD entry must not be an empty string",
+                            ExtraData=self._CurrentLine, File=self.MetaFile, Line=self._LineIndex + 1)
+
         # if value are 'True', 'true', 'TRUE' or 'False', 'false', 'FALSE', replace with integer 1 or 0.
         DscPcdValueList = GetSplitValueList(TokenList[1], TAB_VALUE_SPLIT, 1)
         if DscPcdValueList[0] in ['True', 'true', 'TRUE']:
@@ -1656,6 +1663,7 @@ class DecParser(MetaFileParser):
         except:
             EdkLogger.error("Parser", FILE_READ_FAILURE, ExtraData=self.MetaFile)
 
+        self._DefinesCount = 0
         for Index in range(0, len(Content)):
             Line, Comment = CleanString2(Content[Index])
             self._CurrentLine = Line
@@ -1671,8 +1679,15 @@ class DecParser(MetaFileParser):
             # section header
             if Line[0] == TAB_SECTION_START and Line[-1] == TAB_SECTION_END:
                 self._SectionHeaderParser()
+                if self._SectionName == TAB_DEC_DEFINES.upper():
+                    self._DefinesCount += 1
                 self._Comments = []
                 continue
+            if self._SectionType == MODEL_UNKNOWN:
+                EdkLogger.error("Parser", FORMAT_INVALID,
+                                ""
+                                "Not able to determine \"%s\" in which section."%self._CurrentLine,
+                                self.MetaFile, self._LineIndex + 1)
             elif len(self._SectionType) == 0:
                 self._Comments = []
                 continue
@@ -1720,6 +1735,10 @@ class DecParser(MetaFileParser):
                         0
                         )
             self._Comments = []
+        if self._DefinesCount > 1:
+            EdkLogger.error('Parser', FORMAT_INVALID, 'Multiple [Defines] section is exist.', self.MetaFile )
+        if self._DefinesCount == 0:
+            EdkLogger.error('Parser', FORMAT_INVALID, 'No [Defines] section exist.',self.MetaFile)
         self._Done()
 
 
@@ -1735,7 +1754,7 @@ class DecParser(MetaFileParser):
         self._SectionType = []
         ArchList = set()
         PrivateList = set()
-        Line = self._CurrentLine.replace("%s%s" % (TAB_COMMA_SPLIT, TAB_SPACE_SPLIT), TAB_COMMA_SPLIT)
+        Line = re.sub(',[\s]*', TAB_COMMA_SPLIT, self._CurrentLine)
         for Item in Line[1:-1].split(TAB_COMMA_SPLIT):
             if Item == '':
                 EdkLogger.error("Parser", FORMAT_UNKNOWN_ERROR,
@@ -1745,6 +1764,9 @@ class DecParser(MetaFileParser):
 
             # different types of PCD are permissible in one section
             self._SectionName = ItemList[0].upper()
+            if self._SectionName == TAB_DEC_DEFINES.upper() and (len(ItemList) > 1 or len(Line.split(TAB_COMMA_SPLIT)) > 1):
+                EdkLogger.error("Parser", FORMAT_INVALID, "Defines section format is invalid",
+                                self.MetaFile, self._LineIndex + 1, self._CurrentLine)
             if self._SectionName in self.DataType:
                 if self.DataType[self._SectionName] not in self._SectionType:
                     self._SectionType.append(self.DataType[self._SectionName])

@@ -1733,6 +1733,98 @@ CheckKeyboardConnect (
 }
 
 /**
+  Disable NULL pointer detection.
+**/
+VOID
+DisableNullDetection (
+  VOID
+  )
+{
+  EFI_STATUS                            Status;
+  EFI_GCD_MEMORY_SPACE_DESCRIPTOR       Desc;
+
+  if ((PcdGet8 (PcdNullPointerDetectionPropertyMask) & BIT0) == 0) {
+    return;
+  }
+
+  //
+  // Check current capabilities and attributes
+  //
+  Status = gDS->GetMemorySpaceDescriptor (0, &Desc);
+  ASSERT_EFI_ERROR (Status);
+
+  //
+  // Try to add EFI_MEMORY_RP support if necessary
+  //
+  if ((Desc.Capabilities & EFI_MEMORY_RP) == 0) {
+    Desc.Capabilities |= EFI_MEMORY_RP;
+    Status = gDS->SetMemorySpaceCapabilities (0, EFI_PAGES_TO_SIZE(1),
+                                              Desc.Capabilities);
+    ASSERT_EFI_ERROR (Status);
+    if (EFI_ERROR (Status)) {
+      return;
+    }
+  }
+
+  //
+  // Don't bother if EFI_MEMORY_RP is already cleared.
+  //
+  if ((Desc.Attributes & EFI_MEMORY_RP) != 0) {
+    Desc.Attributes &= ~EFI_MEMORY_RP;
+    Status = gDS->SetMemorySpaceAttributes (0, EFI_PAGES_TO_SIZE(1),
+                                            Desc.Attributes);
+    ASSERT_EFI_ERROR (Status);
+  } else {
+    DEBUG ((DEBUG_WARN, "!!! Page 0 is supposed to be disabled !!!\r\n"));
+  }
+}
+
+/**
+   Enable NULL pointer detection.
+**/
+VOID
+EnableNullDetection (
+  VOID
+  )
+{
+  EFI_STATUS                            Status;
+  EFI_GCD_MEMORY_SPACE_DESCRIPTOR       Desc;
+
+  if ((PcdGet8 (PcdNullPointerDetectionPropertyMask) & BIT0) == 0) {
+    return;
+  }
+
+  //
+  // Check current capabilities and attributes
+  //
+  Status = gDS->GetMemorySpaceDescriptor (0, &Desc);
+  ASSERT_EFI_ERROR (Status);
+
+  //
+  // Try to add EFI_MEMORY_RP support if necessary
+  //
+  if ((Desc.Capabilities & EFI_MEMORY_RP) == 0) {
+    Desc.Capabilities |= EFI_MEMORY_RP;
+    Status = gDS->SetMemorySpaceCapabilities (0, EFI_PAGES_TO_SIZE(1),
+                                              Desc.Capabilities);
+    ASSERT_EFI_ERROR (Status);
+    if (EFI_ERROR (Status)) {
+      return;
+    }
+  }
+
+  //
+  // Don't bother if EFI_MEMORY_RP is already set.
+  //
+  if ((Desc.Attributes & EFI_MEMORY_RP) == 0) {
+    Desc.Attributes |= EFI_MEMORY_RP;
+    Status = gDS->SetMemorySpaceAttributes (0, EFI_PAGES_TO_SIZE(1),
+                                            Desc.Attributes);
+    ASSERT_EFI_ERROR (Status);
+  }
+}
+
+/**
   Timer event handler: read a series of key stroke from 8042
   and put them into memory key buffer. 
   It is registered as running under TPL_NOTIFY
@@ -1840,6 +1932,11 @@ BiosKeyboardTimerHandler (
 
 
   //
+  // Disable NULL pointer detection temporarily
+  //
+  DisableNullDetection ();
+
+  //
   // Clear the CTRL and ALT BDA flag
   //
   KbFlag1 = *((UINT8 *) (UINTN) 0x417);  // read the STATUS FLAGS 1
@@ -1916,6 +2013,10 @@ BiosKeyboardTimerHandler (
   KbFlag1 &= ~0x0C;                      
   *((UINT8 *) (UINTN) 0x417) = KbFlag1; 
 
+  //
+  // Restore NULL pointer detection
+  //
+  EnableNullDetection ();
   
   //
   // Output EFI input key and shift/toggle state
@@ -2313,17 +2414,20 @@ Exit:
 
   @param  This                    Protocol instance pointer.
   @param  KeyData                 A pointer to a buffer that is filled in with the keystroke 
-                                  information data for the key that was pressed.
+                                  information data for the key that was pressed. If KeyData.Key,
+                                  KeyData.KeyState.KeyToggleState and KeyData.KeyState.KeyShiftState
+                                  are 0, then any incomplete keystroke will trigger a notification of
+                                  the KeyNotificationFunction.
   @param  KeyNotificationFunction Points to the function to be called when the key 
-                                  sequence is typed specified by KeyData.                        
-  @param  NotifyHandle            Points to the unique handle assigned to the registered notification.                          
+                                  sequence is typed specified by KeyData. This notification function
+                                  should be called at <=TPL_CALLBACK.
+  @param  NotifyHandle            Points to the unique handle assigned to the registered notification.
 
-  
   @retval EFI_SUCCESS             The notification function was registered successfully.
   @retval EFI_OUT_OF_RESOURCES    Unable to allocate resources for necesssary data structures.
   @retval EFI_INVALID_PARAMETER   KeyData or NotifyHandle is NULL.
-                                                  
-**/   
+
+**/
 EFI_STATUS
 EFIAPI
 BiosKeyboardRegisterKeyNotify (

@@ -19,6 +19,7 @@
 
 #include <Protocol/Cpu.h>
 #include <Protocol/MpService.h>
+#include <Register/Msr.h>
 
 #include <Ppi/SecPlatformInformation.h>
 #include <Ppi/SecPlatformInformation2.h>
@@ -51,6 +52,10 @@
                                        EFI_MEMORY_UCE   \
                                        )
 
+#define EFI_MEMORY_PAGETYPE_MASK      (EFI_MEMORY_RP  | \
+                                       EFI_MEMORY_XP  | \
+                                       EFI_MEMORY_RO    \
+                                       )
 
 /**
   Flush CPU data cache. If the instruction cache is fully coherent
@@ -258,6 +263,14 @@ VOID
 EFIAPI
 SetDataSelectors (
   UINT16 Selector
+  );
+
+/**
+  Update GCD memory space attributes according to current page table setup.
+**/
+VOID
+RefreshGcdMemoryAttributesFromPaging (
+  VOID
   );
 
 #endif

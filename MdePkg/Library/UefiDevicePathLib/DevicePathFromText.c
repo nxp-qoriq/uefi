@@ -2635,35 +2635,20 @@ DevPathFromTextBluetooth (
   )
 {
   CHAR16                  *BluetoothStr;
-  CHAR16                  *Walker;
-  CHAR16                  *TempNumBuffer;
-  UINTN                   TempBufferSize;
-  INT32                   Index;
   BLUETOOTH_DEVICE_PATH   *BluetoothDp;
 
   BluetoothStr = GetNextParamStr (&TextDeviceNode);
-  BluetoothDp = (BLUETOOTH_DEVICE_PATH *) CreateDeviceNode (
-                                   MESSAGING_DEVICE_PATH,
-                                   MSG_BLUETOOTH_DP,
-                                   (UINT16) sizeof (BLUETOOTH_DEVICE_PATH)
-                                   );
-
-  Index = sizeof (BLUETOOTH_ADDRESS) - 1;
-  Walker = BluetoothStr;
-  while (!IS_NULL(*Walker) && Index >= 0) {
-    TempBufferSize = 2 * sizeof(CHAR16) + StrSize(L"0x");
-    TempNumBuffer = AllocateZeroPool (TempBufferSize);
-    if (TempNumBuffer == NULL) {
-      break;
-    }
-    StrCpyS (TempNumBuffer, TempBufferSize / sizeof (CHAR16), L"0x");
-    StrnCatS (TempNumBuffer, TempBufferSize / sizeof (CHAR16), Walker, 2);
-    BluetoothDp->BD_ADDR.Address[Index] = (UINT8)Strtoi (TempNumBuffer);
-    FreePool (TempNumBuffer);
-    Walker += 2;
-    Index--;
-  }
-  
+  BluetoothDp  = (BLUETOOTH_DEVICE_PATH *) CreateDeviceNode (
+                                             MESSAGING_DEVICE_PATH,
+                                             MSG_BLUETOOTH_DP,
+                                             (UINT16) sizeof (BLUETOOTH_DEVICE_PATH)
+                                             );
+  StrHexToBytes (
+    BluetoothStr,
+    sizeof (BLUETOOTH_ADDRESS) * 2,
+    BluetoothDp->BD_ADDR.Address,
+    sizeof (BLUETOOTH_ADDRESS)
+    );
   return (EFI_DEVICE_PATH_PROTOCOL *) BluetoothDp;
 }
 
@@ -2704,6 +2689,131 @@ DevPathFromTextWiFi (
   }
 
   return (EFI_DEVICE_PATH_PROTOCOL *) WiFiDp;
+}
+
+/**
+  Converts a text device path node to Bluetooth LE device path structure.
+
+  @param TextDeviceNode  The input Text device path node.
+
+  @return A pointer to the newly-created Bluetooth LE device path structure.
+
+**/
+EFI_DEVICE_PATH_PROTOCOL *
+DevPathFromTextBluetoothLE (
+  IN CHAR16 *TextDeviceNode
+  )
+{
+  CHAR16                     *BluetoothLeAddrStr;
+  CHAR16                     *BluetoothLeAddrTypeStr;
+  BLUETOOTH_LE_DEVICE_PATH   *BluetoothLeDp;
+
+  BluetoothLeAddrStr     = GetNextParamStr (&TextDeviceNode);
+  BluetoothLeAddrTypeStr = GetNextParamStr (&TextDeviceNode);
+  BluetoothLeDp = (BLUETOOTH_LE_DEVICE_PATH *) CreateDeviceNode (
+                                                 MESSAGING_DEVICE_PATH,
+                                                 MSG_BLUETOOTH_LE_DP,
+                                                 (UINT16) sizeof (BLUETOOTH_LE_DEVICE_PATH)
+                                                 );
+
+  BluetoothLeDp->Address.Type = (UINT8) Strtoi (BluetoothLeAddrTypeStr);
+  StrHexToBytes (
+    BluetoothLeAddrStr, sizeof (BluetoothLeDp->Address.Address) * 2,
+    BluetoothLeDp->Address.Address, sizeof (BluetoothLeDp->Address.Address)
+    );
+  return (EFI_DEVICE_PATH_PROTOCOL *) BluetoothLeDp;
+}
+
+/**
+  Converts a text device path node to DNS device path structure.
+
+  @param TextDeviceNode  The input Text device path node.
+
+  @return A pointer to the newly-created DNS device path structure.
+
+**/
+EFI_DEVICE_PATH_PROTOCOL *
+DevPathFromTextDns (
+  IN CHAR16 *TextDeviceNode
+  )
+{
+  CHAR16            *DeviceNodeStr;
+  CHAR16            *DeviceNodeStrPtr;
+  UINT32            DnsServerIpCount;
+  UINT16            DnsDeviceNodeLength;
+  DNS_DEVICE_PATH   *DnsDeviceNode;
+  UINT32            DnsServerIpIndex;
+  CHAR16            *DnsServerIp;
+
+
+  //
+  // Count the DNS server address number.
+  //
+  DeviceNodeStr = UefiDevicePathLibStrDuplicate (TextDeviceNode);
+  if (DeviceNodeStr == NULL) {
+    return NULL;
+  }
+
+  DeviceNodeStrPtr = DeviceNodeStr;
+  
+  DnsServerIpCount = 0;
+  while (DeviceNodeStrPtr != NULL && *DeviceNodeStrPtr != L'\0') {
+    GetNextParamStr (&DeviceNodeStrPtr);
+    DnsServerIpCount ++; 
+  }
+
+  FreePool (DeviceNodeStr);
+  DeviceNodeStr = NULL;
+
+  //
+  // One or more instances of the DNS server address in EFI_IP_ADDRESS, 
+  // otherwise, NULL will be returned.
+  //
+  if (DnsServerIpCount == 0) {
+    return NULL;
+  }
+
+  //
+  // Create the DNS DeviceNode.
+  //
+  DnsDeviceNodeLength = (UINT16) (sizeof (EFI_DEVICE_PATH_PROTOCOL) + sizeof (UINT8) + DnsServerIpCount * sizeof (EFI_IP_ADDRESS));
+  DnsDeviceNode       = (DNS_DEVICE_PATH *) CreateDeviceNode (
+                                              MESSAGING_DEVICE_PATH,
+                                              MSG_DNS_DP,
+                                              DnsDeviceNodeLength
+                                              );
+  if (DnsDeviceNode == NULL) {
+    return NULL;
+  }
+
+  //
+  // Confirm the DNS server address is IPv4 or IPv6 type.
+  //
+  DeviceNodeStrPtr = TextDeviceNode;
+  while (!IS_NULL (*DeviceNodeStrPtr)) {
+    if (*DeviceNodeStrPtr == L'.') {
+      DnsDeviceNode->IsIPv6 = 0x00;
+      break;
+    }
+
+    if (*DeviceNodeStrPtr == L':') {
+      DnsDeviceNode->IsIPv6 = 0x01;
+      break;
+    }
+
+    DeviceNodeStrPtr++;
+  }
+
+  for (DnsServerIpIndex = 0; DnsServerIpIndex < DnsServerIpCount; DnsServerIpIndex++) {
+    DnsServerIp = GetNextParamStr (&TextDeviceNode);
+    if (DnsDeviceNode->IsIPv6 == 0x00) {
+      StrToIpv4Address (DnsServerIp,  NULL, &(DnsDeviceNode->DnsServerIp[DnsServerIpIndex].v4), NULL);
+    } else {
+      StrToIpv6Address (DnsServerIp, NULL, &(DnsDeviceNode->DnsServerIp[DnsServerIpIndex].v6), NULL);
+    }
+  }
+  
+  return (EFI_DEVICE_PATH_PROTOCOL *) DnsDeviceNode;
 }
 
 /**
@@ -3379,9 +3489,11 @@ GLOBAL_REMOVE_IF_UNREFERENCED DEVICE_PATH_FROM_TEXT_TABLE mUefiDevicePathLibDevP
   {L"Unit",                    DevPathFromTextUnit                    },
   {L"iSCSI",                   DevPathFromTextiSCSI                   },
   {L"Vlan",                    DevPathFromTextVlan                    },
+  {L"Dns",                     DevPathFromTextDns                     },
   {L"Uri",                     DevPathFromTextUri                     },
   {L"Bluetooth",               DevPathFromTextBluetooth               },
   {L"Wi-Fi",                   DevPathFromTextWiFi                    },
+  {L"BluetoothLE",             DevPathFromTextBluetoothLE             },
   {L"MediaPath",               DevPathFromTextMediaPath               },
   {L"HD",                      DevPathFromTextHD                      },
   {L"CDROM",                   DevPathFromTextCDROM                   },

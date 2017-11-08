@@ -412,7 +412,7 @@ StartupThisAP (
   @retval EFI_UNSUPPORTED         Switching the BSP cannot be completed prior to
                                   this service returning.
   @retval EFI_UNSUPPORTED         Switching the BSP is not supported.
-  @retval EFI_SUCCESS             The calling processor is an AP.
+  @retval EFI_DEVICE_ERROR        The calling processor is an AP.
   @retval EFI_NOT_FOUND           The processor with the handle specified by
                                   ProcessorNumber does not exist.
   @retval EFI_INVALID_PARAMETER   ProcessorNumber specifies the current BSP or
@@ -622,7 +622,7 @@ InitializeMpSupport (
 
   MpInitLibGetNumberOfProcessors (&NumberOfProcessors, &NumberOfEnabledProcessors);
   mNumberOfProcessors = NumberOfProcessors;
-  DEBUG ((DEBUG_ERROR, "Detect CPU count: %d\n", mNumberOfProcessors));
+  DEBUG ((DEBUG_INFO, "Detect CPU count: %d\n", mNumberOfProcessors));
 
   //
   // Update CPU healthy information from Guided HOB

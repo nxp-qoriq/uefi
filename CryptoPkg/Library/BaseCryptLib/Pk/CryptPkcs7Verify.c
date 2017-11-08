@@ -558,7 +558,9 @@ Pkcs7GetCertificatesList (
     }
   }
   CtxUntrusted = X509_STORE_CTX_get0_untrusted (CertCtx);
-  (VOID)sk_X509_delete_ptr (CtxUntrusted, Signer);
+  if (CtxUntrusted != NULL) {
+    (VOID)sk_X509_delete_ptr (CtxUntrusted, Signer);
+  }
 
   //
   // Build certificates stack chained from Signer's certificate.
@@ -610,7 +612,6 @@ Pkcs7GetCertificatesList (
 
   if (CtxChain != NULL) {
     BufferSize = sizeof (UINT8);
-    OldSize    = BufferSize;
     CertBuf    = NULL;
 
     for (Index = 0; ; Index++) {
@@ -654,7 +655,6 @@ Pkcs7GetCertificatesList (
 
   if (CtxUntrusted != NULL) {
     BufferSize = sizeof (UINT8);
-    OldSize    = BufferSize;
     CertBuf    = NULL;
 
     for (Index = 0; ; Index++) {
@@ -711,8 +711,10 @@ _Error:
   }
   sk_X509_free (Signers);
 
-  X509_STORE_CTX_cleanup (CertCtx);
-  X509_STORE_CTX_free (CertCtx);
+  if (CertCtx != NULL) {
+    X509_STORE_CTX_cleanup (CertCtx);
+    X509_STORE_CTX_free (CertCtx);
+  }
 
   if (SingleCert != NULL) {
     free (SingleCert);
@@ -925,7 +927,7 @@ _Exit:
   @retval     TRUE          The P7Data was correctly formatted for processing.
   @retval     FALSE         The P7Data was not correctly formatted for processing.
 
-*/
+**/
 BOOLEAN
 EFIAPI
 Pkcs7GetAttachedContent (

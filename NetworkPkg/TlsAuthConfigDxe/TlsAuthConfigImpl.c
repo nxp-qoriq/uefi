@@ -87,7 +87,7 @@ IsDerPemEncodeCertificate (
   @param[in]     Guid          Pointer to GUID to print.
   @param[in]     Buffer        Buffer to print Guid into.
   @param[in]     BufferSize    Size of Buffer.
-  
+
   @retval    Number of characters printed.
 
 **/
@@ -100,14 +100,14 @@ GuidToString (
 {
   return UnicodeSPrint (
            Buffer,
-           BufferSize, 
+           BufferSize,
            L"%g",
            Guid
            );
 }
 
 /**
-  List all cert in specified database by GUID in the page 
+  List all cert in specified database by GUID in the page
   for user to select and delete as needed.
 
   @param[in]    PrivateData         Module's private data.
@@ -296,7 +296,7 @@ ON_EXIT:
 /**
   Delete one entry from cert database.
 
-  @param[in]    PrivateData         Module's private data.
+  @param[in]    Private             Module's private data.
   @param[in]    VariableName        The variable name of the database.
   @param[in]    VendorGuid          A unique identifier for the vendor.
   @param[in]    LabelNumber         Label number to insert opcodes.
@@ -477,31 +477,36 @@ ON_EXIT:
 
 
 /**
-  Close an open file handle.
+  Clean the file related resource.
 
-  @param[in] FileHandle           The file handle to close.
-  
+  @param[in]    Private             Module's private data.
+
 **/
 VOID
-CloseFile (
-  IN EFI_FILE_HANDLE   FileHandle
+CleanFileContext (
+  IN TLS_AUTH_CONFIG_PRIVATE_DATA     *Private
   )
 {
-  if (FileHandle != NULL) {
-    FileHandle->Close (FileHandle);  
+  if (Private->FileContext->FHandle != NULL) {
+    Private->FileContext->FHandle->Close (Private->FileContext->FHandle);
+    Private->FileContext->FHandle = NULL;
+    if (Private->FileContext->FileName!= NULL){
+      FreePool(Private->FileContext->FileName);
+      Private->FileContext->FileName = NULL;
+    }
   }
 }
 
 /**
-  Read file content into BufferPtr, the size of the allocate buffer 
+  Read file content into BufferPtr, the size of the allocate buffer
   is *FileSize plus AddtionAllocateSize.
 
   @param[in]       FileHandle            The file to be read.
   @param[in, out]  BufferPtr             Pointers to the pointer of allocated buffer.
   @param[out]      FileSize              Size of input file
-  @param[in]       AddtionAllocateSize   Addtion size the buffer need to be allocated. 
+  @param[in]       AddtionAllocateSize   Addtion size the buffer need to be allocated.
                                          In case the buffer need to contain others besides the file content.
-  
+
   @retval   EFI_SUCCESS                  The file was read into the buffer.
   @retval   EFI_INVALID_PARAMETER        A parameter was invalid.
   @retval   EFI_OUT_OF_RESOURCES         A memory allocation failed.
@@ -540,7 +545,7 @@ ReadFileContent (
   if (EFI_ERROR (Status)) {
     goto ON_EXIT;
   }
-  
+
   Status = FileHandle->SetPosition (FileHandle, 0);
   if (EFI_ERROR (Status)) {
     goto ON_EXIT;
@@ -564,7 +569,7 @@ ReadFileContent (
   }
 
 ON_EXIT:
-  
+
   *BufferPtr = Buffer;
   return Status;
 }
@@ -873,14 +878,7 @@ EnrollX509toVariable (
   }
 
 ON_EXIT:
-
-  CloseFile (Private->FileContext->FHandle);
-  if (Private->FileContext->FileName != NULL) {
-    FreePool(Private->FileContext->FileName);
-    Private->FileContext->FileName = NULL;
-  }
-
-  Private->FileContext->FHandle = NULL;
+  CleanFileContext (Private);
 
   if (Private->CertGuid != NULL) {
     FreePool (Private->CertGuid);
@@ -1165,7 +1163,7 @@ TlsAuthConfigFormInit (
   EFI_STATUS                        Status;
 
   Private->Signature = TLS_AUTH_CONFIG_PRIVATE_DATA_SIGNATURE;
-  
+
   Private->ConfigAccess.ExtractConfig = TlsAuthConfigAccessExtractConfig;
   Private->ConfigAccess.RouteConfig   = TlsAuthConfigAccessRouteConfig;
   Private->ConfigAccess.Callback      = TlsAuthConfigAccessCallback;
@@ -1184,7 +1182,7 @@ TlsAuthConfigFormInit (
   if (EFI_ERROR (Status)) {
     return Status;
   }
-  
+
   //
   // Publish our HII data.
   //
@@ -1245,14 +1243,14 @@ TlsAuthConfigFormInit (
   mEndLabel->Number       = LABEL_END;
 
   return EFI_SUCCESS;
-  
+
 Error:
   TlsAuthConfigFormUnload (Private);
   return Status;
 }
 
 /**
-   
+
   This function allows the caller to request the current
   configuration for one or more named elements. The resulting
   string is in <ConfigAltResp> format. Any and all alternative
@@ -1273,12 +1271,12 @@ Error:
                     includes the routing information as well as
                     the configurable name / value pairs. It is
                     invalid for this string to be in
-                    <MultiConfigRequest> format. 
-                    If a NULL is passed in for the Request field, 
-                    all of the settings being abstracted by this function 
-                    will be returned in the Results field.  In addition, 
-                    if a ConfigHdr is passed in with no request elements, 
-                    all of the settings being abstracted for that particular 
+                    <MultiConfigRequest> format.
+                    If a NULL is passed in for the Request field,
+                    all of the settings being abstracted by this function
+                    will be returned in the Results field.  In addition,
+                    if a ConfigHdr is passed in with no request elements,
+                    all of the settings being abstracted for that particular
                     ConfigHdr reference will be returned in the Results Field.
 
   @param Progress   On return, points to a character in the
@@ -1352,13 +1350,13 @@ TlsAuthConfigAccessExtractConfig (
 
   BufferSize       = sizeof (TLS_AUTH_CONFIG_IFR_NVDATA);
   ZeroMem (&Private->TlsAuthConfigNvData, BufferSize);
-  
+
   *Progress        = Request;
 
   if ((Request != NULL) && !HiiIsConfigHdrMatch (Request, &gTlsAuthConfigGuid, mTlsAuthConfigStorageName)) {
     return EFI_NOT_FOUND;
   }
-  
+
   ConfigRequest = Request;
   if ((Request == NULL) || (StrStr (Request, L"OFFSET") == NULL)) {
     //
@@ -1406,7 +1404,7 @@ TlsAuthConfigAccessExtractConfig (
 }
 
 /**
-   
+
   This function applies changes in a driver's configuration.
   Input is a Configuration, which has the routing data for this
   driver followed by name / value configuration pairs. The driver
@@ -1419,8 +1417,8 @@ TlsAuthConfigAccessExtractConfig (
   @param This           Points to the EFI_HII_CONFIG_ACCESS_PROTOCOL.
 
   @param Configuration  A null-terminated Unicode string in
-                        <ConfigString> format. 
-  
+                        <ConfigString> format.
+
   @param Progress       A pointer to a string filled in with the
                         offset of the most recent '&' before the
                         first failing name / value pair (or the
@@ -1431,16 +1429,16 @@ TlsAuthConfigAccessExtractConfig (
 
   @retval EFI_SUCCESS             The results have been distributed or are
                                   awaiting distribution.
-  
+
   @retval EFI_OUT_OF_RESOURCES    Not enough memory to store the
                                   parts of the results that must be
                                   stored awaiting possible future
                                   protocols.
-  
+
   @retval EFI_INVALID_PARAMETERS  Passing in a NULL for the
                                   Results parameter would result
                                   in this type of error.
-  
+
   @retval EFI_NOT_FOUND           Target for the specified routing data
                                   was not found
 
@@ -1475,7 +1473,7 @@ TlsAuthConfigAccessRouteConfig (
   }
 
   Private = TLS_AUTH_CONFIG_PRIVATE_FROM_THIS (This);
-  
+
   BufferSize = sizeof (TLS_AUTH_CONFIG_IFR_NVDATA);
   ZeroMem (&Private->TlsAuthConfigNvData, BufferSize);
 
@@ -1491,10 +1489,10 @@ TlsAuthConfigAccessRouteConfig (
   }
 
   return Status;
-}  
+}
 
 /**
-   
+
   This function is called to provide results data to the driver.
   This data consists of a unique key that is used to identify
   which data is either being passed back or being asked for.
@@ -1503,7 +1501,7 @@ TlsAuthConfigAccessRouteConfig (
   @param  Action                 Specifies the type of action taken by the browser.
   @param  QuestionId             A unique value which is sent to the original
                                  exporting driver so that it can identify the type
-                                 of data to expect. The format of the data tends to 
+                                 of data to expect. The format of the data tends to
                                  vary based on the opcode that generated the callback.
   @param  Type                   The type of value for the question.
   @param  Value                  A pointer to the data being sent to the original
@@ -1544,7 +1542,7 @@ TlsAuthConfigAccessCallback (
   if ((This == NULL) || (Value == NULL) || (ActionRequest == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
-  
+
   Private = TLS_AUTH_CONFIG_PRIVATE_FROM_THIS (This);
 
   mTlsAuthPrivateData = Private;
@@ -1561,7 +1559,8 @@ TlsAuthConfigAccessCallback (
   HiiGetBrowserData (&gTlsAuthConfigGuid, mTlsAuthConfigStorageName, BufferSize, (UINT8 *) IfrNvData);
 
   if ((Action != EFI_BROWSER_ACTION_CHANGED) &&
-      (Action != EFI_BROWSER_ACTION_CHANGING)) {
+      (Action != EFI_BROWSER_ACTION_CHANGING) && 
+      (Action != EFI_BROWSER_ACTION_FORM_CLOSE)) {
     Status = EFI_UNSUPPORTED;
     goto EXIT;
   }
@@ -1592,12 +1591,19 @@ TlsAuthConfigAccessCallback (
       CleanUpPage (LabelId, Private);
       break;
     case KEY_TLS_AUTH_CONFIG_ENROLL_CERT_FROM_FILE:
+      //
+      // If the file is already opened, clean the file related resource first. 
+      //
+      CleanFileContext (Private);
+      
       ChooseFile( NULL, NULL, UpdateCAFromFile, &File);
       break;
 
     case KEY_TLS_AUTH_CONFIG_VALUE_SAVE_AND_EXIT:
       Status = EnrollCertDatabase (Private, EFI_TLS_CA_CERTIFICATE_VARIABLE);
       if (EFI_ERROR (Status)) {
+        CleanFileContext (Private);
+
         CreatePopUp (
           EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
           &Key,
@@ -1608,14 +1614,7 @@ TlsAuthConfigAccessCallback (
       break;
 
     case KEY_TLS_AUTH_CONFIG_VALUE_NO_SAVE_AND_EXIT:
-      if (Private->FileContext->FHandle != NULL) {
-        CloseFile (Private->FileContext->FHandle);
-        Private->FileContext->FHandle = NULL;
-        if (Private->FileContext->FileName!= NULL){
-          FreePool(Private->FileContext->FileName);
-          Private->FileContext->FileName = NULL;
-        }
-      }
+      CleanFileContext (Private);
 
       if (Private->CertGuid!= NULL) {
         FreePool (Private->CertGuid);
@@ -1633,7 +1632,7 @@ TlsAuthConfigAccessCallback (
         OPTION_DEL_CA_ESTION_ID
         );
        break;
-      
+
     default:
       if ((QuestionId >= OPTION_DEL_CA_ESTION_ID) &&
                  (QuestionId < (OPTION_DEL_CA_ESTION_ID + OPTION_CONFIG_RANGE)))  {
@@ -1667,8 +1666,10 @@ TlsAuthConfigAccessCallback (
     default:
       break;
     }
+  } else if (Action == EFI_BROWSER_ACTION_FORM_CLOSE) {
+    CleanFileContext (Private);
   }
-  
+
 EXIT:
 
   if (!EFI_ERROR (Status)) {
@@ -1686,3 +1687,4 @@ EXIT:
   return EFI_SUCCESS;
 
 }
+

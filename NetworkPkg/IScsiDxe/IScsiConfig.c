@@ -205,11 +205,11 @@ IScsiParseIsIdFromString (
 
   IsIdStr = (CHAR16 *) String;
 
-  if (StrLen (IsIdStr) != 6) {
+  if (StrLen (IsIdStr) != 6 && StrLen (IsIdStr) != 12) {
     UnicodeSPrint (
       PortString,
       (UINTN) ISCSI_NAME_IFR_MAX_SIZE,
-      L"Error! Input is incorrect, please input 6 hex numbers!\n"
+      L"Error! Only last 3 bytes are configurable, please input 6 hex numbers for last 3 bytes only or 12 hex numbers for full SSID!\n"
       );
 
     CreatePopUp (
@@ -220,6 +220,10 @@ IScsiParseIsIdFromString (
       );
 
     return EFI_INVALID_PARAMETER;
+  }
+
+  if (StrLen (IsIdStr) == 12) {
+    IsIdStr += 6;
   }
 
   for (Index = 3; Index < 6; Index++) {
@@ -744,24 +748,30 @@ IScsiConvertAttemptConfigDataToIfrNvDataByKeyword (
       }
     }
     CopyMem(IfrNvData->ISCSIDisplayAttemptList, AttemptNameList, ATTEMPT_NAME_LIST_SIZE);
+
+    ZeroMem (IfrNvData->ISCSIMacAddr, sizeof (IfrNvData->ISCSIMacAddr));
+    NET_LIST_FOR_EACH (Entry, &mPrivate->NicInfoList) {
+      NicInfo = NET_LIST_USER_STRUCT (Entry, ISCSI_NIC_INFO, Link);
+      IScsiMacAddrToStr (
+        &NicInfo->PermanentAddress,
+        NicInfo->HwAddressSize,
+        NicInfo->VlanId,
+        MacString
+        );
+      CopyMem (
+        IfrNvData->ISCSIMacAddr + StrLen (IfrNvData->ISCSIMacAddr),
+        MacString,
+        StrLen (MacString) * sizeof (CHAR16)
+        );
+
+      *(IfrNvData->ISCSIMacAddr + StrLen (IfrNvData->ISCSIMacAddr)) = L'/';
+    }
+
+    StringLen = StrLen (IfrNvData->ISCSIMacAddr);
+    if (StringLen > 0) {
+      *(IfrNvData->ISCSIMacAddr + StringLen - 1) = L'\0';
+    }
   }
-
-  NET_LIST_FOR_EACH (Entry, &mPrivate->NicInfoList) {
-    NicInfo = NET_LIST_USER_STRUCT (Entry, ISCSI_NIC_INFO, Link);
-    IScsiMacAddrToStr (
-    &NicInfo->PermanentAddress,
-    NicInfo->HwAddressSize,
-    NicInfo->VlanId,
-    MacString
-    );
-    CopyMem (
-      IfrNvData->ISCSIMacAddr + StrLen (IfrNvData->ISCSIMacAddr),
-      MacString,
-      StrLen (MacString) * sizeof (CHAR16)
-      );
-
-    *(IfrNvData->ISCSIMacAddr + StrLen (IfrNvData->ISCSIMacAddr)) = L'/';
-   }
 }
 
 /**

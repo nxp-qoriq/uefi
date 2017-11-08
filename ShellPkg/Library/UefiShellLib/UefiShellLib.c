@@ -18,8 +18,6 @@
 #include <Library/SortLib.h>
 #include <Library/BaseLib.h>
 
-#define FIND_XXXXX_FILE_BUFFER_SIZE (SIZE_OF_EFI_FILE_INFO + MAX_FILE_NAME_LEN)
-
 //
 // globals...
 //
@@ -702,7 +700,7 @@ ShellOpenFileByName(
       // Create the directory to create the file in
       //
       FileNameCopy = AllocateCopyPool (StrSize (FileName), FileName);
-      if (FileName == NULL) {
+      if (FileNameCopy == NULL) {
         return (EFI_OUT_OF_RESOURCES);
       }
       PathCleanUpDirectories (FileNameCopy);
@@ -2828,7 +2826,7 @@ InternalShellPrintWorker(
     // update the attribute
     //
     if (ResumeLocation != NULL) {
-      if (*(ResumeLocation-1) == L'^') {
+      if ((ResumeLocation != mPostReplaceFormat2) && (*(ResumeLocation-1) == L'^')) {
         //
         // Move cursor back 1 position to overwrite the ^
         //
@@ -2851,10 +2849,10 @@ InternalShellPrintWorker(
             gST->ConOut->SetAttribute(gST->ConOut, EFI_TEXT_ATTR(EFI_WHITE, ((OriginalAttribute&(BIT4|BIT5|BIT6))>>4)));
             break;
           case (L'B'):
-            gST->ConOut->SetAttribute(gST->ConOut, EFI_TEXT_ATTR(EFI_BLUE, ((OriginalAttribute&(BIT4|BIT5|BIT6))>>4)));
+            gST->ConOut->SetAttribute(gST->ConOut, EFI_TEXT_ATTR(EFI_LIGHTBLUE, ((OriginalAttribute&(BIT4|BIT5|BIT6))>>4)));
             break;
           case (L'V'):
-            gST->ConOut->SetAttribute(gST->ConOut, EFI_TEXT_ATTR(EFI_GREEN, ((OriginalAttribute&(BIT4|BIT5|BIT6))>>4)));
+            gST->ConOut->SetAttribute(gST->ConOut, EFI_TEXT_ATTR(EFI_LIGHTGREEN, ((OriginalAttribute&(BIT4|BIT5|BIT6))>>4)));
             break;
           default:
             //

@@ -47,6 +47,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <Protocol/PciRootBridgeIo.h>
 #include <Protocol/SerialIo.h>
 #include <Protocol/SuperIo.h>
+#include <Protocol/IoMmu.h>
 
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
@@ -507,6 +508,8 @@ typedef struct {
 extern BBS_TABLE           *mBbsTable;
 
 extern EFI_GENERIC_MEMORY_TEST_PROTOCOL *gGenMemoryTest;
+
+extern BOOLEAN mEndOfDxe;
 
 #define PORT_70 0x70
 #define PORT_71 0x71
@@ -1539,6 +1542,22 @@ InternalLegacyBiosFarCall (
 EFI_STATUS
 LegacyBiosInstallVgaRom (
   IN  LEGACY_BIOS_INSTANCE            *Private
+  );
+
+/**
+   Enable NULL pointer detection.
+**/
+VOID
+EnableNullDetection (
+  VOID
+  );
+
+/**
+   Disable NULL pointer detection.
+**/
+VOID
+DisableNullDetection (
+  VOID
   );
 
 #endif

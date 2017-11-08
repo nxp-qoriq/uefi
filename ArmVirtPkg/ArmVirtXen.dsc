@@ -53,8 +53,6 @@
   PlatformBdsLib|ArmPlatformPkg/Library/PlatformIntelBdsLib/PlatformIntelBdsLib.inf
   CustomizedDisplayLib|MdeModulePkg/Library/CustomizedDisplayLib/CustomizedDisplayLib.inf
 
-  BdsLib|ArmPkg/Library/BdsLib/BdsLib.inf
-
 [LibraryClasses.common.UEFI_DRIVER]
   UefiScsiLib|MdePkg/Library/UefiScsiLib/UefiScsiLib.inf
 
@@ -169,7 +167,7 @@
   MdeModulePkg/Universal/Variable/EmuRuntimeDxe/EmuVariableRuntimeDxe.inf
 
   MdeModulePkg/Universal/MonotonicCounterRuntimeDxe/MonotonicCounterRuntimeDxe.inf
-  EmbeddedPkg/ResetRuntimeDxe/ResetRuntimeDxe.inf
+  MdeModulePkg/Universal/ResetSystemRuntimeDxe/ResetSystemRuntimeDxe.inf
   EmbeddedPkg/RealTimeClockRuntimeDxe/RealTimeClockRuntimeDxe.inf
   EmbeddedPkg/MetronomeDxe/MetronomeDxe.inf
 
@@ -193,12 +191,13 @@
   ArmVirtPkg/FdtClientDxe/FdtClientDxe.inf
 
   #
-  # FAT filesystem + GPT/MBR partitioning
+  # FAT filesystem + GPT/MBR partitioning + UDF filesystem
   #
   MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
   MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe.inf
   MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
   FatPkg/EnhancedFatDxe/Fat.inf
+  MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe.inf
 
   #
   # Bds
@@ -214,7 +213,7 @@
   #
   # ACPI support
   #
-!if $(ARCH) == AARCH64
   ArmVirtPkg/XenPlatformHasAcpiDtDxe/XenPlatformHasAcpiDtDxe.inf
+!if $(ARCH) == AARCH64
   ArmVirtPkg/XenAcpiPlatformDxe/XenAcpiPlatformDxe.inf
 !endif

@@ -123,6 +123,8 @@ gDriverTypeMap = {
   'UEFI_APPLICATION'  : '0x9 (APPLICATION)',
   'SMM_CORE'          : '0xD (SMM_CORE)',
   'SMM_DRIVER'        : '0xA (SMM)', # Extension of module type to support PI 1.1 SMM drivers
+  'MM_STANDALONE'     : '0xE (MM_STANDALONE)',
+  'MM_CORE_STANDALONE' : '0xF (MM_CORE_STANDALONE)'
   }
 
 ## The look up table of the supported opcode in the dependency expression binaries
@@ -305,7 +307,11 @@ class LibraryReport(object):
             LibConstructorList = Lib.ConstructorList
             LibDesstructorList = Lib.DestructorList
             LibDepexList = Lib.DepexExpression[M.Arch, M.ModuleType]
-            self.LibraryList.append((LibInfPath, LibClassList, LibConstructorList, LibDesstructorList, LibDepexList))
+            for LibAutoGen in M.LibraryAutoGenList:
+                if LibInfPath == LibAutoGen.MetaFile.Path:
+                    LibTime = LibAutoGen.BuildTime
+                    break
+            self.LibraryList.append((LibInfPath, LibClassList, LibConstructorList, LibDesstructorList, LibDepexList, LibTime))
 
     ##
     # Generate report for module library information
@@ -318,9 +324,9 @@ class LibraryReport(object):
     # @param File            The file object for report
     #
     def GenerateReport(self, File):
-        FileWrite(File, gSubSectionStart)
-        FileWrite(File, TAB_BRG_LIBRARY)
         if len(self.LibraryList) > 0:
+            FileWrite(File, gSubSectionStart)
+            FileWrite(File, TAB_BRG_LIBRARY)
             FileWrite(File, gSubSectionSep)
             for LibraryItem in self.LibraryList:
                 LibInfPath = LibraryItem[0]
@@ -342,12 +348,14 @@ class LibraryReport(object):
                     LibDepex = " ".join(LibraryItem[4])
                     if LibDepex:
                         EdkIILibInfo += " Depex = " + LibDepex
+                    if LibraryItem[5]:
+                        EdkIILibInfo += " Time = " + LibraryItem[5]
                     if EdkIILibInfo:
                         FileWrite(File, "{%s: %s}" % (LibClass, EdkIILibInfo))
                     else:
                         FileWrite(File, "{%s}" % LibClass)
 
-        FileWrite(File, gSubSectionEnd)
+            FileWrite(File, gSubSectionEnd)
 
 ##
 # Reports dependency expression information
@@ -374,7 +382,7 @@ class DepexReport(object):
         if not ModuleType:
             ModuleType = gComponentType2ModuleType.get(M.ComponentType, "")
 
-        if ModuleType in ["SEC", "PEI_CORE", "DXE_CORE", "SMM_CORE", "UEFI_APPLICATION"]:
+        if ModuleType in ["SEC", "PEI_CORE", "DXE_CORE", "SMM_CORE", "MM_CORE_STANDALONE", "UEFI_APPLICATION"]:
             return
       
         for Source in M.SourceFileList:
@@ -411,9 +419,6 @@ class DepexReport(object):
     #
     def GenerateReport(self, File, GlobalDepexParser):
         if not self.Depex:
-            FileWrite(File, gSubSectionStart)
-            FileWrite(File, TAB_DEPEX)
-            FileWrite(File, gSubSectionEnd)
             return
         FileWrite(File, gSubSectionStart)
         if os.path.isfile(self._DepexFileName):
@@ -554,6 +559,7 @@ class ModuleReport(object):
         self.PciDeviceId = M.Module.Defines.get("PCI_DEVICE_ID", "")
         self.PciVendorId = M.Module.Defines.get("PCI_VENDOR_ID", "")
         self.PciClassCode = M.Module.Defines.get("PCI_CLASS_CODE", "")
+        self.BuildTime = M.BuildTime
 
         self._BuildDir = M.BuildDir
         self.ModulePcdSet = {}
@@ -649,6 +655,8 @@ class ModuleReport(object):
             FileWrite(File, "SHA1 HASH:            %s *%s" % (self.Hash, self.ModuleName + ".efi"))
         if self.BuildTimeStamp:
             FileWrite(File, "Build Time Stamp:     %s" % self.BuildTimeStamp)
+        if self.BuildTime:
+            FileWrite(File, "Module Build Time:    %s" % self.BuildTime)
         if self.DriverType:
             FileWrite(File, "Driver Type:          %s" % self.DriverType)
         if self.UefiSpecVersion:
@@ -739,6 +747,13 @@ class PcdReport(object):
             for item in Pa.Platform.Pcds:
                 Pcd = Pa.Platform.Pcds[item]
                 if not Pcd.Type:
+                    # check the Pcd in FDF file, whether it is used in module first
+                    for T in ["FixedAtBuild", "PatchableInModule", "FeatureFlag", "Dynamic", "DynamicEx"]:
+                        PcdList = self.AllPcds.setdefault(Pcd.TokenSpaceGuidCName, {}).setdefault(T, [])
+                        if Pcd in PcdList:
+                            Pcd.Type = T
+                            break
+                if not Pcd.Type:
                     PcdTypeFlag = False
                     for package in Pa.PackageList:
                         for T in ["FixedAtBuild", "PatchableInModule", "FeatureFlag", "Dynamic", "DynamicEx"]:
@@ -818,7 +833,7 @@ class PcdReport(object):
         for Arch in Wa.ArchList:
             Platform = Wa.BuildDatabase[Wa.MetaFile, Arch, Wa.BuildTarget, Wa.ToolChain]
             for (TokenCName, TokenSpaceGuidCName) in Platform.Pcds:
-                DscDefaultValue = Platform.Pcds[(TokenCName, TokenSpaceGuidCName)].DefaultValue
+                DscDefaultValue = Platform.Pcds[(TokenCName, TokenSpaceGuidCName)].DscDefaultValue
                 if DscDefaultValue:
                     self.DscPcdDefault[(TokenCName, TokenSpaceGuidCName)] = DscDefaultValue
 
@@ -866,7 +881,7 @@ class PcdReport(object):
                 FileWrite(File, "  *M  - Module scoped PCD override")
             FileWrite(File, gSectionSep)
         else:
-            if not ReportSubType:
+            if not ReportSubType and ModulePcdSet:
                 #
                 # For module PCD sub-section
                 #
@@ -899,6 +914,7 @@ class PcdReport(object):
                     #
                     DecDefaultValue = self.DecPcdDefault.get((Pcd.TokenCName, Pcd.TokenSpaceGuidCName, DecType))
                     DscDefaultValue = self.DscPcdDefault.get((Pcd.TokenCName, Pcd.TokenSpaceGuidCName))
+                    DscDefaultValBak= DscDefaultValue
                     DscDefaultValue = self.FdfPcdSet.get((Pcd.TokenCName, Key), DscDefaultValue)
                     InfDefaultValue = None
                     
@@ -965,10 +981,10 @@ class PcdReport(object):
                     #
                     # Report PCD item according to their override relationship
                     #
-                    if BuildOptionMatch:
-                        FileWrite(File, ' *B %-*s: %6s %10s = %-22s' % (self.MaxLen, PcdTokenCName, TypeName, '(' + Pcd.DatumType + ')', PcdValue.strip()))
-                    elif DecMatch and InfMatch:
+                    if DecMatch and InfMatch:
                         FileWrite(File, '    %-*s: %6s %10s = %-22s' % (self.MaxLen, PcdTokenCName, TypeName, '(' + Pcd.DatumType + ')', PcdValue.strip()))
+                    elif BuildOptionMatch:
+                        FileWrite(File, ' *B %-*s: %6s %10s = %-22s' % (self.MaxLen, PcdTokenCName, TypeName, '(' + Pcd.DatumType + ')', PcdValue.strip()))
                     else:
                         if DscMatch:
                             if (Pcd.TokenCName, Key) in self.FdfPcdSet:
@@ -985,8 +1001,8 @@ class PcdReport(object):
                             else:
                                 FileWrite(File, '%*s' % (self.MaxLen + 4, SkuInfo.VpdOffset))
                                
-                    if not DscMatch and DscDefaultValue != None:
-                        FileWrite(File, '    %*s = %s' % (self.MaxLen + 19, 'DSC DEFAULT', DscDefaultValue.strip()))
+                    if not DscMatch and DscDefaultValBak != None:
+                        FileWrite(File, '    %*s = %s' % (self.MaxLen + 19, 'DSC DEFAULT', DscDefaultValBak.strip()))
 
                     if not InfMatch and InfDefaultValue != None:
                         FileWrite(File, '    %*s = %s' % (self.MaxLen + 19, 'INF DEFAULT', InfDefaultValue.strip()))
@@ -1011,7 +1027,7 @@ class PcdReport(object):
         if ModulePcdSet == None:
             FileWrite(File, gSectionEnd)
         else:
-            if not ReportSubType:
+            if not ReportSubType and ModulePcdSet:
                 FileWrite(File, gSubSectionEnd)
 
 
@@ -1690,9 +1706,12 @@ class PlatformReport(object):
     # @param self            The object pointer
     # @param File            The file object for report
     # @param BuildDuration   The total time to build the modules
+    # @param AutoGenTime     The total time of AutoGen Phase
+    # @param MakeTime        The total time of Make Phase
+    # @param GenFdsTime      The total time of GenFds Phase
     # @param ReportType      The kind of report items in the final report file
     #
-    def GenerateReport(self, File, BuildDuration, ReportType):
+    def GenerateReport(self, File, BuildDuration, AutoGenTime, MakeTime, GenFdsTime, ReportType):
         FileWrite(File, "Platform Summary")
         FileWrite(File, "Platform Name:        %s" % self.PlatformName)
         FileWrite(File, "Platform DSC Path:    %s" % self.PlatformDscPath)
@@ -1702,6 +1721,12 @@ class PlatformReport(object):
         FileWrite(File, "Output Path:          %s" % self.OutputPath)
         FileWrite(File, "Build Environment:    %s" % self.BuildEnvironment)
         FileWrite(File, "Build Duration:       %s" % BuildDuration)
+        if AutoGenTime:
+            FileWrite(File, "AutoGen Duration:     %s" % AutoGenTime)
+        if MakeTime:
+            FileWrite(File, "Make Duration:        %s" % MakeTime)
+        if GenFdsTime:
+            FileWrite(File, "GenFds Duration:      %s" % GenFdsTime)
         FileWrite(File, "Report Content:       %s" % ", ".join(ReportType))
 
         if GlobalData.MixedPcd:
@@ -1776,13 +1801,16 @@ class BuildReport(object):
     #
     # @param self            The object pointer
     # @param BuildDuration   The total time to build the modules
+    # @param AutoGenTime     The total time of AutoGen phase
+    # @param MakeTime        The total time of Make phase
+    # @param GenFdsTime      The total time of GenFds phase
     #
-    def GenerateReport(self, BuildDuration):
+    def GenerateReport(self, BuildDuration, AutoGenTime, MakeTime, GenFdsTime):
         if self.ReportFile:
             try:
                 File = StringIO('')
                 for (Wa, MaList) in self.ReportList:
-                    PlatformReport(Wa, MaList, self.ReportType).GenerateReport(File, BuildDuration, self.ReportType)
+                    PlatformReport(Wa, MaList, self.ReportType).GenerateReport(File, BuildDuration, AutoGenTime, MakeTime, GenFdsTime, self.ReportType)
                 Content = FileLinesSplit(File.getvalue(), gLineMaxLength)
                 SaveFileOnChange(self.ReportFile, Content, True)
                 EdkLogger.quiet("Build report can be found at %s" % os.path.abspath(self.ReportFile))

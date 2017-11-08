@@ -60,13 +60,13 @@ GetSupportPcds (
   VOID
   )
 {
-  UINTN                  BitMaskSize;
   UINT8                  *SupportBitMask;
 
-  BitMaskSize = PcdGetSize (PcdCpuFeaturesSupport);
-  SupportBitMask = AllocateZeroPool (BitMaskSize);
+  SupportBitMask = AllocateCopyPool (
+          PcdGetSize (PcdCpuFeaturesSupport), 
+          PcdGetPtr (PcdCpuFeaturesSupport)
+          );
   ASSERT (SupportBitMask != NULL);
-  SupportBitMask = (UINT8 *) PcdGetPtr (PcdCpuFeaturesSupport);
 
   return SupportBitMask;
 }
@@ -81,13 +81,13 @@ GetConfigurationPcds (
   VOID
   )
 {
-  UINTN                  BitMaskSize;
   UINT8                  *SupportBitMask;
 
-  BitMaskSize = PcdGetSize (PcdCpuFeaturesUserConfiguration);
-  SupportBitMask = AllocateZeroPool (BitMaskSize);
+  SupportBitMask = AllocateCopyPool (
+          PcdGetSize (PcdCpuFeaturesUserConfiguration), 
+          PcdGetPtr (PcdCpuFeaturesUserConfiguration)
+          );
   ASSERT (SupportBitMask != NULL);
-  SupportBitMask = (UINT8 *) PcdGetPtr (PcdCpuFeaturesUserConfiguration);
 
   return SupportBitMask;
 }
@@ -149,7 +149,7 @@ CpuInitDataInitialize (
   CpuFeaturesData = GetCpuFeaturesData ();
   CpuFeaturesData->InitOrder = AllocateZeroPool (sizeof (CPU_FEATURES_INIT_ORDER) * NumberOfCpus);
   ASSERT (CpuFeaturesData->InitOrder != NULL);
-  CpuFeaturesData->BitMaskSize = PcdGetSize (PcdCpuFeaturesSupport);
+  CpuFeaturesData->BitMaskSize = (UINT32) PcdGetSize (PcdCpuFeaturesSupport);
 
   //
   // Collect CPU Features information
@@ -231,6 +231,31 @@ SupportedMaskAnd (
   Data2 = AndFeatureBitMask;
   for (Index = 0; Index < BitMaskSize; Index++) {
     *(Data1++) &=  *(Data2++);
+  }
+}
+
+/**
+  Worker function to clean bit operation on CPU feature supported bits mask buffer.
+
+  @param[in]  SupportedFeatureMask  The pointer to CPU feature bits mask buffer
+  @param[in]  AndFeatureBitMask     The feature bit mask to do XOR operation
+**/
+VOID
+SupportedMaskCleanBit (
+  IN UINT8               *SupportedFeatureMask,
+  IN UINT8               *AndFeatureBitMask
+  )
+{
+  UINTN                  Index;
+  UINTN                  BitMaskSize;
+  UINT8                  *Data1;
+  UINT8                  *Data2;
+
+  BitMaskSize = PcdGetSize (PcdCpuFeaturesSupport);
+  Data1 = SupportedFeatureMask;
+  Data2 = AndFeatureBitMask;
+  for (Index = 0; Index < BitMaskSize; Index++) {
+    *(Data1++) &=  ~(*(Data2++));
   }
 }
 
@@ -497,12 +522,39 @@ AnalysisProcessorFeatures (
       CpuFeatureInOrder = CPU_FEATURE_ENTRY_FROM_LINK (Entry);
       if (IsBitMaskMatch (CpuFeatureInOrder->FeatureMask, CpuFeaturesData->SettingPcds)) {
         Status = CpuFeatureInOrder->InitializeFunc (ProcessorNumber, CpuInfo, CpuFeatureInOrder->ConfigData, TRUE);
+        if (EFI_ERROR (Status)) {
+          //
+          // Clean the CpuFeatureInOrder->FeatureMask in setting PCD.
+          //
+          SupportedMaskCleanBit (CpuFeaturesData->SettingPcds, CpuFeatureInOrder->FeatureMask);
+          if (CpuFeatureInOrder->FeatureName != NULL) {
+            DEBUG ((DEBUG_WARN, "Warning :: Failed to enable Feature: Name = %a.\n", CpuFeatureInOrder->FeatureName));
+          } else {
+            DEBUG ((DEBUG_WARN, "Warning :: Failed to enable Feature: Mask = "));
+            DumpCpuFeatureMask (CpuFeatureInOrder->FeatureMask);
+          }
+        }
       } else {
         Status = CpuFeatureInOrder->InitializeFunc (ProcessorNumber, CpuInfo, CpuFeatureInOrder->ConfigData, FALSE);
+        if (EFI_ERROR (Status)) {
+          if (CpuFeatureInOrder->FeatureName != NULL) {
+            DEBUG ((DEBUG_WARN, "Warning :: Failed to disable Feature: Name = %a.\n", CpuFeatureInOrder->FeatureName));
+          } else {
+            DEBUG ((DEBUG_WARN, "Warning :: Failed to disable Feature: Mask = "));
+            DumpCpuFeatureMask (CpuFeatureInOrder->FeatureMask);
+          }
+        }
       }
-      ASSERT_EFI_ERROR (Status);
       Entry = Entry->ForwardLink;
     }
+
+    //
+    // Dump PcdCpuFeaturesSetting again because this value maybe updated
+    // again during initialize the features.
+    //
+    DEBUG ((DEBUG_INFO, "Dump final value for PcdCpuFeaturesSetting:\n"));
+    DumpCpuFeatureMask (CpuFeaturesData->SettingPcds);
+
     //
     // Dump the RegisterTable
     //

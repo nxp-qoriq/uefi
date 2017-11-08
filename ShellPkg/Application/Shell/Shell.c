@@ -1714,8 +1714,8 @@ ShellConvertVariables (
 EFI_STATUS
 RunSplitCommand(
   IN CONST CHAR16             *CmdLine,
-  IN       SHELL_FILE_HANDLE  *StdIn,
-  IN       SHELL_FILE_HANDLE  *StdOut
+  IN       SHELL_FILE_HANDLE  StdIn,
+  IN       SHELL_FILE_HANDLE  StdOut
   )
 {
   EFI_STATUS        Status;
@@ -1724,7 +1724,7 @@ RunSplitCommand(
   UINTN             Size1;
   UINTN             Size2;
   SPLIT_LIST        *Split;
-  SHELL_FILE_HANDLE *TempFileHandle;
+  SHELL_FILE_HANDLE TempFileHandle;
   BOOLEAN           Unicode;
 
   ASSERT(StdOut == NULL);
@@ -1790,7 +1790,7 @@ RunSplitCommand(
     Split->SplitStdOut  = Split->SplitStdIn;
   }
   Split->SplitStdIn   = TempFileHandle;
-  ShellInfoObject.NewEfiShellProtocol->SetFilePosition(ConvertShellHandleToEfiFileProtocol(Split->SplitStdIn), 0);
+  ShellInfoObject.NewEfiShellProtocol->SetFilePosition (Split->SplitStdIn, 0);
 
   if (!EFI_ERROR(Status)) {
     Status = RunCommand(NextCommandLine);
@@ -1806,11 +1806,10 @@ RunSplitCommand(
   // Note that the original StdIn is now the StdOut...
   //
   if (Split->SplitStdOut != NULL) {
-    ShellInfoObject.NewEfiShellProtocol->CloseFile(ConvertShellHandleToEfiFileProtocol(Split->SplitStdOut));
+    ShellInfoObject.NewEfiShellProtocol->CloseFile (Split->SplitStdOut);
   }
   if (Split->SplitStdIn != NULL) {
-    ShellInfoObject.NewEfiShellProtocol->CloseFile(ConvertShellHandleToEfiFileProtocol(Split->SplitStdIn));
-    FreePool (Split->SplitStdIn);
+    ShellInfoObject.NewEfiShellProtocol->CloseFile (Split->SplitStdIn);
   }
 
   FreePool(Split);
@@ -2615,6 +2614,7 @@ RunShellCommand(
   CHAR16                    *FirstParameter;
   CHAR16                    *TempWalker;
   SHELL_OPERATION_TYPES     Type;
+  CONST CHAR16              *CurDir;
 
   ASSERT(CmdLine != NULL);
   if (StrLen(CmdLine) == 0) {
@@ -2706,7 +2706,22 @@ RunShellCommand(
     ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN (STR_SHELL_NOT_FOUND), ShellInfoObject.HiiHandle, FirstParameter);
     SetLastError(SHELL_NOT_FOUND);
   }
- 
+  //
+  // Check whether the current file system still exists. If not exist, we need update "cwd" and gShellCurMapping.
+  //
+  CurDir = EfiShellGetCurDir (NULL);
+  if (CurDir != NULL) {
+    if (EFI_ERROR(ShellFileExists (CurDir))) {
+      //
+      // EfiShellSetCurDir() cannot set current directory to NULL.
+      // EfiShellSetEnv() is not allowed to set the "cwd" variable.
+      // Only InternalEfiShellSetEnv () is allowed setting the "cwd" variable.
+      //
+      InternalEfiShellSetEnv (L"cwd", NULL, TRUE);
+      gShellCurMapping = NULL;
+    }
+  }
+
   SHELL_FREE_NON_NULL(CleanOriginal);
   SHELL_FREE_NON_NULL(FirstParameter);
 

@@ -86,6 +86,12 @@ Flat32Start:                                   ; protected mode entry point
 
     mov        esi, ebx
 
+    ; Increment the number of APs executing here as early as possible
+    ; This is decremented in C code when AP is finished executing
+    mov        edi, esi
+    add        edi, NumApsExecutingLocation
+    lock inc   dword [edi]
+
     mov         edi, esi
     add         edi, EnableExecuteDisableLocation
     cmp         byte [edi], 0
@@ -130,7 +136,7 @@ TestLock:
     jz         TestLock
 
     mov        ecx, esi
-    add        ecx, NumApsExecutingLocation
+    add        ecx, ApIndexLocation
     inc        dword [ecx]
     mov        ebx, [ecx]
 
@@ -200,7 +206,7 @@ CProcedureInvoke:
     mov        eax, ASM_PFX(InitializeFloatingPointUnits)
     call       eax               ; Call assembly function to initialize FPU per UEFI spec
 
-    push       ebx               ; Push NumApsExecuting
+    push       ebx               ; Push ApIndex
     mov        eax, esi
     add        eax, LockLocation
     push       eax               ; push address of exchange info data buffer

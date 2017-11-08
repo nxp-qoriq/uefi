@@ -1,7 +1,7 @@
 /** @file
 Creates output file that is a properly formed section per the PI spec.
 
-Copyright (c) 2004 - 2016, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2004 - 2017, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials                          
 are licensed and made available under the terms and conditions of the BSD License         
 which accompanies this distribution.  The full text of the license may be found at        
@@ -74,7 +74,8 @@ STATIC CHAR8      *mGUIDedSectionAttribue[]  = { "NONE", "PROCESSING_REQUIRED", 
 
 STATIC CHAR8 *mAlignName[] = {
   "1", "2", "4", "8", "16", "32", "64", "128", "256", "512",
-  "1K", "2K", "4K", "8K", "16K", "32K", "64K"
+  "1K", "2K", "4K", "8K", "16K", "32K", "64K", "128K", "256K",
+  "512K", "1M", "2M", "4M", "8M", "16M"
 };
 
 //
@@ -146,7 +147,7 @@ Returns:
   //
   // Copyright declaration
   // 
-  fprintf (stdout, "Copyright (c) 2007 - 2014, Intel Corporation. All rights reserved.\n\n");
+  fprintf (stdout, "Copyright (c) 2007 - 2017, Intel Corporation. All rights reserved.\n\n");
 
   //
   // Details Option
@@ -184,7 +185,7 @@ Returns:
                         used in Ver section.\n");
   fprintf (stdout, "  --sectionalign SectionAlign\n\
                         SectionAlign points to section alignment, which support\n\
-                        the alignment scope 1~64K. It is specified in same\n\
+                        the alignment scope 1~16M. It is specified in same\n\
                         order that the section file is input.\n");
   fprintf (stdout, "  -v, --verbose         Turn on verbose output with informational messages.\n");
   fprintf (stdout, "  -q, --quiet           Disable all messages except key message and fatal error\n");
@@ -356,7 +357,7 @@ StringtoAlignment (
 
 Routine Description:
 
-  Converts Align String to align value (1~64K). 
+  Converts Align String to align value (1~16M).
 
 Arguments:
 
@@ -1120,6 +1121,10 @@ Returns:
     }
 
     if ((stricmp (argv[0], "-r") == 0) || (stricmp (argv[0], "--attributes") == 0)) {
+      if (argv[1] == NULL) {
+        Error (NULL, 0, 1003, "Invalid option value", "Guid section attributes can't be NULL");
+        goto Finish;
+      }
       if (stricmp (argv[1], mGUIDedSectionAttribue[EFI_GUIDED_SECTION_PROCESSING_REQUIRED]) == 0) {
         SectGuidAttribute |= EFI_GUIDED_SECTION_PROCESSING_REQUIRED;
       } else if (stricmp (argv[1], mGUIDedSectionAttribue[EFI_GUIDED_SECTION_AUTH_STATUS_VALID]) == 0) {

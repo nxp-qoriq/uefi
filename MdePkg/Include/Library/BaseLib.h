@@ -2869,6 +2869,33 @@ PathCleanUpDirectories(
 
 
 /**
+  Checks whether FirstEntry and SecondEntry are part of the same doubly-linked
+  list.
+
+  If FirstEntry is NULL, then ASSERT().
+  If FirstEntry->ForwardLink is NULL, then ASSERT().
+  If FirstEntry->BackLink is NULL, then ASSERT().
+  If SecondEntry is NULL, then ASSERT();
+  If PcdMaximumLinkedListLength is not zero, and List contains more than
+  PcdMaximumLinkedListLength nodes, then ASSERT().
+
+  @param  FirstEntry   A pointer to a node in a linked list.
+  @param  SecondEntry  A pointer to the node to locate.
+
+  @retval TRUE   SecondEntry is in the same doubly-linked list as FirstEntry.
+  @retval FALSE  SecondEntry isn't in the same doubly-linked list as FirstEntry,
+                 or FirstEntry is invalid.
+
+**/
+BOOLEAN
+EFIAPI
+IsNodeInList (
+  IN      CONST LIST_ENTRY      *FirstEntry,
+  IN      CONST LIST_ENTRY      *SecondEntry
+  );
+
+
+/**
   Initializes the head node of a doubly linked list, and returns the pointer to
   the head node of the doubly linked list.
 
@@ -4802,6 +4829,25 @@ CalculateCheckSum64 (
   IN      UINTN                     Length
   );
 
+/**
+  Computes and returns a 32-bit CRC for a data buffer.
+  CRC32 value bases on ITU-T V.42.
+
+  If Buffer is NULL, then ASSERT().
+  If Length is greater than (MAX_ADDRESS - Buffer + 1), then ASSERT().
+
+  @param[in]  Buffer       A pointer to the buffer on which the 32-bit CRC is to be computed.
+  @param[in]  Length       The number of bytes in the buffer Data.
+
+  @retval Crc32            The 32-bit CRC was computed for the data buffer.
+
+**/
+UINT32
+EFIAPI
+CalculateCrc32(
+  IN  VOID                         *Buffer,
+  IN  UINTN                        Length
+  );
 
 //
 // Base Library CPU Functions

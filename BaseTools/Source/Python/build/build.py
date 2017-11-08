@@ -2,7 +2,7 @@
 # build a platform or a module
 #
 #  Copyright (c) 2014, Hewlett-Packard Development Company, L.P.<BR>
-#  Copyright (c) 2007 - 2016, Intel Corporation. All rights reserved.<BR>
+#  Copyright (c) 2007 - 2017, Intel Corporation. All rights reserved.<BR>
 #
 #  This program and the accompanying materials
 #  are licensed and made available under the terms and conditions of the BSD License
@@ -54,7 +54,7 @@ import Common.GlobalData as GlobalData
 # Version and Copyright
 VersionNumber = "0.60" + ' ' + gBUILD_VERSION
 __version__ = "%prog Version " + VersionNumber
-__copyright__ = "Copyright (c) 2007 - 2016, Intel Corporation  All rights reserved."
+__copyright__ = "Copyright (c) 2007 - 2017, Intel Corporation  All rights reserved."
 
 ## standard targets of build command
 gSupportedTarget = ['all', 'genc', 'genmake', 'modules', 'libraries', 'fds', 'clean', 'cleanall', 'cleanlib', 'run']
@@ -257,6 +257,7 @@ def ReadMessage(From, To, ExitFlag):
 # @param  WorkingDir            The directory in which the program will be running
 #
 def LaunchCommand(Command, WorkingDir):
+    BeginTime = time.time()
     # if working directory doesn't exist, Popen() will raise an exception
     if not os.path.isdir(WorkingDir):
         EdkLogger.error("build", FILE_NOT_FOUND, ExtraData=WorkingDir)
@@ -321,6 +322,7 @@ def LaunchCommand(Command, WorkingDir):
             EdkLogger.info(RespContent)
 
         EdkLogger.error("build", COMMAND_FAILURE, ExtraData="%s [%s]" % (Command, WorkingDir))
+    return "%dms" % (int(round((time.time() - BeginTime) * 1000)))
 
 ## The smallest unit that can be built in multi-thread build mode
 #
@@ -665,7 +667,7 @@ class BuildTask:
     #
     def _CommandThread(self, Command, WorkingDir):
         try:
-            LaunchCommand(Command, WorkingDir)
+            self.BuildItem.BuildObject.BuildTime = LaunchCommand(Command, WorkingDir)
             self.CompleteFlag = True
         except:
             #
@@ -763,9 +765,36 @@ class Build():
         self.BuildReport    = BuildReport(BuildOptions.ReportFile, BuildOptions.ReportType)
         self.TargetTxt      = TargetTxtClassObject()
         self.ToolDef        = ToolDefClassObject()
+        self.AutoGenTime    = 0
+        self.MakeTime       = 0
+        self.GenFdsTime     = 0
         GlobalData.BuildOptionPcd     = BuildOptions.OptionPcd
         #Set global flag for build mode
         GlobalData.gIgnoreSource = BuildOptions.IgnoreSources
+        GlobalData.gUseHashCache = BuildOptions.UseHashCache
+        GlobalData.gBinCacheDest   = BuildOptions.BinCacheDest
+        GlobalData.gBinCacheSource = BuildOptions.BinCacheSource
+
+        if GlobalData.gBinCacheDest and not GlobalData.gUseHashCache:
+            EdkLogger.error("build", OPTION_NOT_SUPPORTED, ExtraData="--binary-destination must be used together with --hash.")
+
+        if GlobalData.gBinCacheSource and not GlobalData.gUseHashCache:
+            EdkLogger.error("build", OPTION_NOT_SUPPORTED, ExtraData="--binary-source must be used together with --hash.")
+
+        if GlobalData.gBinCacheDest and GlobalData.gBinCacheSource:
+            EdkLogger.error("build", OPTION_NOT_SUPPORTED, ExtraData="--binary-destination can not be used together with --binary-source.")
+
+        if GlobalData.gBinCacheSource:
+            BinCacheSource = os.path.normpath(GlobalData.gBinCacheSource)
+            if not os.path.isabs(BinCacheSource):
+                BinCacheSource = mws.join(self.WorkspaceDir, BinCacheSource)
+            GlobalData.gBinCacheSource = BinCacheSource
+
+        if GlobalData.gBinCacheDest:
+            BinCacheDest = os.path.normpath(GlobalData.gBinCacheDest)
+            if not os.path.isabs(BinCacheDest):
+                BinCacheDest = mws.join(self.WorkspaceDir, BinCacheDest)
+            GlobalData.gBinCacheDest = BinCacheDest
 
         if self.ConfDirectory:
             # Get alternate Conf location, if it is absolute, then just use the absolute directory name
@@ -796,8 +825,6 @@ class Build():
         self.BuildModules = []
         self.Db_Flag = False
         self.LaunchPrebuildFlag = False
-        self.PrebuildScript = ''
-        self.PostbuildScript = ''
         self.PlatformBuildPath = os.path.join(GlobalData.gConfDirectory,'.cache', '.PlatformBuild')
         if BuildOptions.CommandLength:
             GlobalData.gCommandMaxLength = BuildOptions.CommandLength
@@ -819,11 +846,11 @@ class Build():
         EdkLogger.quiet("%-16s = %s" % ("CONF_PATH", GlobalData.gConfDirectory))
         self.InitPreBuild()
         self.InitPostBuild()
-        if self.PrebuildScript:
-            EdkLogger.quiet("%-16s = %s" % ("PREBUILD", self.PrebuildScript))
-        if self.PostbuildScript:
-            EdkLogger.quiet("%-16s = %s" % ("POSTBUILD", self.PostbuildScript))
-        if self.PrebuildScript:
+        if self.Prebuild:
+            EdkLogger.quiet("%-16s = %s" % ("PREBUILD", self.Prebuild))
+        if self.Postbuild:
+            EdkLogger.quiet("%-16s = %s" % ("POSTBUILD", self.Postbuild))
+        if self.Prebuild:
             self.LaunchPrebuild()
             self.TargetTxt = TargetTxtClassObject()
             self.ToolDef   = ToolDefClassObject()
@@ -890,7 +917,7 @@ class Build():
         for Tool in self.ToolChainList:
             if TAB_TOD_DEFINES_FAMILY not in ToolDefinition or Tool not in ToolDefinition[TAB_TOD_DEFINES_FAMILY] \
                or not ToolDefinition[TAB_TOD_DEFINES_FAMILY][Tool]:
-                EdkLogger.warn("No tool chain family found in configuration for %s. Default to MSFT." % Tool)
+                EdkLogger.warn("build", "No tool chain family found in configuration for %s. Default to MSFT." % Tool)
                 ToolChainFamily.append("MSFT")
             else:
                 ToolChainFamily.append(ToolDefinition[TAB_TOD_DEFINES_FAMILY][Tool])
@@ -964,16 +991,37 @@ class Build():
             Platform = self.Db._MapPlatform(str(self.PlatformFile))
             self.Prebuild = str(Platform.Prebuild)
         if self.Prebuild:
-            PrebuildList = self.Prebuild.split()
-            if not os.path.isabs(PrebuildList[0]):
-                PrebuildList[0] = mws.join(self.WorkspaceDir, PrebuildList[0])
-            if os.path.isfile(PrebuildList[0]):
-                self.PrebuildScript = PrebuildList[0]
-                self.Prebuild = ' '.join(PrebuildList)
-                self.Prebuild += self.PassCommandOption(self.BuildTargetList, self.ArchList, self.ToolChainList)
-                #self.LaunchPrebuild()
-            else:
-                EdkLogger.error("Prebuild", PREBUILD_ERROR, "the prebuild script %s is not exist.\n If you'd like to disable the Prebuild process, please use the format: -D PREBUILD=\"\" " %(PrebuildList[0]))
+            PrebuildList = []
+            #
+            # Evaluate all arguments and convert arguments that are WORKSPACE
+            # relative paths to absolute paths.  Filter arguments that look like
+            # flags or do not follow the file/dir naming rules to avoid false
+            # positives on this conversion.
+            #
+            for Arg in self.Prebuild.split():
+                #
+                # Do not modify Arg if it looks like a flag or an absolute file path
+                #
+                if Arg.startswith('-')  or os.path.isabs(Arg):
+                    PrebuildList.append(Arg)
+                    continue
+                #
+                # Do not modify Arg if it does not look like a Workspace relative
+                # path that starts with a valid package directory name
+                #
+                if not Arg[0].isalpha() or os.path.dirname(Arg) == '':
+                    PrebuildList.append(Arg)
+                    continue
+                #
+                # If Arg looks like a WORKSPACE relative path, then convert to an
+                # absolute path and check to see if the file exists.
+                #
+                Temp = mws.join(self.WorkspaceDir, Arg)
+                if os.path.isfile(Temp):
+                    Arg = Temp
+                PrebuildList.append(Arg)
+            self.Prebuild       = ' '.join(PrebuildList)
+            self.Prebuild += self.PassCommandOption(self.BuildTargetList, self.ArchList, self.ToolChainList, self.PlatformFile, self.Target)
 
     def InitPostBuild(self):
         if 'POSTBUILD' in GlobalData.gCommandLineDefines.keys():
@@ -982,24 +1030,46 @@ class Build():
             Platform = self.Db._MapPlatform(str(self.PlatformFile))
             self.Postbuild = str(Platform.Postbuild)
         if self.Postbuild:
-            PostbuildList = self.Postbuild.split()
-            if not os.path.isabs(PostbuildList[0]):
-                PostbuildList[0] = mws.join(self.WorkspaceDir, PostbuildList[0])
-            if os.path.isfile(PostbuildList[0]):
-                self.PostbuildScript = PostbuildList[0]
-                self.Postbuild = ' '.join(PostbuildList)
-                self.Postbuild += self.PassCommandOption(self.BuildTargetList, self.ArchList, self.ToolChainList)
-                #self.LanuchPostbuild()
-            else:
-                EdkLogger.error("Postbuild", POSTBUILD_ERROR, "the postbuild script %s is not exist.\n If you'd like to disable the Postbuild process, please use the format: -D POSTBUILD=\"\" " %(PostbuildList[0]))
+            PostbuildList = []
+            #
+            # Evaluate all arguments and convert arguments that are WORKSPACE
+            # relative paths to absolute paths.  Filter arguments that look like
+            # flags or do not follow the file/dir naming rules to avoid false
+            # positives on this conversion.
+            #
+            for Arg in self.Postbuild.split():
+                #
+                # Do not modify Arg if it looks like a flag or an absolute file path
+                #
+                if Arg.startswith('-')  or os.path.isabs(Arg):
+                    PostbuildList.append(Arg)
+                    continue
+                #
+                # Do not modify Arg if it does not look like a Workspace relative
+                # path that starts with a valid package directory name
+                #
+                if not Arg[0].isalpha() or os.path.dirname(Arg) == '':
+                    PostbuildList.append(Arg)
+                    continue
+                #
+                # If Arg looks like a WORKSPACE relative path, then convert to an
+                # absolute path and check to see if the file exists.
+                #
+                Temp = mws.join(self.WorkspaceDir, Arg)
+                if os.path.isfile(Temp):
+                    Arg = Temp
+                PostbuildList.append(Arg)
+            self.Postbuild       = ' '.join(PostbuildList)
+            self.Postbuild += self.PassCommandOption(self.BuildTargetList, self.ArchList, self.ToolChainList, self.PlatformFile, self.Target)
 
-    def PassCommandOption(self, BuildTarget, TargetArch, ToolChain):
+    def PassCommandOption(self, BuildTarget, TargetArch, ToolChain, PlatformFile, Target):
         BuildStr = ''
         if GlobalData.gCommand and isinstance(GlobalData.gCommand, list):
             BuildStr += ' ' + ' '.join(GlobalData.gCommand)
         TargetFlag = False
         ArchFlag = False
         ToolChainFlag = False
+        PlatformFileFlag = False
 
         if GlobalData.gOptions and not GlobalData.gOptions.BuildTarget:
             TargetFlag = True
@@ -1007,6 +1077,8 @@ class Build():
             ArchFlag = True
         if GlobalData.gOptions and not GlobalData.gOptions.ToolChain:
             ToolChainFlag = True
+        if GlobalData.gOptions and not GlobalData.gOptions.PlatformFile:
+            PlatformFileFlag = True
 
         if TargetFlag and BuildTarget:
             if isinstance(BuildTarget, list) or isinstance(BuildTarget, tuple):
@@ -1023,6 +1095,14 @@ class Build():
                 BuildStr += ' -t ' + ' -t '.join(ToolChain)
             elif isinstance(ToolChain, str):
                 BuildStr += ' -t ' + ToolChain
+        if PlatformFileFlag and PlatformFile:
+            if isinstance(PlatformFile, list) or isinstance(PlatformFile, tuple):
+                BuildStr += ' -p ' + ' -p '.join(PlatformFile)
+            elif isinstance(PlatformFile, str):
+                BuildStr += ' -p' + PlatformFile
+        BuildStr += ' --conf=' + GlobalData.gConfDirectory
+        if Target:
+            BuildStr += ' ' + Target
 
         return BuildStr
 
@@ -1030,6 +1110,11 @@ class Build():
         if self.Prebuild:
             EdkLogger.info("\n- Prebuild Start -\n")
             self.LaunchPrebuildFlag = True
+            #
+            # The purpose of .PrebuildEnv file is capture environment variable settings set by the prebuild script
+            # and preserve them for the rest of the main build step, because the child process environment will
+            # evaporate as soon as it exits, we cannot get it in build step.
+            #
             PrebuildEnvFile = os.path.join(GlobalData.gConfDirectory,'.cache','.PrebuildEnv')
             if os.path.isfile(PrebuildEnvFile):
                 os.remove(PrebuildEnvFile)
@@ -1037,10 +1122,10 @@ class Build():
                 os.remove(self.PlatformBuildPath)
             if sys.platform == "win32":
                 args = ' && '.join((self.Prebuild, 'set > ' + PrebuildEnvFile))
-                Process = Popen(args, stdout=PIPE, stderr=PIPE)
+                Process = Popen(args, stdout=PIPE, stderr=PIPE, shell=True)
             else:
                 args = ' && '.join((self.Prebuild, 'env > ' + PrebuildEnvFile))
-                Process = Popen(args, stdout=PIPE, stderr=PIPE, shell=True, executable="/bin/bash")
+                Process = Popen(args, stdout=PIPE, stderr=PIPE, shell=True)
 
             # launch two threads to read the STDOUT and STDERR
             EndOfProcedure = Event()
@@ -1076,13 +1161,13 @@ class Build():
                 os.environ.update(dict(envs))
             EdkLogger.info("\n- Prebuild Done -\n")
 
-    def LanuchPostbuild(self):
+    def LaunchPostbuild(self):
         if self.Postbuild:
             EdkLogger.info("\n- Postbuild Start -\n")
             if sys.platform == "win32":
-                Process = Popen(self.Postbuild, stdout=PIPE, stderr=PIPE)
+                Process = Popen(self.Postbuild, stdout=PIPE, stderr=PIPE, shell=True)
             else:
-                Process = Popen(self.Postbuild, stdout=PIPE, stderr=PIPE, shell=True, executable="/bin/bash")
+                Process = Popen(self.Postbuild, stdout=PIPE, stderr=PIPE, shell=True)
             # launch two threads to read the STDOUT and STDERR
             EndOfProcedure = Event()
             EndOfProcedure.clear()
@@ -1283,7 +1368,7 @@ class Build():
         if BuildModule:
             if Target != 'fds':
                 BuildCommand = BuildCommand + [Target]
-            LaunchCommand(BuildCommand, AutoGenObject.MakeFileDir)
+            AutoGenObject.BuildTime = LaunchCommand(BuildCommand, AutoGenObject.MakeFileDir)
             self.CreateAsBuiltInf()
             return True
 
@@ -1500,7 +1585,7 @@ class Build():
                         if IsIpfPlatform and ImageInfo.Image.Size % 0x2000 != 0:
                             ImageInfo.Image.Size = (ImageInfo.Image.Size / 0x2000 + 1) * 0x2000
                         RtSize += ImageInfo.Image.Size
-                    elif Module.ModuleType in ['SMM_CORE', 'DXE_SMM_DRIVER']:
+                    elif Module.ModuleType in ['SMM_CORE', 'DXE_SMM_DRIVER', 'MM_STANDALONE', 'MM_CORE_STANDALONE']:
                         SmmModuleList[Module.MetaFile] = ImageInfo
                         SmmSize += ImageInfo.Image.Size
                         if Module.ModuleType == 'DXE_SMM_DRIVER':
@@ -1704,6 +1789,7 @@ class Build():
             GlobalData.gGlobalDefines['TARGET'] = BuildTarget
             index = 0
             for ToolChain in self.ToolChainList:
+                WorkspaceAutoGenTime = time.time()
                 GlobalData.gGlobalDefines['TOOLCHAIN'] = ToolChain
                 GlobalData.gGlobalDefines['TOOL_CHAIN_TAG'] = ToolChain
                 GlobalData.gGlobalDefines['FAMILY'] = self.ToolChainFamily[index]
@@ -1735,14 +1821,60 @@ class Build():
                 Wa.CreateMakeFile(False)
                 self.Progress.Stop("done!")
                 MaList = []
+                ExitFlag = threading.Event()
+                ExitFlag.clear()
+                self.AutoGenTime += int(round((time.time() - WorkspaceAutoGenTime)))
                 for Arch in Wa.ArchList:
+                    AutoGenStart = time.time()
                     GlobalData.gGlobalDefines['ARCH'] = Arch
-                    Ma = ModuleAutoGen(Wa, self.ModuleFile, BuildTarget, ToolChain, Arch, self.PlatformFile)
-                    if Ma == None: continue
-                    MaList.append(Ma)
-                    self.BuildModules.append(Ma)
-                    if not Ma.IsBinaryModule:
-                        self._Build(self.Target, Ma, BuildModule=True)
+                    Pa = PlatformAutoGen(Wa, self.PlatformFile, BuildTarget, ToolChain, Arch)
+                    for Module in Pa.Platform.Modules:
+                        if self.ModuleFile.Dir == Module.Dir and self.ModuleFile.Name == Module.Name:
+                            Ma = ModuleAutoGen(Wa, Module, BuildTarget, ToolChain, Arch, self.PlatformFile)
+                            if Ma == None: continue
+                            # Not to auto-gen for targets 'clean', 'cleanlib', 'cleanall', 'run', 'fds'
+                            if self.Target not in ['clean', 'cleanlib', 'cleanall', 'run', 'fds']:
+                                # for target which must generate AutoGen code and makefile
+                                if not self.SkipAutoGen or self.Target == 'genc':
+                                    Ma.CreateCodeFile(True)
+                                if self.Target == "genc":
+                                    continue
+
+                                if not self.SkipAutoGen or self.Target == 'genmake':
+                                    Ma.CreateMakeFile(True)
+                                if self.Target == "genmake":
+                                    continue
+                            MaList.append(Ma)
+                            self.BuildModules.append(Ma)
+                    self.AutoGenTime += int(round((time.time() - AutoGenStart)))
+                    MakeStart = time.time()
+                    for Ma in self.BuildModules:
+                        if not Ma.IsBinaryModule:
+                            Bt = BuildTask.New(ModuleMakeUnit(Ma, self.Target))
+                        # Break build if any build thread has error
+                        if BuildTask.HasError():
+                            # we need a full version of makefile for platform
+                            ExitFlag.set()
+                            BuildTask.WaitForComplete()
+                            Pa.CreateMakeFile(False)
+                            EdkLogger.error("build", BUILD_ERROR, "Failed to build module", ExtraData=GlobalData.gBuildingModule)
+                        # Start task scheduler
+                        if not BuildTask.IsOnGoing():
+                            BuildTask.StartScheduler(self.ThreadNumber, ExitFlag)
+
+                    # in case there's an interruption. we need a full version of makefile for platform
+                    Pa.CreateMakeFile(False)
+                    if BuildTask.HasError():
+                        EdkLogger.error("build", BUILD_ERROR, "Failed to build module", ExtraData=GlobalData.gBuildingModule)
+                    self.MakeTime += int(round((time.time() - MakeStart)))
+
+                MakeContiue = time.time()
+                ExitFlag.set()
+                BuildTask.WaitForComplete()
+                self.CreateAsBuiltInf()
+                self.MakeTime += int(round((time.time() - MakeContiue)))
+                if BuildTask.HasError():
+                    EdkLogger.error("build", BUILD_ERROR, "Failed to build module", ExtraData=GlobalData.gBuildingModule)
 
                 self.BuildReport.AddPlatformReport(Wa, MaList)
                 if MaList == []:
@@ -1783,7 +1915,9 @@ class Build():
                     #
                     # create FDS again for the updated EFI image
                     #
+                    GenFdsStart = time.time()
                     self._Build("fds", Wa)
+                    self.GenFdsTime += int(round((time.time() - GenFdsStart)))
                     #
                     # Create MAP file for all platform FVs after GenFds.
                     #
@@ -1801,6 +1935,7 @@ class Build():
             GlobalData.gGlobalDefines['TARGET'] = BuildTarget
             index = 0
             for ToolChain in self.ToolChainList:
+                WorkspaceAutoGenTime = time.time()
                 GlobalData.gGlobalDefines['TOOLCHAIN'] = ToolChain
                 GlobalData.gGlobalDefines['TOOL_CHAIN_TAG'] = ToolChain
                 GlobalData.gGlobalDefines['FAMILY'] = self.ToolChainFamily[index]
@@ -1830,7 +1965,9 @@ class Build():
                 # multi-thread exit flag
                 ExitFlag = threading.Event()
                 ExitFlag.clear()
+                self.AutoGenTime += int(round((time.time() - WorkspaceAutoGenTime)))
                 for Arch in Wa.ArchList:
+                    AutoGenStart = time.time()
                     GlobalData.gGlobalDefines['ARCH'] = Arch
                     Pa = PlatformAutoGen(Wa, self.PlatformFile, BuildTarget, ToolChain, Arch)
                     if Pa == None:
@@ -1851,6 +1988,9 @@ class Build():
                         
                         if Ma == None:
                             continue
+                        if Ma.CanSkipbyHash():
+                            continue
+
                         # Not to auto-gen for targets 'clean', 'cleanlib', 'cleanall', 'run', 'fds'
                         if self.Target not in ['clean', 'cleanlib', 'cleanall', 'run', 'fds']:
                             # for target which must generate AutoGen code and makefile
@@ -1865,7 +2005,8 @@ class Build():
                                 continue
                         self.BuildModules.append(Ma)
                     self.Progress.Stop("done!")
-
+                    self.AutoGenTime += int(round((time.time() - AutoGenStart)))
+                    MakeStart = time.time()
                     for Ma in self.BuildModules:
                         # Generate build task for the module
                         if not Ma.IsBinaryModule:
@@ -1885,7 +2026,9 @@ class Build():
                     Pa.CreateMakeFile(False)
                     if BuildTask.HasError():
                         EdkLogger.error("build", BUILD_ERROR, "Failed to build module", ExtraData=GlobalData.gBuildingModule)
+                    self.MakeTime += int(round((time.time() - MakeStart)))
 
+                MakeContiue = time.time()
                 #
                 # Save temp tables to a TmpTableDict.
                 #
@@ -1901,7 +2044,7 @@ class Build():
                 ExitFlag.set()
                 BuildTask.WaitForComplete()
                 self.CreateAsBuiltInf()
-
+                self.MakeTime += int(round((time.time() - MakeContiue)))
                 #
                 # Check for build error, and raise exception if one
                 # has been signaled.
@@ -1938,12 +2081,14 @@ class Build():
                         #
                         # Generate FD image if there's a FDF file found
                         #
+                        GenFdsStart = time.time()
                         LaunchCommand(Wa.GenFdsCommand, os.getcwd())
 
                         #
                         # Create MAP file for all platform FVs after GenFds.
                         #
                         self._CollectFvMapBuffer(MapBuffer, Wa, ModuleList)
+                        self.GenFdsTime += int(round((time.time() - GenFdsStart)))
                     #
                     # Save MAP buffer into MAP file.
                     #
@@ -2092,6 +2237,18 @@ def SingleCheckCallback(option, opt_str, value, parser):
     else:
         parser.error("Option %s only allows one instance in command line!" % option)
 
+def LogBuildTime(Time):
+    if Time:
+        TimeDurStr = ''
+        TimeDur = time.gmtime(Time)
+        if TimeDur.tm_yday > 1:
+            TimeDurStr = time.strftime("%H:%M:%S", TimeDur) + ", %d day(s)" % (TimeDur.tm_yday - 1)
+        else:
+            TimeDurStr = time.strftime("%H:%M:%S", TimeDur)
+        return TimeDurStr
+    else:
+        return None
+
 ## Parse command line options
 #
 # Using standard Python module optparse to parse command line option of this tool.
@@ -2145,7 +2302,7 @@ def MyOptionParser():
     Parser.add_option("-y", "--report-file", action="store", dest="ReportFile", help="Create/overwrite the report to the specified filename.")
     Parser.add_option("-Y", "--report-type", action="append", type="choice", choices=['PCD','LIBRARY','FLASH','DEPEX','BUILD_FLAGS','FIXED_ADDRESS','HASH','EXECUTION_ORDER'], dest="ReportType", default=[],
         help="Flags that control the type of build report to generate.  Must be one of: [PCD, LIBRARY, FLASH, DEPEX, BUILD_FLAGS, FIXED_ADDRESS, HASH, EXECUTION_ORDER].  "\
-             "To specify more than one flag, repeat this option on the command line and the default flag set is [PCD, LIBRARY, FLASH, DEPEX, BUILD_FLAGS, FIXED_ADDRESS]")
+             "To specify more than one flag, repeat this option on the command line and the default flag set is [PCD, LIBRARY, FLASH, DEPEX, HASH, BUILD_FLAGS, FIXED_ADDRESS]")
     Parser.add_option("-F", "--flag", action="store", type="string", dest="Flag",
         help="Specify the specific option to parse EDK UNI file. Must be one of: [-c, -s]. -c is for EDK framework UNI file, and -s is for EDK UEFI UNI file. "\
              "This option can also be specified by setting *_*_*_BUILD_FLAGS in [BuildOptions] section of platform DSC. If they are both specified, this value "\
@@ -2156,6 +2313,9 @@ def MyOptionParser():
     Parser.add_option("--ignore-sources", action="store_true", dest="IgnoreSources", default=False, help="Focus to a binary build and ignore all source files")
     Parser.add_option("--pcd", action="append", dest="OptionPcd", help="Set PCD value by command line. Format: \"PcdName=Value\" ")
     Parser.add_option("-l", "--cmd-len", action="store", type="int", dest="CommandLength", help="Specify the maximum line length of build command. Default is 4096.")
+    Parser.add_option("--hash", action="store_true", dest="UseHashCache", default=False, help="Enable hash-based caching during build process.")
+    Parser.add_option("--binary-destination", action="store", type="string", dest="BinCacheDest", help="Generate a cache of binary files in the specified directory.")
+    Parser.add_option("--binary-source", action="store", type="string", dest="BinCacheSource", help="Consume a cache of binary files from the specified directory.")
 
     (Opt, Args) = Parser.parse_args()
     return (Opt, Args)
@@ -2331,7 +2491,7 @@ def Main():
 
     if ReturnCode == 0:
         try:
-            MyBuild.LanuchPostbuild()
+            MyBuild.LaunchPostbuild()
             Conclusion = "Done"
         except:
             Conclusion = "Failed"
@@ -2348,7 +2508,7 @@ def Main():
         BuildDurationStr = time.strftime("%H:%M:%S", BuildDuration)
     if MyBuild != None:
         if not BuildError:
-            MyBuild.BuildReport.GenerateReport(BuildDurationStr)
+            MyBuild.BuildReport.GenerateReport(BuildDurationStr, LogBuildTime(MyBuild.AutoGenTime), LogBuildTime(MyBuild.MakeTime), LogBuildTime(MyBuild.GenFdsTime))
         MyBuild.Db.Close()
     EdkLogger.SetLevel(EdkLogger.QUIET)
     EdkLogger.quiet("\n- %s -" % Conclusion)

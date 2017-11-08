@@ -24,6 +24,8 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <Library/BaseLib.h>
 #include <Library/TpmMeasurementLib.h>
 
+#include "PrivilegePolymorphic.h"
+
 typedef struct {
   CHAR16                                 *VariableName;
   EFI_GUID                               *VendorGuid;
@@ -125,7 +127,7 @@ MeasureVariable (
        );
   }
 
-  DEBUG ((EFI_D_INFO, "AuthVariableDxe: MeasureVariable (Pcr - %x, EventType - %x, ", (UINTN)7, (UINTN)EV_EFI_VARIABLE_AUTHORITY));
+  DEBUG ((EFI_D_INFO, "VariableDxe: MeasureVariable (Pcr - %x, EventType - %x, ", (UINTN)7, (UINTN)EV_EFI_VARIABLE_DRIVER_CONFIG));
   DEBUG ((EFI_D_INFO, "VariableName - %s, VendorGuid - %g)\n", VarName, VendorGuid));
 
   Status = TpmMeasureAndLogData (

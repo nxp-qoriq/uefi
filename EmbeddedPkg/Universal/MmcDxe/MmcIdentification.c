@@ -13,6 +13,7 @@
 **/
 
 #include <Library/BaseMemoryLib.h>
+#include <Library/MemoryAllocationLib.h>
 #include <Library/TimerLib.h>
 
 #include "Mmc.h"
@@ -210,15 +211,19 @@ EmmcIdentificationMode (
   }
 
   // Fetch ECSD
-  Status = Host->SendCommand (Host, MMC_CMD8, RCA);
+  MmcHostInstance->CardInfo.ECSDData = AllocatePages (EFI_SIZE_TO_PAGES (sizeof (ECSD)));
+  if (MmcHostInstance->CardInfo.ECSDData == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
+  Status = Host->SendCommand (Host, MMC_CMD8, 0);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "EmmcIdentificationMode(): ECSD fetch error, Status=%r.\n", Status));
   }
 
-  Status = Host->ReadBlockData (Host, 0, 512, (UINT32 *)&(MmcHostInstance->CardInfo.ECSDData));
+  Status = Host->ReadBlockData (Host, 0, 512, (UINT32 *)MmcHostInstance->CardInfo.ECSDData);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "EmmcIdentificationMode(): ECSD read error, Status=%r.\n", Status));
-    return Status;
+    goto FreePageExit;
   }
 
   // Make sure device exiting data mode
@@ -226,7 +231,7 @@ EmmcIdentificationMode (
     Status = EmmcGetDeviceState (MmcHostInstance, &State);
     if (EFI_ERROR (Status)) {
       DEBUG ((EFI_D_ERROR, "EmmcIdentificationMode(): Failed to get device state, Status=%r.\n", Status));
-      return Status;
+      goto FreePageExit;
     }
   } while (State == EMMC_DATA_STATE);
 
@@ -237,12 +242,16 @@ EmmcIdentificationMode (
   Media->LogicalBlocksPerPhysicalBlock = 1;
   Media->IoAlign = 4;
   // Compute last block using bits [215:212] of the ECSD
-  Media->LastBlock = MmcHostInstance->CardInfo.ECSDData.SECTOR_COUNT - 1; // eMMC isn't supposed to report this for
+  Media->LastBlock = MmcHostInstance->CardInfo.ECSDData->SECTOR_COUNT - 1; // eMMC isn't supposed to report this for
   // Cards <2GB in size, but the model does.
 
   // Setup card type
   MmcHostInstance->CardInfo.CardType = EMMC_CARD;
   return EFI_SUCCESS;
+
+FreePageExit:
+  FreePages (MmcHostInstance->CardInfo.ECSDData, EFI_SIZE_TO_PAGES (sizeof (ECSD)));
+  return Status;
 }
 
 STATIC
@@ -254,11 +263,11 @@ InitializeEmmcDevice (
   EFI_MMC_HOST_PROTOCOL *Host;
   EFI_STATUS Status = EFI_SUCCESS;
   ECSD       *ECSDData;
-  UINT32     BusClockFreq, Idx;
+  UINT32     BusClockFreq, Idx, BusMode;
   UINT32     TimingMode[4] = {EMMCHS52DDR1V2, EMMCHS52DDR1V8, EMMCHS52, EMMCHS26};
 
   Host  = MmcHostInstance->MmcHost;
-  ECSDData = &MmcHostInstance->CardInfo.ECSDData;
+  ECSDData = MmcHostInstance->CardInfo.ECSDData;
   if (ECSDData->DEVICE_TYPE == EMMCBACKWARD)
     return EFI_SUCCESS;
 
@@ -286,7 +295,19 @@ InitializeEmmcDevice (
     }
     Status = Host->SetIos (Host, BusClockFreq, 8, TimingMode[Idx]);
     if (!EFI_ERROR (Status)) {
-      Status = EmmcSetEXTCSD (MmcHostInstance, EXTCSD_BUS_WIDTH, EMMC_BUS_WIDTH_DDR_8BIT);
+      switch (TimingMode[Idx]) {
+      case EMMCHS52DDR1V2:
+      case EMMCHS52DDR1V8:
+        BusMode = EMMC_BUS_WIDTH_DDR_8BIT;
+        break;
+      case EMMCHS52:
+      case EMMCHS26:
+        BusMode = EMMC_BUS_WIDTH_8BIT;
+        break;
+      default:
+        return EFI_UNSUPPORTED;
+      }
+      Status = EmmcSetEXTCSD (MmcHostInstance, EXTCSD_BUS_WIDTH, BusMode);
       if (EFI_ERROR (Status)) {
         DEBUG ((DEBUG_ERROR, "InitializeEmmcDevice(): Failed to set EXTCSD bus width, Status:%r\n", Status));
       }
@@ -296,11 +317,10 @@ InitializeEmmcDevice (
   return Status;
 }
 
-
 STATIC
 UINT32
 CreateSwitchCmdArgument (
-  IN  UINT8  Mode,
+  IN  UINT32 Mode,
   IN  UINT8  Group,
   IN  UINT8  Value
   )
@@ -332,7 +352,7 @@ InitializeSdMmcDevice (
   EFI_STATUS    Status;
   EFI_MMC_HOST_PROTOCOL     *MmcHost;
 
-  Speed = 25000000;
+  Speed = SD_DEFAULT_SPEED;
   MmcHost = MmcHostInstance->MmcHost;
 
   // Send a command to get Card specific data
@@ -387,12 +407,12 @@ InitializeSdMmcDevice (
 
   Status = MmcHost->SendCommand (MmcHost, MMC_CMD55, CmdArg);
   if (EFI_ERROR (Status)) {
-    DEBUG ((EFI_D_ERROR, "%a(MMC_CMD55): Error and Status = %r\n", Status));
+    DEBUG ((DEBUG_ERROR, "%a (MMC_CMD55): Error and Status = %r\n", __FUNCTION__, Status));
     return Status;
   }
   Status = MmcHost->ReceiveResponse (MmcHost, MMC_RESPONSE_TYPE_R1, Response);
   if (EFI_ERROR (Status)) {
-    DEBUG ((EFI_D_ERROR, "%a(MMC_CMD55): Error and Status = %r\n", Status));
+    DEBUG ((DEBUG_ERROR, "%a (MMC_CMD55): Error and Status = %r\n", __FUNCTION__, Status));
     return Status;
   }
   if ((Response[0] & MMC_STATUS_APP_CMD) == 0) {
@@ -442,65 +462,63 @@ InitializeSdMmcDevice (
     CmdArg = CreateSwitchCmdArgument(0, 0, 0);
     Status = MmcHost->SendCommand (MmcHost, MMC_CMD6, CmdArg);
     if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_ERROR, "%a(MMC_CMD6): Failed with Status = %r\n", __func__, Status));
+      DEBUG ((DEBUG_ERROR, "%a (MMC_CMD6): Error and Status = %r\n", __FUNCTION__, Status));
        return Status;
     } else {
-      Status = MmcHost->ReadBlockData (MmcHost, 0, 64, Buffer);
+      Status = MmcHost->ReadBlockData (MmcHost, 0, SWITCH_CMD_DATA_LENGTH, Buffer);
       if (EFI_ERROR (Status)) {
-        DEBUG ((EFI_D_ERROR, "%a(MMC_CMD6): ReadBlockData Failed with Status = %r\n", __func__, Status));
+        DEBUG ((DEBUG_ERROR, "%a (MMC_CMD6): ReadBlockData Error and Status = %r\n", __FUNCTION__, Status));
         return Status;
       }
     }
 
-    if (!(Buffer[3] & 0x20000)) {
-      DEBUG ((EFI_D_ERROR, "%aHigh Speed not supported by Card %r\n", __func__, Status));
+    if (!(Buffer[3] & SD_HIGH_SPEED_SUPPORTED)) {
+      DEBUG ((DEBUG_ERROR, "%a : High Speed not supported by Card %r\n", __FUNCTION__, Status));
       return Status;
     }
 
-    Speed = 50000000;       //High Speed for SD card is 50 MHZ
+    Speed = SD_HIGH_SPEED;
 
     /* SD Switch, Mode:1, Group:0, Value:1 */
     CmdArg = CreateSwitchCmdArgument(1, 0, 1);
     Status = MmcHost->SendCommand (MmcHost, MMC_CMD6, CmdArg);
     if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_ERROR, "%a(MMC_CMD6): Error and Status = %r\n", __func__, Status));
+      DEBUG ((DEBUG_ERROR, "%a (MMC_CMD6): Error and Status = %r\n", __FUNCTION__, Status));
        return Status;
     } else {
-      Status = MmcHost->ReadBlockData (MmcHost, 0, 64, Buffer);
+      Status = MmcHost->ReadBlockData (MmcHost, 0, SWITCH_CMD_DATA_LENGTH, Buffer);
       if (EFI_ERROR (Status)) {
-        DEBUG ((EFI_D_ERROR, "%a(MMC_CMD6): ReadBlockData Error and Status = %r\n",__func__, Status));
+        DEBUG ((DEBUG_ERROR, "%a (MMC_CMD6): ReadBlockData Error and Status = %r\n", __FUNCTION__, Status));
         return Status;
       }
 
-      if ((Buffer[4] & 0x0f000000) != 0x01000000) {
-        DEBUG((EFI_D_ERROR, "Problem switching SD card into high-speed mode\n"));
+      if ((Buffer[4] & SWITCH_CMD_SUCCESS_MASK) != 0x01000000) {
+        DEBUG((DEBUG_ERROR, "Problem switching SD card into high-speed mode\n"));
         return Status;
       }
     }
   }
-
   if (Scr.SD_BUS_WIDTHS & SD_BUS_WIDTH_4BIT) {
     CmdArg = MmcHostInstance->CardInfo.RCA << 16;
     Status = MmcHost->SendCommand (MmcHost, MMC_CMD55, CmdArg);
     if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_ERROR, "%a(MMC_CMD55): Error and Status = %r\n", __func__, Status));
+      DEBUG ((DEBUG_ERROR, "%a (MMC_CMD55): Error and Status = %r\n", __FUNCTION__, Status));
       return Status;
     }
     /* Width: 4 */
     Status = MmcHost->SendCommand (MmcHost, MMC_CMD6, 2);
     if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_ERROR, "%a(MMC_CMD6): Error and Status = %r\n", __func__, Status));
+      DEBUG ((DEBUG_ERROR, "%a (MMC_CMD6): Error and Status = %r\n", __FUNCTION__, Status));
       return Status;
     }
   }
   if (MMC_HOST_HAS_SETIOS(MmcHost)) {
-    Status = MmcHost->SetIos (MmcHost, Speed, 4, EMMCBACKWARD);
+    Status = MmcHost->SetIos (MmcHost, Speed, BUSWIDTH_4, EMMCBACKWARD);
     if (EFI_ERROR (Status)) {
-      DEBUG ((EFI_D_ERROR, "%a(SetIos): Error and Status = %r\n", __func__, Status));
+      DEBUG ((DEBUG_ERROR, "%a (SetIos): Error and Status = %r\n", __FUNCTION__, Status));
       return Status;
     }
   }
-
   return EFI_SUCCESS;
 }
 

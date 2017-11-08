@@ -1,7 +1,7 @@
 /** @file
   x64 CPU Exception Handler.
 
-  Copyright (c) 2012 - 2016, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2012 - 2017, Intel Corporation. All rights reserved.<BR>
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -29,7 +29,7 @@ ArchUpdateIdtEntry (
 {
   IdtEntry->Bits.OffsetLow   = (UINT16)(UINTN)InterruptHandler;
   IdtEntry->Bits.OffsetHigh  = (UINT16)((UINTN)InterruptHandler >> 16);
-  IdtEntry->Bits.OffsetUpper = (UINT32)((UINTN)InterruptHandler >> 32);	
+  IdtEntry->Bits.OffsetUpper = (UINT32)((UINTN)InterruptHandler >> 32);
   IdtEntry->Bits.GateType    = IA32_IDT_GATE_TYPE_INTERRUPT_32;
 }
 
@@ -79,7 +79,7 @@ ArchSaveExceptionContext (
   // Clear IF flag to avoid old IDT handler enable interrupt by IRET
   //
   Eflags.UintN = SystemContext.SystemContextX64->Rflags;
-  Eflags.Bits.IF = 0; 
+  Eflags.Bits.IF = 0;
   SystemContext.SystemContextX64->Rflags = Eflags.UintN;
   //
   // Modify the EIP in stack, then old IDT handler will return to the stub code
@@ -119,33 +119,43 @@ ArchRestoreExceptionContext (
   @param SystemContext  Pointer to EFI_SYSTEM_CONTEXT.
 **/
 VOID
-DumpCpuContent (
+EFIAPI
+DumpCpuContext (
   IN EFI_EXCEPTION_TYPE   ExceptionType,
   IN EFI_SYSTEM_CONTEXT   SystemContext
   )
 {
-  UINTN                   ImageBase;
-  UINTN                   EntryPoint;
-
   InternalPrintMessage (
     "!!!! X64 Exception Type - %02x(%a)  CPU Apic ID - %08x !!!!\n",
     ExceptionType,
     GetExceptionNameStr (ExceptionType),
     GetApicId ()
     );
-
+  if ((mErrorCodeFlag & (1 << ExceptionType)) != 0) {
+    InternalPrintMessage (
+      "ExceptionData - %016lx",
+      SystemContext.SystemContextX64->ExceptionData
+      );
+    if (ExceptionType == EXCEPT_IA32_PAGE_FAULT) {
+      InternalPrintMessage (
+        "  I:%x R:%x U:%x W:%x P:%x PK:%x S:%x",
+        (SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_ID)   != 0,
+        (SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_RSVD) != 0,
+        (SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_US)   != 0,
+        (SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_WR)   != 0,
+        (SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_P)    != 0,
+        (SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_PK)   != 0,
+        (SystemContext.SystemContextX64->ExceptionData & IA32_PF_EC_SGX)  != 0
+        );
+    }
+    InternalPrintMessage ("\n");
+  }
   InternalPrintMessage (
     "RIP  - %016lx, CS  - %016lx, RFLAGS - %016lx\n",
     SystemContext.SystemContextX64->Rip,
     SystemContext.SystemContextX64->Cs,
     SystemContext.SystemContextX64->Rflags
     );
-  if (mErrorCodeFlag & (1 << ExceptionType)) {
-    InternalPrintMessage (
-      "ExceptionData - %016lx\n",
-      SystemContext.SystemContextX64->ExceptionData
-      );
-  }
   InternalPrintMessage (
     "RAX  - %016lx, RCX - %016lx, RDX - %016lx\n",
     SystemContext.SystemContextX64->Rax,
@@ -226,20 +236,27 @@ DumpCpuContent (
     SystemContext.SystemContextX64->Idtr[1],
     SystemContext.SystemContextX64->Tr
     );
-	InternalPrintMessage (
+  InternalPrintMessage (
     "FXSAVE_STATE - %016lx\n",
     &SystemContext.SystemContextX64->FxSaveState
     );
+}
 
+/**
+  Display CPU information.
+
+  @param ExceptionType  Exception type.
+  @param SystemContext  Pointer to EFI_SYSTEM_CONTEXT.
+**/
+VOID
+DumpImageAndCpuContent (
+  IN EFI_EXCEPTION_TYPE   ExceptionType,
+  IN EFI_SYSTEM_CONTEXT   SystemContext
+  )
+{
+  DumpCpuContext (ExceptionType, SystemContext);
   //
-  // Find module image base and module entry point by RIP
+  // Dump module image base and module entry point by RIP
   //
-  ImageBase = FindModuleImageBase (SystemContext.SystemContextX64->Rip, &EntryPoint);
-  if (ImageBase != 0) {
-    InternalPrintMessage (
-      " (ImageBase=%016lx, EntryPoint=%016lx) !!!!\n",
-      ImageBase,
-      EntryPoint
-      );
-  }
+  DumpModuleImageInfo (SystemContext.SystemContextX64->Rip);
 }

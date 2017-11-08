@@ -419,6 +419,7 @@ extern SPIN_LOCK                           *mConfigSmmCodeAccessCheckLock;
 extern SPIN_LOCK                           *mMemoryMappedLock;
 extern EFI_SMRAM_DESCRIPTOR                *mSmmCpuSmramRanges;
 extern UINTN                               mSmmCpuSmramRangeCount;
+extern UINT8                               mPhysicalAddressBits;
 
 //
 // Copy of the PcdPteMemoryEncryptionAddressOrMask
@@ -694,8 +695,8 @@ SmmRelocateBases (
 VOID
 EFIAPI
 SmiPFHandler (
-    IN EFI_EXCEPTION_TYPE   InterruptType,
-    IN EFI_SYSTEM_CONTEXT   SystemContext
+  IN EFI_EXCEPTION_TYPE   InterruptType,
+  IN EFI_SYSTEM_CONTEXT   SystemContext
   );
 
 /**

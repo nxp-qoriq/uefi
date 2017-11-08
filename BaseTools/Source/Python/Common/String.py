@@ -46,12 +46,13 @@ def GetSplitValueList(String, SplitTag=DataType.TAB_VALUE_SPLIT, MaxSplit= -1):
     Last = 0
     Escaped = False
     InString = False
+    InParenthesis = 0
     for Index in range(0, len(String)):
         Char = String[Index]
 
         if not Escaped:
             # Found a splitter not in a string, split it
-            if not InString and Char == SplitTag:
+            if not InString and InParenthesis == 0 and Char == SplitTag:
                 ValueList.append(String[Last:Index].strip())
                 Last = Index + 1
                 if MaxSplit > 0 and len(ValueList) >= MaxSplit:
@@ -64,6 +65,10 @@ def GetSplitValueList(String, SplitTag=DataType.TAB_VALUE_SPLIT, MaxSplit= -1):
                     InString = True
                 else:
                     InString = False
+            elif Char == '(':
+                InParenthesis = InParenthesis + 1
+            elif Char == ')':
+                InParenthesis = InParenthesis - 1
         else:
             Escaped = False
 
@@ -306,7 +311,7 @@ def NormPath(Path, Defines={}):
         # To local path format
         #
         Path = os.path.normpath(Path)
-        if Path.startswith(GlobalData.gWorkspace) and not os.path.exists(Path):
+        if Path.startswith(GlobalData.gWorkspace) and not Path.startswith(GlobalData.gBuildDirectory) and not os.path.exists(Path):
             Path = Path[len (GlobalData.gWorkspace):]
             if Path[0] == os.path.sep:
                 Path = Path[1:]

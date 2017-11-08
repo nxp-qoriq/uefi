@@ -41,7 +41,7 @@ BOOLEAN                             mIgnoreBbsUpdateFlag;
 BOOLEAN                             mVgaInstallationInProgress  = FALSE;
 UINT32                              mRomCount                   = 0x00;
 ROM_INSTANCE_ENTRY                  mRomEntry[ROM_MAX_ENTRIES];
-
+EDKII_IOMMU_PROTOCOL                *mIoMmu;
 
 /**
   Query shadowed legacy ROM parameters registered by RomShadow() previously.
@@ -2279,6 +2279,7 @@ LegacyBiosInstallRom (
   UINTN                 Function;
   EFI_IA32_REGISTER_SET Regs;
   UINT8                 VideoMode;
+  UINT8                 OldVideoMode;
   EFI_TIME              BootTime;
   UINT32                *BdaPtr;
   UINT32                LocalTime;
@@ -2299,6 +2300,7 @@ LegacyBiosInstallRom (
   Device          = 0;
   Function        = 0;
   VideoMode       = 0;
+  OldVideoMode    = 0;
   PhysicalAddress = 0;
   MaxRomAddr      = PcdGet32 (PcdEndOpromShadowAddress);
 
@@ -2401,6 +2403,8 @@ LegacyBiosInstallRom (
   // 2. BBS compliants drives will not change 40:75 until boot time.
   // 3. Onboard IDE controllers will change 40:75
   //
+  DisableNullDetection ();
+
   LocalDiskStart = (UINT8) ((*(UINT8 *) ((UINTN) 0x475)) + 0x80);
   if ((Private->Disk4075 + 0x80) < LocalDiskStart) {
     //
@@ -2426,6 +2430,9 @@ LegacyBiosInstallRom (
     //
     VideoMode = *(UINT8 *) ((UINTN) (0x400 + BDA_VIDEO_MODE));
   }
+
+  EnableNullDetection ();
+
   //
   // Notify the platform that we are about to scan the ROM
   //
@@ -2466,9 +2473,11 @@ LegacyBiosInstallRom (
   // Multiply result by 18.2 for number of ticks since midnight.
   // Use 182/10 to avoid floating point math.
   //
+  DisableNullDetection ();
   LocalTime = (LocalTime * 182) / 10;
   BdaPtr    = (UINT32 *) ((UINTN) 0x46C);
   *BdaPtr   = LocalTime;
+  EnableNullDetection ();
   
   //
   // Pass in handoff data
@@ -2564,7 +2573,11 @@ LegacyBiosInstallRom (
     //
     // Set mode settings since PrepareToScanRom may change mode
     //
-    if (VideoMode != *(UINT8 *) ((UINTN) (0x400 + BDA_VIDEO_MODE))) {
+    DisableNullDetection ();
+    OldVideoMode = *(UINT8 *) ((UINTN) (0x400 + BDA_VIDEO_MODE));
+    EnableNullDetection ();
+
+    if (VideoMode != OldVideoMode) {
       //
       // The active video mode is changed, restore it to original mode.
       //
@@ -2604,7 +2617,9 @@ LegacyBiosInstallRom (
     }
   }
 
+  DisableNullDetection ();
   LocalDiskEnd = (UINT8) ((*(UINT8 *) ((UINTN) 0x475)) + 0x80);
+  EnableNullDetection ();
   
   //
   // Allow platform to perform any required actions after the
@@ -2693,6 +2708,61 @@ Done:
                            &Granularity
                            );
 
+  return Status;
+}
+
+/**
+  Let IOMMU grant DMA access for the PCI device.
+
+  @param  PciHandle             The EFI handle for the PCI device.
+  @param  HostAddress           The system memory address to map to the PCI controller.
+  @param  NumberOfBytes         The number of bytes to map.
+
+  @retval EFI_SUCCESS  The DMA access is granted.
+**/
+EFI_STATUS
+IoMmuGrantAccess (
+  IN  EFI_HANDLE                        PciHandle,
+  IN  EFI_PHYSICAL_ADDRESS              HostAddress,
+  IN  UINTN                             NumberOfBytes
+  )
+{
+  EFI_PHYSICAL_ADDRESS            DeviceAddress;
+  VOID                            *Mapping;
+  EFI_STATUS                      Status;
+
+  if (PciHandle == NULL) {
+    return EFI_UNSUPPORTED;
+  }
+
+  Status = EFI_SUCCESS;
+  if (mIoMmu == NULL) {
+    gBS->LocateProtocol (&gEdkiiIoMmuProtocolGuid, NULL, (VOID **)&mIoMmu);
+  }
+  if (mIoMmu != NULL) {
+    Status = mIoMmu->Map (
+                       mIoMmu,
+                       EdkiiIoMmuOperationBusMasterCommonBuffer,
+                       (VOID *)(UINTN)HostAddress,
+                       &NumberOfBytes,
+                       &DeviceAddress,
+                       &Mapping
+                       );
+    if (EFI_ERROR(Status)) {
+      DEBUG ((DEBUG_ERROR, "LegacyPci - IoMmuMap - %r\n", Status));
+    } else {
+      ASSERT (DeviceAddress == HostAddress);
+      Status = mIoMmu->SetAttribute (
+                         mIoMmu,
+                         PciHandle,
+                         Mapping,
+                         EDKII_IOMMU_ACCESS_READ | EDKII_IOMMU_ACCESS_WRITE
+                         );
+      if (EFI_ERROR(Status)) {
+        DEBUG ((DEBUG_ERROR, "LegacyPci - IoMmuSetAttribute - %r\n", Status));
+      }
+    }
+  }
   return Status;
 }
 
@@ -2978,6 +3048,21 @@ LegacyBiosInstallPciRom (
       RuntimeImageLength = Pcir->MaxRuntimeImageLength * 512;
     }
   }
+
+  //
+  // Grant access for below 1M
+  // BDA/EBDA/LowPMM and scratch memory for OPROM.
+  //
+  IoMmuGrantAccess (PciHandle, 0, SIZE_1MB);
+  //
+  // Grant access for HiPmm
+  //
+  IoMmuGrantAccess (
+    PciHandle,
+    Private->IntThunk->EfiToLegacy16InitTable.HiPmmMemory,
+    Private->IntThunk->EfiToLegacy16InitTable.HiPmmMemorySizeInBytes
+    );
+
   //
   // Shadow and initialize the OpROM.
   //

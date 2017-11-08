@@ -5,7 +5,7 @@
   If a code construct is defined in the UEFI 2.6 specification it must be included
   by this include file.
 
-Copyright (c) 2006 - 2016, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2006 - 2017, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials are licensed and made available under 
 the terms and conditions of the BSD License that accompanies this distribution.  
 The full text of the license may be found at
@@ -103,21 +103,28 @@ typedef enum {
 ///
 typedef struct {
   ///
-  /// Type of the memory region.  See EFI_MEMORY_TYPE.
+  /// Type of the memory region.
+  /// Type EFI_MEMORY_TYPE is defined in the
+  /// AllocatePages() function description.
   ///
   UINT32                Type;
   ///
-  /// Physical address of the first byte of the memory region.  Must aligned 
-  /// on a 4 KB boundary.
+  /// Physical address of the first byte in the memory region. PhysicalStart must be
+  /// aligned on a 4 KiB boundary, and must not be above 0xfffffffffffff000. Type
+  /// EFI_PHYSICAL_ADDRESS is defined in the AllocatePages() function description
   ///
   EFI_PHYSICAL_ADDRESS  PhysicalStart;
   ///
-  /// Virtual address of the first byte of the memory region.  Must aligned 
-  /// on a 4 KB boundary.
+  /// Virtual address of the first byte in the memory region.
+  /// VirtualStart must be aligned on a 4 KiB boundary,
+  /// and must not be above 0xfffffffffffff000.
   ///
   EFI_VIRTUAL_ADDRESS   VirtualStart;
   ///
-  /// Number of 4KB pages in the memory region.
+  /// NumberOfPagesNumber of 4 KiB pages in the memory region.
+  /// NumberOfPages must not be 0, and must not be any value
+  /// that would represent a memory page with a start address,
+  /// either physical or virtual, above 0xfffffffffffff000.
   ///
   UINT64                NumberOfPages;
   ///
@@ -654,7 +661,8 @@ EFI_STATUS
 /**
   Enumerates the current variable names.
 
-  @param[in, out]  VariableNameSize The size of the VariableName buffer.
+  @param[in, out]  VariableNameSize The size of the VariableName buffer. The size must be large
+                                    enough to fit input string supplied in VariableName buffer.
   @param[in, out]  VariableName     On input, supplies the last VariableName that was returned
                                     by GetNextVariableName(). On output, returns the Nullterminated
                                     string of the current variable.
@@ -665,9 +673,14 @@ EFI_STATUS
   @retval EFI_SUCCESS           The function completed successfully.
   @retval EFI_NOT_FOUND         The next variable was not found.
   @retval EFI_BUFFER_TOO_SMALL  The VariableNameSize is too small for the result.
+                                VariableNameSize has been updated with the size needed to complete the request.
   @retval EFI_INVALID_PARAMETER VariableNameSize is NULL.
   @retval EFI_INVALID_PARAMETER VariableName is NULL.
   @retval EFI_INVALID_PARAMETER VendorGuid is NULL.
+  @retval EFI_INVALID_PARAMETER The input values of VariableName and VendorGuid are not a name and
+                                GUID of an existing variable.
+  @retval EFI_INVALID_PARAMETER Null-terminator is not found in the first VariableNameSize bytes of
+                                the input VariableName buffer.
   @retval EFI_DEVICE_ERROR      The variable could not be retrieved due to a hardware error.
 
 **/
@@ -1013,6 +1026,9 @@ EFI_STATUS
                                 valid if ResetStatus is something other than EFI_SUCCESS
                                 unless the ResetType is EfiResetPlatformSpecific
                                 where a minimum amount of ResetData is always required.
+                                For a ResetType of EfiResetPlatformSpecific the data buffer
+                                also starts with a Null-terminated string that is followed
+                                by an EFI_GUID that describes the specific type of reset to perform.
 **/
 typedef
 VOID
@@ -1565,6 +1581,7 @@ EFI_STATUS
   @retval EFI_NOT_FOUND         No protocol instances were found that match Protocol and
                                 Registration.
   @retval EFI_INVALID_PARAMETER Interface is NULL.
+                                Protocol is NULL.
 
 **/
 typedef

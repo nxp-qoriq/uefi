@@ -98,57 +98,6 @@ AUTH_VAR_LIB_CONTEXT_IN mAuthContextIn = {
 AUTH_VAR_LIB_CONTEXT_OUT mAuthContextOut;
 
 /**
-
-  SecureBoot Hook for auth variable update.
-
-  @param[in] VariableName                 Name of Variable to be found.
-  @param[in] VendorGuid                   Variable vendor GUID.
-**/
-VOID
-EFIAPI
-SecureBootHook (
-  IN CHAR16                                 *VariableName,
-  IN EFI_GUID                               *VendorGuid
-  );
-
-/**
-  Initialization for MOR Lock Control.
-
-  @retval EFI_SUCEESS     MorLock initialization success.
-  @return Others          Some error occurs.
-**/
-EFI_STATUS
-MorLockInit (
-  VOID
-  );
-
-/**
-  This service is an MOR/MorLock checker handler for the SetVariable().
-
-  @param  VariableName the name of the vendor's variable, as a
-                       Null-Terminated Unicode String
-  @param  VendorGuid   Unify identifier for vendor.
-  @param  Attributes   Point to memory location to return the attributes of variable. If the point
-                       is NULL, the parameter would be ignored.
-  @param  DataSize     The size in bytes of Data-Buffer.
-  @param  Data         Point to the content of the variable.
-
-  @retval  EFI_SUCCESS            The MOR/MorLock check pass, and Variable driver can store the variable data.
-  @retval  EFI_INVALID_PARAMETER  The MOR/MorLock data or data size or attributes is not allowed for MOR variable.
-  @retval  EFI_ACCESS_DENIED      The MOR/MorLock is locked.
-  @retval  EFI_ALREADY_STARTED    The MorLock variable is handled inside this function.
-                                  Variable driver can just return EFI_SUCCESS.
-**/
-EFI_STATUS
-SetVariableCheckHandlerMor (
-  IN CHAR16     *VariableName,
-  IN EFI_GUID   *VendorGuid,
-  IN UINT32     Attributes,
-  IN UINTN      DataSize,
-  IN VOID       *Data
-  );
-
-/**
   Routine used to track statistical information about variable usage.
   The data is stored in the EFI system table so it can be accessed later.
   VariableInfo.efi can dump out the table. Only Boot Services variable
@@ -2905,8 +2854,11 @@ Done:
   @param[in]  VendorGuid    Variable Vendor Guid.
   @param[out] VariablePtr   Pointer to variable header address.
 
-  @return EFI_SUCCESS       Find the specified variable.
-  @return EFI_NOT_FOUND     Not found.
+  @retval EFI_SUCCESS           The function completed successfully.
+  @retval EFI_NOT_FOUND         The next variable was not found.
+  @retval EFI_INVALID_PARAMETER If VariableName is not an empty string, while VendorGuid is NULL.
+  @retval EFI_INVALID_PARAMETER The input values of VariableName and VendorGuid are not a name and
+                                GUID of an existing variable.
 
 **/
 EFI_STATUS
@@ -2926,6 +2878,19 @@ VariableServiceGetNextVariableInternal (
 
   Status = FindVariable (VariableName, VendorGuid, &Variable, &mVariableModuleGlobal->VariableGlobal, FALSE);
   if (Variable.CurrPtr == NULL || EFI_ERROR (Status)) {
+    //
+    // For VariableName is an empty string, FindVariable() will try to find and return
+    // the first qualified variable, and if FindVariable() returns error (EFI_NOT_FOUND)
+    // as no any variable is found, still go to return the error (EFI_NOT_FOUND).
+    //
+    if (VariableName[0] != 0) {
+      //
+      // For VariableName is not an empty string, and FindVariable() returns error as
+      // VariableName and VendorGuid are not a name and GUID of an existing variable,
+      // there is no way to get next variable, follow spec to return EFI_INVALID_PARAMETER.
+      //
+      Status = EFI_INVALID_PARAMETER;
+    }
     goto Done;
   }
 
@@ -3046,14 +3011,22 @@ Done:
   Caution: This function may receive untrusted input.
   This function may be invoked in SMM mode. This function will do basic validation, before parse the data.
 
-  @param VariableNameSize           Size of the variable name.
+  @param VariableNameSize           The size of the VariableName buffer. The size must be large
+                                    enough to fit input string supplied in VariableName buffer.
   @param VariableName               Pointer to variable name.
   @param VendorGuid                 Variable Vendor Guid.
 
-  @return EFI_INVALID_PARAMETER     Invalid parameter.
-  @return EFI_SUCCESS               Find the specified variable.
-  @return EFI_NOT_FOUND             Not found.
-  @return EFI_BUFFER_TO_SMALL       DataSize is too small for the result.
+  @retval EFI_SUCCESS               The function completed successfully.
+  @retval EFI_NOT_FOUND             The next variable was not found.
+  @retval EFI_BUFFER_TOO_SMALL      The VariableNameSize is too small for the result.
+                                    VariableNameSize has been updated with the size needed to complete the request.
+  @retval EFI_INVALID_PARAMETER     VariableNameSize is NULL.
+  @retval EFI_INVALID_PARAMETER     VariableName is NULL.
+  @retval EFI_INVALID_PARAMETER     VendorGuid is NULL.
+  @retval EFI_INVALID_PARAMETER     The input values of VariableName and VendorGuid are not a name and
+                                    GUID of an existing variable.
+  @retval EFI_INVALID_PARAMETER     Null-terminator is not found in the first VariableNameSize bytes of
+                                    the input VariableName buffer.
 
 **/
 EFI_STATUS
@@ -3065,10 +3038,23 @@ VariableServiceGetNextVariableName (
   )
 {
   EFI_STATUS              Status;
+  UINTN                   MaxLen;
   UINTN                   VarNameSize;
   VARIABLE_HEADER         *VariablePtr;
 
   if (VariableNameSize == NULL || VariableName == NULL || VendorGuid == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  //
+  // Calculate the possible maximum length of name string, including the Null terminator.
+  //
+  MaxLen = *VariableNameSize / sizeof (CHAR16);
+  if ((MaxLen == 0) || (StrnLenS (VariableName, MaxLen) == MaxLen)) {
+    //
+    // Null-terminator is not found in the first VariableNameSize bytes of the input VariableName buffer,
+    // follow spec to return EFI_INVALID_PARAMETER.
+    //
     return EFI_INVALID_PARAMETER;
   }
 

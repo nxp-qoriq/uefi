@@ -1,7 +1,7 @@
 /** @file
   Provides interface to shell internal functions for shell commands.
 
-  Copyright (c) 2009 - 2016, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2009 - 2017, Intel Corporation. All rights reserved.<BR>
   (C) Copyright 2013-2015 Hewlett-Packard Development Company, L.P.<BR>
   (C) Copyright 2016 Hewlett Packard Enterprise Development LP<BR>
 
@@ -53,7 +53,7 @@ STATIC CONST CHAR8 Hex[] = {
 // global variables required by library class.
 EFI_UNICODE_COLLATION_PROTOCOL    *gUnicodeCollation            = NULL;
 SHELL_MAP_LIST                    gShellMapList;
-SHELL_MAP_LIST                    *gShellCurDir                 = NULL;
+SHELL_MAP_LIST                    *gShellCurMapping             = NULL;
 
 CONST CHAR16* SupportLevel[] = {
   L"Minimal",
@@ -229,7 +229,7 @@ ShellCommandLibDestructor (
   }
 
   gUnicodeCollation            = NULL;
-  gShellCurDir                 = NULL;
+  gShellCurMapping             = NULL;
 
   return (RETURN_SUCCESS);
 }
@@ -1268,7 +1268,14 @@ ShellCommandCreateInitialMappingsAndPaths(
   CHAR16                    *NewConsistName;
   EFI_DEVICE_PATH_PROTOCOL  **ConsistMappingTable;
   SHELL_MAP_LIST            *MapListNode;
+  CONST CHAR16              *CurDir;
+  CHAR16                    *SplitCurDir;
+  CHAR16                    *MapName;
+  SHELL_MAP_LIST            *MapListItem;
 
+  SplitCurDir = NULL;
+  MapName     = NULL;
+  MapListItem = NULL;
   HandleList  = NULL;
 
   //
@@ -1354,6 +1361,33 @@ ShellCommandCreateInitialMappingsAndPaths(
     SHELL_FREE_NON_NULL(DevicePathList);
 
     HandleList = NULL;
+
+    //
+    //gShellCurMapping point to node of current file system in the gShellMapList. When reset all mappings,
+    //all nodes in the gShellMapList will be free. Then gShellCurMapping will be a dangling pointer, So,
+    //after created new mappings, we should reset the gShellCurMapping pointer back to node of current file system.
+    //
+    if (gShellCurMapping != NULL) {
+      gShellCurMapping = NULL;
+      CurDir = gEfiShellProtocol->GetEnv(L"cwd");
+      if (CurDir != NULL) {
+        MapName = AllocateCopyPool (StrSize(CurDir), CurDir);
+        if (MapName == NULL) {
+          return EFI_OUT_OF_RESOURCES;
+        }
+        SplitCurDir = StrStr (MapName, L":");
+        if (SplitCurDir == NULL) {
+          SHELL_FREE_NON_NULL (MapName);
+          return EFI_UNSUPPORTED;
+        }
+        *(SplitCurDir + 1) = CHAR_NULL;
+        MapListItem = ShellCommandFindMapItem (MapName);
+        if (MapListItem != NULL) {
+          gShellCurMapping = MapListItem;
+        }
+        SHELL_FREE_NON_NULL (MapName);
+      }
+    }
   } else {
     Count = (UINTN)-1;
   }
@@ -1745,7 +1779,7 @@ DumpHex (
       Val[Index * 3 + 0]  = Hex[TempByte >> 4];
       Val[Index * 3 + 1]  = Hex[TempByte & 0xF];
       Val[Index * 3 + 2]  = (CHAR8) ((Index == 7) ? '-' : ' ');
-      Str[Index]          = (CHAR8) ((TempByte < ' ' || TempByte > 'z') ? '.' : TempByte);
+      Str[Index]          = (CHAR8) ((TempByte < ' ' || TempByte > '~') ? '.' : TempByte);
     }
 
     Val[Index * 3]  = 0;

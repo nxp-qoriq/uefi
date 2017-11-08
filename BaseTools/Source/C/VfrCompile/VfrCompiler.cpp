@@ -119,10 +119,6 @@ CVfrCompiler::OptionInitialization (
         DebugError (NULL, 0, 1001, "Missing option", "-o missing output directory name");
         goto Fail;
       }
-      if (strlen (Argv[Index]) > MAX_PATH - 1) {
-        DebugError (NULL, 0, 1003, "Invalid option value", "Output directory name %s is too long", Argv[Index]);
-        goto Fail;
-      }
 
       mOptions.OutputDirectory = (CHAR8 *) malloc (strlen (Argv[Index]) + strlen ("\\") + 1);
       if (mOptions.OutputDirectory == NULL) {
@@ -186,10 +182,6 @@ CVfrCompiler::OptionInitialization (
     DebugError (NULL, 0, 1001, "Missing option", "VFR file name is not specified.");
     goto Fail;
   } else {
-    if (strlen (Argv[Index]) > MAX_PATH) {
-      DebugError (NULL, 0, 1003, "Invalid option value", "VFR file name %s is too long.", Argv[Index]);
-      goto Fail;
-    }
     mOptions.VfrFileName = (CHAR8 *) malloc (strlen (Argv[Index]) + 1);
     if (mOptions.VfrFileName == NULL) {
       DebugError (NULL, 0, 4001, "Resource: memory can't be allocated", NULL);
@@ -355,10 +347,6 @@ CVfrCompiler::SetBaseFileName (
   }
 
   *pExt = '\0';
-  if (strlen (pFileName) > MAX_PATH - 1) {
-    *pExt = '.';
-    return -1;
-  }
 
   mOptions.VfrBaseFileName = (CHAR8 *) malloc (strlen (pFileName) + 1);
   if (mOptions.VfrBaseFileName == NULL) {
@@ -387,9 +375,6 @@ CVfrCompiler::SetPkgOutputFileName (
            strlen (mOptions.VfrBaseFileName) +
            strlen (VFR_PACKAGE_FILENAME_EXTENSION) +
            1;
-  if (Length > MAX_PATH) {
-    return -1;
-  }
 
   mOptions.PkgOutputFileName = (CHAR8 *) malloc (Length);
   if (mOptions.PkgOutputFileName == NULL) {
@@ -418,9 +403,6 @@ CVfrCompiler::SetCOutputFileName (
            strlen (mOptions.VfrBaseFileName) +
            strlen (".c") +
            1;
-  if (Length > MAX_PATH) {
-    return -1;
-  }
 
   mOptions.COutputFileName = (CHAR8 *) malloc (Length);
   if (mOptions.COutputFileName == NULL) {
@@ -449,9 +431,6 @@ CVfrCompiler::SetPreprocessorOutputFileName (
            strlen (mOptions.VfrBaseFileName) +
            strlen (VFR_PREPROCESS_FILENAME_EXTENSION) +
            1;
-  if (Length > MAX_PATH) {
-    return -1;
-  }
 
   mOptions.PreprocessorOutputFileName = (CHAR8 *) malloc (Length);
   if (mOptions.PreprocessorOutputFileName == NULL) {
@@ -480,9 +459,6 @@ CVfrCompiler::SetRecordListFileName (
            strlen (mOptions.VfrBaseFileName) +
            strlen (VFR_RECORDLIST_FILENAME_EXTENSION) +
            1;
-  if (Length > MAX_PATH) {
-    return -1;
-  }
 
   mOptions.RecordListFile = (CHAR8 *) malloc (Length);
   if (mOptions.RecordListFile == NULL) {
@@ -642,7 +618,7 @@ CVfrCompiler::PreProcess (
   }
 
   if ((pVfrFile = fopen (LongFilePath (mOptions.VfrFileName), "r")) == NULL) {
-    DebugError (NULL, 0, 0001, "Error opening the input VFR file", mOptions.VfrFileName);
+    DebugError (NULL, 0, 0001, "Error opening the input VFR file", "%s", mOptions.VfrFileName);
     goto Fail;
   }
   fclose (pVfrFile);
@@ -711,7 +687,7 @@ CVfrCompiler::Compile (
   gCVfrErrorHandle.SetWarningAsError(mOptions.WarningAsError);
 
   if ((pInFile = fopen (LongFilePath (InFileName), "r")) == NULL) {
-    DebugError (NULL, 0, 0001, "Error opening the input file", InFileName);
+    DebugError (NULL, 0, 0001, "Error opening the input file", "%s", InFileName);
     goto Fail;
   }
 
@@ -841,7 +817,7 @@ CVfrCompiler::GenBinary (
 
   if (mOptions.CreateIfrPkgFile == TRUE) {
     if ((pFile = fopen (LongFilePath (mOptions.PkgOutputFileName), "wb")) == NULL) {
-      DebugError (NULL, 0, 0001, "Error opening file", mOptions.PkgOutputFileName);
+      DebugError (NULL, 0, 0001, "Error opening file", "%s", mOptions.PkgOutputFileName);
       goto Fail;
     }
     if (gCFormPkg.BuildPkg (pFile, &gRBuffer) != VFR_RETURN_SUCCESS) {
@@ -884,7 +860,7 @@ CVfrCompiler::GenCFile (
   
   if (!mOptions.CreateIfrPkgFile || mOptions.CompatibleMode) {
     if ((pFile = fopen (LongFilePath (mOptions.COutputFileName), "w")) == NULL) {
-      DebugError (NULL, 0, 0001, "Error opening output C file", mOptions.COutputFileName);
+      DebugError (NULL, 0, 0001, "Error opening output C file", "%s", mOptions.COutputFileName);
       goto Fail;
     }
 
@@ -925,18 +901,18 @@ CVfrCompiler::GenRecordListFile (
 
   InFileName = (mOptions.SkipCPreprocessor == TRUE) ? mOptions.VfrFileName : mOptions.PreprocessorOutputFileName;
 
-  if (mOptions.CreateRecordListFile == TRUE) {
+  if (mOptions.CreateRecordListFile == TRUE && InFileName != NULL && mOptions.RecordListFile != NULL) {
     if ((InFileName[0] == '\0') || (mOptions.RecordListFile[0] == '\0')) {
       return;
     }
 
     if ((pInFile = fopen (LongFilePath (InFileName), "r")) == NULL) {
-      DebugError (NULL, 0, 0001, "Error opening the input VFR preprocessor output file", InFileName);
+      DebugError (NULL, 0, 0001, "Error opening the input VFR preprocessor output file", "%s", InFileName);
       return;
     }
 
     if ((pOutFile = fopen (LongFilePath (mOptions.RecordListFile), "w")) == NULL) {
-      DebugError (NULL, 0, 0001, "Error opening the record list file", mOptions.RecordListFile);
+      DebugError (NULL, 0, 0001, "Error opening the record list file", "%s", mOptions.RecordListFile);
       goto Err1;
     }
 

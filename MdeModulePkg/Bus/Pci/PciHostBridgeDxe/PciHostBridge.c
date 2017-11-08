@@ -2,7 +2,7 @@
 
   Provides the basic interfaces to abstract a PCI Host Bridge Resource Allocation.
 
-Copyright (c) 1999 - 2016, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 1999 - 2017, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -27,6 +27,10 @@ GLOBAL_REMOVE_IF_UNREFERENCED CHAR16 *mAcpiAddressSpaceTypeStr[] = {
 GLOBAL_REMOVE_IF_UNREFERENCED CHAR16 *mPciResourceTypeStr[] = {
   L"I/O", L"Mem", L"PMem", L"Mem64", L"PMem64", L"Bus"
 };
+
+EDKII_IOMMU_PROTOCOL        *mIoMmuProtocol;
+EFI_EVENT                   mIoMmuEvent;
+VOID                        *mIoMmuRegistration;
 
 /**
   Ensure the compatibility of an IO space descriptor with the IO aperture.
@@ -313,6 +317,28 @@ FreeMemorySpaceMap:
 }
 
 /**
+  Event notification that is fired when IOMMU protocol is installed.
+
+  @param  Event                 The Event that is being processed.
+  @param  Context               Event Context.
+
+**/
+VOID
+EFIAPI
+IoMmuProtocolCallback (
+  IN  EFI_EVENT       Event,
+  IN  VOID            *Context
+  )
+{
+  EFI_STATUS   Status;
+
+  Status = gBS->LocateProtocol (&gEdkiiIoMmuProtocolGuid, NULL, (VOID **)&mIoMmuProtocol);
+  if (!EFI_ERROR(Status)) {
+    gBS->CloseEvent (mIoMmuEvent);
+  }
+}
+
+/**
 
   Entry point of this driver.
 
@@ -489,6 +515,17 @@ InitializePciHostBridge (
     ASSERT_EFI_ERROR (Status);
   }
   PciHostBridgeFreeRootBridges (RootBridges, RootBridgeCount);
+
+  if (!EFI_ERROR (Status)) {
+    mIoMmuEvent = EfiCreateProtocolNotifyEvent (
+                    &gEdkiiIoMmuProtocolGuid,
+                    TPL_CALLBACK,
+                    IoMmuProtocolCallback,
+                    NULL,
+                    &mIoMmuRegistration
+                    );
+  }
+
   return Status;
 }
 
@@ -537,7 +574,8 @@ ResourceConflict (
       Descriptor->Len = sizeof (EFI_ACPI_ADDRESS_SPACE_DESCRIPTOR) - 3;
       Descriptor->AddrRangeMin = ResAllocNode->Base;
       Descriptor->AddrRangeMax = ResAllocNode->Alignment;
-      Descriptor->AddrLen = ResAllocNode->Length;
+      Descriptor->AddrLen      = ResAllocNode->Length;
+      Descriptor->SpecificFlag = 0;
       switch (ResAllocNode->Type) {
 
       case TypeIo:

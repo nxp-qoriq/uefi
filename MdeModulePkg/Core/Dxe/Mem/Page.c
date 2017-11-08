@@ -1,7 +1,7 @@
 /** @file
   UEFI Memory page management functions.
 
-Copyright (c) 2007 - 2016, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2007 - 2017, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -188,7 +188,9 @@ CoreAddRange (
   // used for other purposes.
   //  
   if (Type == EfiConventionalMemory && Start == 0 && (End >= EFI_PAGE_SIZE - 1)) {
-    SetMem ((VOID *)(UINTN)Start, EFI_PAGE_SIZE, 0);
+    if ((PcdGet8 (PcdNullPointerDetectionPropertyMask) & BIT0) == 0) {
+      SetMem ((VOID *)(UINTN)Start, EFI_PAGE_SIZE, 0);
+    }
   }
   
   //
@@ -788,7 +790,12 @@ CoreConvertPagesEx (
       // Debug code - verify conversion is allowed
       //
       if (!(NewType == EfiConventionalMemory ? 1 : 0) ^ (Entry->Type == EfiConventionalMemory ? 1 : 0)) {
-        DEBUG ((DEBUG_ERROR | DEBUG_PAGE, "ConvertPages: Incompatible memory types\n"));
+        DEBUG ((DEBUG_ERROR | DEBUG_PAGE, "ConvertPages: Incompatible memory types, "));
+        if (Entry->Type == EfiConventionalMemory) {
+          DEBUG ((DEBUG_ERROR | DEBUG_PAGE, "the pages to free have been freed\n"));
+        } else {
+          DEBUG ((DEBUG_ERROR | DEBUG_PAGE, "the pages to allocate have been allocated\n"));
+        }
         return EFI_NOT_FOUND;
       }
 
@@ -1630,7 +1637,7 @@ CoreGetMemoryMap (
   NumberOfEntries = 0;
   for (Link = mGcdMemorySpaceMap.ForwardLink; Link != &mGcdMemorySpaceMap; Link = Link->ForwardLink) {
     GcdMapEntry = CR (Link, EFI_GCD_MAP_ENTRY, Link, EFI_GCD_MAP_SIGNATURE);
-    if ((GcdMapEntry->GcdMemoryType == EfiGcdMemoryTypePersistentMemory) || 
+    if ((GcdMapEntry->GcdMemoryType == EfiGcdMemoryTypePersistent) || 
         (GcdMapEntry->GcdMemoryType == EfiGcdMemoryTypeReserved) ||
         ((GcdMapEntry->GcdMemoryType == EfiGcdMemoryTypeMemoryMappedIo) &&
         ((GcdMapEntry->Attributes & EFI_MEMORY_RUNTIME) == EFI_MEMORY_RUNTIME))) {
@@ -1778,7 +1785,7 @@ CoreGetMemoryMap (
       MemoryMap = MergeMemoryMapDescriptor (MemoryMapStart, MemoryMap, Size);
     }
     
-    if (MergeGcdMapEntry.GcdMemoryType == EfiGcdMemoryTypePersistentMemory) {
+    if (MergeGcdMapEntry.GcdMemoryType == EfiGcdMemoryTypePersistent) {
       //
       // Page Align GCD range is required. When it is converted to EFI_MEMORY_DESCRIPTOR, 
       // it will be recorded as page PhysicalStart and NumberOfPages. 

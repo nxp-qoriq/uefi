@@ -24,7 +24,7 @@
   PACKAGE_NAME                   = MdeModulePkg
   PACKAGE_UNI_FILE               = MdeModulePkg.uni
   PACKAGE_GUID                   = BA0D78D6-2CAF-414b-BD4D-B6762A894288
-  PACKAGE_VERSION                = 0.96
+  PACKAGE_VERSION                = 0.97
 
 [Includes]
   Include
@@ -183,6 +183,10 @@
   ## Guid for EDKII implementation GUIDed opcodes
   #  Include/Guid/MdeModuleHii.h
   gEfiIfrTianoGuid      = { 0xf0b1735, 0x87a0, 0x4193, {0xb2, 0x66, 0x53, 0x8c, 0x38, 0xaf, 0x48, 0xce }}
+
+  ## Guid for EDKII implementation extension, used to indaicate there are bit fields in the varstore.
+  #  Include/Guid/MdeModuleHii.h
+  gEdkiiIfrBitVarstoreGuid  = {0x82DDD68B, 0x9163, 0x4187, {0x9B, 0x27, 0x20, 0xA8, 0xFD, 0x60,0xA7, 0x1D}}
 
   ## Guid for Framework vfr GUIDed opcodes.
   #  Include/Guid/MdeModuleHii.h
@@ -385,6 +389,9 @@
   gEdkiiNonDiscoverableUhciDeviceGuid = { 0xA8CDA0A2, 0x4F37, 0x4A1B, {0x8E, 0x10, 0x8E, 0xF3, 0xCC, 0x3B, 0xF3, 0xA8 } }
   gEdkiiNonDiscoverableXhciDeviceGuid = { 0xB1BE0BC5, 0x6C28, 0x442D, {0xAA, 0x37, 0x15, 0x1B, 0x42, 0x57, 0xBD, 0x78 } }
 
+  ## Include/Guid/PlatformHasAcpi.h
+  gEdkiiPlatformHasAcpiGuid = { 0xf0966b41, 0xc23f, 0x41b9, { 0x96, 0x04, 0x0f, 0xf7, 0xe1, 0x11, 0x96, 0x5a } }
+
 [Ppis]
   ## Include/Ppi/AtaController.h
   gPeiAtaControllerPpiGuid       = { 0xa45e60d1, 0xc719, 0x44aa, { 0xb0, 0x7a, 0xaa, 0x77, 0x7f, 0x85, 0x90, 0x6d }}
@@ -427,6 +434,9 @@
 
   ## Include/Ppi/SdMmcHostController.h
   gEdkiiPeiSdMmcHostControllerPpiGuid = { 0xb30dfeed, 0x947f, 0x4396, { 0xb1, 0x5a, 0xdf, 0xbd, 0xb9, 0x16, 0xdc, 0x24 }}
+
+  ## Include/Ppi/IoMmu.h
+  gEdkiiIoMmuPpiGuid = { 0x70b0af26, 0xf847, 0x4bb6, { 0xaa, 0xb9, 0xcd, 0xe8, 0x4f, 0xc6, 0x14, 0x31 } }
 
 [Protocols]
   ## Load File protocol provides capability to load and unload EFI image into memory and execute it.
@@ -542,6 +552,12 @@
 
   ## Include/Protocol/NonDiscoverableDevice.h
   gEdkiiNonDiscoverableDeviceProtocolGuid = { 0x0d51905b, 0xb77e, 0x452a, {0xa2, 0xc0, 0xec, 0xa0, 0xcc, 0x8d, 0x51, 0x4a } }
+
+  ## Include/Protocol/IoMmu.h
+  gEdkiiIoMmuProtocolGuid = { 0x4e939de9, 0xd948, 0x4b0f, { 0x88, 0xed, 0xe6, 0xe1, 0xce, 0x51, 0x7c, 0x1e } }
+
+  ## Include/Protocol/SmmEndofS3Resume.h
+  gEdkiiSmmEndOfS3ResumeProtocolGuid = { 0x96f5296d, 0x05f7, 0x4f3c, {0x84, 0x67, 0xe4, 0x56, 0x89, 0x0e, 0x0c, 0xb5 } }
 
 #
 # [Error.gEfiMdeModulePkgTokenSpaceGuid]
@@ -853,6 +869,19 @@
   # @Prompt Error Code for SetVariable failure.
   # @ValidList  0x80000006 | 0x03058002
   gEfiMdeModulePkgTokenSpaceGuid.PcdErrorCodeSetVariable|0x03058002|UINT32|0x30001040
+
+  ## Mask to control the NULL address detection in code for different phases.
+  #  If enabled, accessing NULL address in UEFI or SMM code can be caught.<BR><BR>
+  #    BIT0    - Enable NULL pointer detection for UEFI.<BR>
+  #    BIT1    - Enable NULL pointer detection for SMM.<BR>
+  #    BIT2..6 - Reserved for future uses.<BR>
+  #    BIT7    - Disable NULL pointer detection just after EndOfDxe. <BR>
+  #              This is a workaround for those unsolvable NULL access issues in
+  #              OptionROM, boot loader, etc. It can also help to avoid unnecessary
+  #              exception caused by legacy memory (0-4095) access after EndOfDxe,
+  #              such as Windows 7 boot on Qemu.<BR>
+  # @Prompt Enable NULL address detection.
+  gEfiMdeModulePkgTokenSpaceGuid.PcdNullPointerDetectionPropertyMask|0x0|UINT8|0x30001050
 
 [PcdsFixedAtBuild, PcdsPatchableInModule]
   ## Dynamic type PCD can be registered callback function for Pcd setting action.

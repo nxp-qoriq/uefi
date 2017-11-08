@@ -168,6 +168,7 @@ INF  UefiCpuPkg/CpuMpPei/CpuMpPei.inf
 ################################################################################
 
 [FV.DXEFV]
+FvForceRebase      = FALSE
 FvNameGuid         = 7CB8BDC9-F8EB-4F34-AAEA-3EE4AF6516A1
 BlockSize          = 0x10000
 FvAlignment        = 16
@@ -190,6 +191,7 @@ READ_LOCK_STATUS   = TRUE
 APRIORI DXE {
   INF  MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
   INF  MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
+  INF  OvmfPkg/AmdSevDxe/AmdSevDxe.inf
 !if $(SMM_REQUIRE) == FALSE
   INF  OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesRuntimeDxe.inf
 !endif
@@ -281,6 +283,7 @@ INF  MdeModulePkg/Universal/Acpi/BootScriptExecutorDxe/BootScriptExecutorDxe.inf
 INF  MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe.inf
 
 INF  FatPkg/EnhancedFatDxe/Fat.inf
+INF  MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe.inf
 
 !ifndef $(USE_OLD_SHELL)
 INF  ShellPkg/Application/Shell/Shell.inf
@@ -295,7 +298,7 @@ INF MdeModulePkg/Logo/LogoDxe.inf
 #
 !if $(E1000_ENABLE)
   FILE DRIVER = 5D695E11-9B3F-4b83-B25F-4A8D5D69BE07 {
-    SECTION PE32 = Intel3.5/EFIX64/E3507X2.EFI
+    SECTION PE32 = Intel3.5/EFIX64/E3522X2.EFI
   }
 !endif
   INF  MdeModulePkg/Universal/Network/SnpDxe/SnpDxe.inf
@@ -351,6 +354,8 @@ INF  RuleOverride=CSM OvmfPkg/Csm/Csm16/Csm16.inf
 INF  OvmfPkg/QemuVideoDxe/QemuVideoDxe.inf
 INF  OvmfPkg/VirtioGpuDxe/VirtioGpu.inf
 INF  OvmfPkg/PlatformDxe/Platform.inf
+INF  OvmfPkg/AmdSevDxe/AmdSevDxe.inf
+INF  OvmfPkg/IoMmuDxe/IoMmuDxe.inf
 
 !if $(SMM_REQUIRE) == TRUE
 INF  OvmfPkg/SmmAccess/SmmAccess2Dxe.inf

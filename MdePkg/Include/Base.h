@@ -91,7 +91,7 @@ VERIFY_SIZE_OF (__VERIFY_UINT32_ENUM_SIZE, 4);
 //  if the /OPT:REF linker option is used. We defined a macro as this is a
 //  a non standard extension
 //
-#if defined(_MSC_EXTENSIONS) && !defined (MDE_CPU_EBC)
+#if defined(_MSC_EXTENSIONS) && _MSC_VER < 1800 && !defined (MDE_CPU_EBC)
   ///
   /// Remove global variable from the linked image if there are no references to
   /// it after all compiler and linker optimizations have been performed.
@@ -1213,6 +1213,7 @@ typedef UINTN RETURN_STATUS;
     (SIGNATURE_32 (A, B, C, D) | ((UINT64) (SIGNATURE_32 (E, F, G, H)) << 32))
 
 #if defined(_MSC_EXTENSIONS) && !defined (__INTEL_COMPILER) && !defined (MDE_CPU_EBC)
+  void * _ReturnAddress(void);
   #pragma intrinsic(_ReturnAddress)
   /**
     Get the return address of the calling function.

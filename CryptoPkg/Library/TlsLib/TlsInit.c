@@ -130,18 +130,10 @@ TlsFree (
   }
 
   //
-  // Free the internal TLS and BIO objects.
+  // Free the internal TLS and related BIO objects.
   //
   if (TlsConn->Ssl != NULL) {
     SSL_free (TlsConn->Ssl);
-  }
-
-  if (TlsConn->InBio != NULL) {
-    BIO_free (TlsConn->InBio);
-  }
-
-  if (TlsConn->OutBio != NULL) {
-    BIO_free (TlsConn->OutBio);
   }
 
   OPENSSL_free (Tls);
@@ -266,3 +258,4 @@ TlsNew (
     );
   return (VOID *) TlsConn;
 }
+

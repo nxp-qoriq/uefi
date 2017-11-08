@@ -36,10 +36,10 @@
   ArmLib|Include/Library/ArmLib.h
   ArmMmuLib|Include/Library/ArmMmuLib.h
   SemihostLib|Include/Library/Semihosting.h
-  UncachedMemoryAllocationLib|Include/Library/UncachedMemoryAllocationLib.h
   DefaultExceptionHandlerLib|Include/Library/DefaultExceptionHandlerLib.h
   ArmDisassemblerLib|Include/Library/ArmDisassemblerLib.h
   ArmGicArchLib|Include/Library/ArmGicArchLib.h
+  ArmSvcLib|Include/Library/ArmSvcLib.h
 
 [Guids.common]
   gArmTokenSpaceGuid       = { 0xBB11ECFE, 0x820F, 0x4968, { 0xBB, 0xA6, 0xF7, 0x6A, 0xFE, 0x30, 0x25, 0x96 } }
@@ -84,9 +84,6 @@
   # Using a FeaturePcd make a '(BOOLEAN) casting for its value which is not understood by the preprocessor.
   gArmTokenSpaceGuid.PcdVFPEnabled|0|UINT32|0x00000024
 
-  # This PCD will free the unallocated buffers if their size reach this threshold.
-  # We set the default value to 512MB.
-  gArmTokenSpaceGuid.PcdArmFreeUncachedMemorySizeThreshold|0x20000000|UINT64|0x00000003
   gArmTokenSpaceGuid.PcdCpuVectorBaseAddress|0xffff0000|UINT64|0x00000004
   gArmTokenSpaceGuid.PcdCpuResetAddress|0x00000000|UINT32|0x00000005
 

@@ -3,6 +3,7 @@
 
   (C) Copyright 2014-2015 Hewlett-Packard Development Company, L.P.<BR>
   Copyright (c) 2010 - 2017, Intel Corporation. All rights reserved.<BR>
+  (C) Copyright 2017 Hewlett Packard Enterprise Development LP<BR>
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
   which accompanies this distribution.  The full text of the license may be found at
@@ -285,6 +286,8 @@ GetProtocolInfoString(
   UINTN                     Size;
   CHAR16                    *Temp;
   CHAR16                    GuidStr[40];
+  VOID                      *Instance;
+  CHAR16                    InstanceStr[17];
 
   ProtocolGuidArray = NULL;
   RetVal            = NULL;
@@ -311,6 +314,17 @@ GetProtocolInfoString(
         FreePool(Temp);
       }
       StrnCatGrow(&RetVal, &Size, L"%N", 0);
+
+      if(Verbose) {
+        Status = gBS->HandleProtocol (TheHandle, ProtocolGuidArray[ProtocolIndex], &Instance);
+        if (!EFI_ERROR (Status)) {
+          StrnCatGrow (&RetVal, &Size, L"(%H", 0);
+          UnicodeSPrint (InstanceStr, sizeof (InstanceStr), L"%x", Instance);
+          StrnCatGrow (&RetVal, &Size, InstanceStr, 0);
+          StrnCatGrow (&RetVal, &Size, L"%N)", 0);
+        }
+      }
+
       if (ExtraInfo) {
         Temp = GetProtocolInformationDump(TheHandle, ProtocolGuidArray[ProtocolIndex], Verbose);
         if (Temp != NULL) {
@@ -318,7 +332,7 @@ GetProtocolInfoString(
           if (!Verbose) {
             StrnCatGrow(&RetVal, &Size, L"(", 0);
             StrnCatGrow(&RetVal, &Size, Temp, 0);
-            StrnCatGrow(&RetVal, &Size, L")\r\n", 0);
+            StrnCatGrow(&RetVal, &Size, L")", 0);
           } else {
             StrnCatGrow(&RetVal, &Size, Separator, 0);
             StrnCatGrow(&RetVal, &Size, Temp, 0);
@@ -664,7 +678,7 @@ DisplayDriverModelHandle (
     -1, 
     -1, 
     NULL, 
-    STRING_TOKEN (STR_DH_OUTPUT_DRIVER6B),
+    STRING_TOKEN (STR_DH_OUTPUT_DRIVER7),
     gShellDriver1HiiHandle,
     ConvertHandleToHandleIndex(Handle),
     DriverName!=NULL?DriverName:L"<Unknown>"
@@ -704,7 +718,7 @@ DisplayDriverModelHandle (
         -1, 
         -1, 
         NULL, 
-        STRING_TOKEN (STR_DH_OUTPUT_DRIVER6), 
+        STRING_TOKEN (STR_DH_OUTPUT_DRIVER9),
         gShellDriver1HiiHandle, 
         L"None"
         );
@@ -713,7 +727,7 @@ DisplayDriverModelHandle (
       -1, 
       -1, 
       NULL, 
-      STRING_TOKEN (STR_DH_OUTPUT_DRIVER6), 
+      STRING_TOKEN (STR_DH_OUTPUT_DRIVER9),
       gShellDriver1HiiHandle, 
       L""
       );
@@ -745,7 +759,7 @@ DisplayDriverModelHandle (
             -1, 
             -1, 
             NULL, 
-            STRING_TOKEN (STR_DH_OUTPUT_DRIVER6B),
+            STRING_TOKEN (STR_DH_OUTPUT_DRIVER6C),
             gShellDriver1HiiHandle,
             ConvertHandleToHandleIndex(ChildControllerHandleBuffer[ChildIndex]),
             TempStringPointer!=NULL?TempStringPointer:L"<Unknown>"
@@ -801,17 +815,29 @@ DoDhByHandle(
         ProtocolInfoString==NULL?L"":ProtocolInfoString
       );
     } else {
-      ProtocolInfoString = GetProtocolInfoString(TheHandle, Language, L"\r\n", Verbose, TRUE);
-      ShellPrintHiiEx(
-        -1,
-        -1,
-        NULL,
-        STRING_TOKEN (STR_DH_OUTPUT_SINGLE),
-        gShellDriver1HiiHandle,
-        ConvertHandleToHandleIndex(TheHandle),
-        TheHandle,
-        ProtocolInfoString==NULL?L"":ProtocolInfoString
-      );
+      ProtocolInfoString = GetProtocolInfoString(TheHandle, Language, Verbose ? L"\r\n" : L" ", Verbose, TRUE);
+      if (Verbose) {
+        ShellPrintHiiEx(
+          -1,
+          -1,
+          NULL,
+          STRING_TOKEN (STR_DH_OUTPUT_SINGLE),
+          gShellDriver1HiiHandle,
+          ConvertHandleToHandleIndex(TheHandle),
+          TheHandle,
+          ProtocolInfoString==NULL?L"":ProtocolInfoString
+        );
+      } else {
+        ShellPrintHiiEx(
+          -1,
+          -1,
+          NULL,
+          STRING_TOKEN (STR_DH_OUTPUT_SINGLE_D),
+          gShellDriver1HiiHandle,
+          ConvertHandleToHandleIndex(TheHandle),
+          ProtocolInfoString==NULL?L"":ProtocolInfoString
+        );
+      }
     }
 
     if (DriverInfo) {

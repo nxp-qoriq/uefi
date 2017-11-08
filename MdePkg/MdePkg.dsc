@@ -17,7 +17,7 @@
 [Defines]
   PLATFORM_NAME                  = Mde
   PLATFORM_GUID                  = 082F8BFC-0455-4859-AE3C-ECD64FB81642
-  PLATFORM_VERSION               = 1.06
+  PLATFORM_VERSION               = 1.07
   DSC_SPECIFICATION              = 0x00010005
   OUTPUT_DIRECTORY               = Build/Mde
   SUPPORTED_ARCHITECTURES        = IA32|IPF|X64|EBC|ARM|AARCH64
@@ -69,6 +69,10 @@
   MdePkg/Library/BasePciLibCf8/BasePciLibCf8.inf
   MdePkg/Library/BasePciLibPciExpress/BasePciLibPciExpress.inf
   MdePkg/Library/BasePciSegmentLibPci/BasePciSegmentLibPci.inf
+  MdePkg/Library/BasePciSegmentInfoLibNull/BasePciSegmentInfoLibNull.inf
+  MdePkg/Library/PciSegmentLibSegmentInfo/BasePciSegmentLibSegmentInfo.inf
+  MdePkg/Library/PciSegmentLibSegmentInfo/DxeRuntimePciSegmentLibSegmentInfo.inf
+  MdePkg/Library/BaseS3PciSegmentLib/BaseS3PciSegmentLib.inf
   MdePkg/Library/BasePeCoffGetEntryPointLib/BasePeCoffGetEntryPointLib.inf
   MdePkg/Library/BasePeCoffLib/BasePeCoffLib.inf
   MdePkg/Library/BasePeCoffExtraActionLibNull/BasePeCoffExtraActionLibNull.inf
@@ -134,6 +138,7 @@
 
 [Components.IA32, Components.X64]
   MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf
+  MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsicSev.inf
   MdePkg/Library/BaseMemoryLibMmx/BaseMemoryLibMmx.inf
   MdePkg/Library/BaseMemoryLibOptDxe/BaseMemoryLibOptDxe.inf
   MdePkg/Library/BaseMemoryLibOptPei/BaseMemoryLibOptPei.inf
@@ -153,6 +158,7 @@
   MdePkg/Library/BaseS3SmbusLib/BaseS3SmbusLib.inf
   MdePkg/Library/BaseS3StallLib/BaseS3StallLib.inf
   MdePkg/Library/SmmMemLib/SmmMemLib.inf
+  MdePkg/Library/SmmIoLib/SmmIoLib.inf
   MdePkg/Library/BaseRngLib/BaseRngLib.inf
   MdePkg/Library/SmmPciExpressLib/SmmPciExpressLib.inf
   MdePkg/Library/SmiHandlerProfileLibNull/SmiHandlerProfileLibNull.inf

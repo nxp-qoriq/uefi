@@ -346,7 +346,7 @@ VmxSupport (
   );
 
 /**
-  Initializes VMX inside SMX feature to specific state.
+  Initializes VMX feature to specific state.
 
   @param[in]  ProcessorNumber  The index of the CPU executing this function.
   @param[in]  CpuInfo          A pointer to the REGISTER_CPU_FEATURE_INFORMATION
@@ -355,42 +355,16 @@ VmxSupport (
                                by CPU_FEATURE_GET_CONFIG_DATA.  NULL if
                                CPU_FEATURE_GET_CONFIG_DATA was not provided in
                                RegisterCpuFeature().
-  @param[in]  State            If TRUE, then the VMX inside SMX feature must be enabled.
-                               If FALSE, then the VMX inside SMX feature must be disabled.
+  @param[in]  State            If TRUE, then the VMX feature must be enabled.
+                               If FALSE, then the VMX feature must be disabled.
 
-  @retval RETURN_SUCCESS       VMX inside SMX feature is initialized.
-
-  @note This service could be called by BSP only.
-**/
-RETURN_STATUS
-EFIAPI
-VmxInsideSmxInitialize (
-  IN UINTN                             ProcessorNumber,
-  IN REGISTER_CPU_FEATURE_INFORMATION  *CpuInfo,
-  IN VOID                              *ConfigData,  OPTIONAL
-  IN BOOLEAN                           State
-  );
-
-/**
-  Initializes SENTER feature to specific state.
-
-  @param[in]  ProcessorNumber  The index of the CPU executing this function.
-  @param[in]  CpuInfo          A pointer to the REGISTER_CPU_FEATURE_INFORMATION
-                               structure for the CPU executing this function.
-  @param[in]  ConfigData       A pointer to the configuration buffer returned
-                               by CPU_FEATURE_GET_CONFIG_DATA.  NULL if
-                               CPU_FEATURE_GET_CONFIG_DATA was not provided in
-                               RegisterCpuFeature().
-  @param[in]  State            If TRUE, then the SENTER feature must be enabled.
-                               If FALSE, then the SENTER feature must be disabled.
-
-  @retval RETURN_SUCCESS       SENTER feature is initialized.
+  @retval RETURN_SUCCESS       VMX feature is initialized.
 
   @note This service could be called by BSP only.
 **/
 RETURN_STATUS
 EFIAPI
-SenterInitialize (
+VmxInitialize (
   IN UINTN                             ProcessorNumber,
   IN REGISTER_CPU_FEATURE_INFORMATION  *CpuInfo,
   IN VOID                              *ConfigData,  OPTIONAL
@@ -472,7 +446,7 @@ SmxSupport (
   );
 
 /**
-  Initializes VMX outside SMX feature to specific state.
+  Initializes SMX feature to specific state.
 
   @param[in]  ProcessorNumber  The index of the CPU executing this function.
   @param[in]  CpuInfo          A pointer to the REGISTER_CPU_FEATURE_INFORMATION
@@ -481,16 +455,17 @@ SmxSupport (
                                by CPU_FEATURE_GET_CONFIG_DATA.  NULL if
                                CPU_FEATURE_GET_CONFIG_DATA was not provided in
                                RegisterCpuFeature().
-  @param[in]  State            If TRUE, then the VMX outside SMX feature must be enabled.
-                               If FALSE, then the VMX outside SMX feature must be disabled.
+  @param[in]  State            If TRUE, then SMX feature must be enabled.
+                               If FALSE, then SMX feature must be disabled.
 
-  @retval RETURN_SUCCESS       VMX outside SMX feature is initialized.
+  @retval RETURN_SUCCESS       SMX feature is initialized.
+  @retval RETURN_UNSUPPORTED   VMX not initialized.
 
   @note This service could be called by BSP only.
 **/
 RETURN_STATUS
 EFIAPI
-VmxOutsideSmxInitialize (
+SmxInitialize (
   IN UINTN                             ProcessorNumber,
   IN REGISTER_CPU_FEATURE_INFORMATION  *CpuInfo,
   IN VOID                              *ConfigData,  OPTIONAL
@@ -798,6 +773,21 @@ C1eInitialize (
   );
 
 /**
+  Prepares for the data used by CPU feature detection and initialization.
+
+  @param[in]  NumberOfProcessors  The number of CPUs in the platform.
+
+  @return  Pointer to a buffer of CPU related configuration data.
+
+  @note This service could be called by BSP only.
+**/
+VOID *
+EFIAPI
+X2ApicGetConfigData (
+  IN UINTN  NumberOfProcessors
+  );
+
+/**
   Detects if X2Apci feature supported on current processor.
 
   Detect if X2Apci has been already enabled.
@@ -862,6 +852,179 @@ VOID *
 EFIAPI
 FeatureControlGetConfigData (
   IN UINTN               NumberOfProcessors
+  );
+
+/**
+  Detects if Protected Processor Inventory Number feature supported on current 
+  processor.
+
+  @param[in]  ProcessorNumber  The index of the CPU executing this function.
+  @param[in]  CpuInfo          A pointer to the REGISTER_CPU_FEATURE_INFORMATION
+                               structure for the CPU executing this function.
+  @param[in]  ConfigData       A pointer to the configuration buffer returned
+                               by CPU_FEATURE_GET_CONFIG_DATA.  NULL if
+                               CPU_FEATURE_GET_CONFIG_DATA was not provided in
+                               RegisterCpuFeature().
+
+  @retval TRUE     Protected Processor Inventory Number feature is supported.
+  @retval FALSE    Protected Processor Inventory Number feature is not supported.
+
+  @note This service could be called by BSP/APs.
+**/
+BOOLEAN
+EFIAPI
+PpinSupport (
+  IN UINTN                             ProcessorNumber,
+  IN REGISTER_CPU_FEATURE_INFORMATION  *CpuInfo,
+  IN VOID                              *ConfigData  OPTIONAL
+  );
+
+/**
+  Initializes Protected Processor Inventory Number feature to specific state.
+
+  @param[in]  ProcessorNumber  The index of the CPU executing this function.
+  @param[in]  CpuInfo          A pointer to the REGISTER_CPU_FEATURE_INFORMATION
+                               structure for the CPU executing this function.
+  @param[in]  ConfigData       A pointer to the configuration buffer returned
+                               by CPU_FEATURE_GET_CONFIG_DATA.  NULL if
+                               CPU_FEATURE_GET_CONFIG_DATA was not provided in
+                               RegisterCpuFeature().
+  @param[in]  State            If TRUE, then the Protected Processor Inventory 
+                               Number feature must be enabled.
+                               If FALSE, then the Protected Processor Inventory 
+                               Number feature must be disabled.
+
+  @retval RETURN_SUCCESS       Protected Processor Inventory Number feature is 
+                               initialized.
+  @retval RETURN_DEVICE_ERROR  Device can't change state because it has been 
+                               locked.
+
+**/
+RETURN_STATUS
+EFIAPI
+PpinInitialize (
+  IN UINTN                             ProcessorNumber,
+  IN REGISTER_CPU_FEATURE_INFORMATION  *CpuInfo,
+  IN VOID                              *ConfigData,  OPTIONAL
+  IN BOOLEAN                           State
+  );
+
+/**
+  Detects if Local machine check exception feature supported on current 
+  processor.
+
+  @param[in]  ProcessorNumber  The index of the CPU executing this function.
+  @param[in]  CpuInfo          A pointer to the REGISTER_CPU_FEATURE_INFORMATION
+                               structure for the CPU executing this function.
+  @param[in]  ConfigData       A pointer to the configuration buffer returned
+                               by CPU_FEATURE_GET_CONFIG_DATA.  NULL if
+                               CPU_FEATURE_GET_CONFIG_DATA was not provided in
+                               RegisterCpuFeature().
+
+  @retval TRUE     Local machine check exception feature is supported.
+  @retval FALSE    Local machine check exception feature is not supported.
+
+  @note This service could be called by BSP/APs.
+**/
+BOOLEAN
+EFIAPI
+LmceSupport (
+  IN UINTN                             ProcessorNumber,
+  IN REGISTER_CPU_FEATURE_INFORMATION  *CpuInfo,
+  IN VOID                              *ConfigData  OPTIONAL
+  );
+
+/**
+  Initializes Local machine check exception feature to specific state.
+
+  @param[in]  ProcessorNumber  The index of the CPU executing this function.
+  @param[in]  CpuInfo          A pointer to the REGISTER_CPU_FEATURE_INFORMATION
+                               structure for the CPU executing this function.
+  @param[in]  ConfigData       A pointer to the configuration buffer returned
+                               by CPU_FEATURE_GET_CONFIG_DATA.  NULL if
+                               CPU_FEATURE_GET_CONFIG_DATA was not provided in
+                               RegisterCpuFeature().
+  @param[in]  State            If TRUE, then the Local machine check exception
+                               feature must be enabled.
+                               If FALSE, then the Local machine check exception
+                               feature must be disabled.
+
+  @retval RETURN_SUCCESS       Local machine check exception feature is initialized.
+
+**/
+RETURN_STATUS
+EFIAPI
+LmceInitialize (
+  IN UINTN                             ProcessorNumber,
+  IN REGISTER_CPU_FEATURE_INFORMATION  *CpuInfo,
+  IN VOID                              *ConfigData,  OPTIONAL
+  IN BOOLEAN                           State
+  );
+
+/**
+  Prepares for the data used by CPU feature detection and initialization.
+
+  @param[in]  NumberOfProcessors  The number of CPUs in the platform.
+
+  @return  Pointer to a buffer of CPU related configuration data.
+
+  @note This service could be called by BSP only.
+**/
+VOID *
+EFIAPI
+ProcTraceGetConfigData (
+  IN UINTN  NumberOfProcessors
+  );
+
+/**
+  Detects if Intel Processor Trace feature supported on current processor.
+
+  @param[in]  ProcessorNumber  The index of the CPU executing this function.
+  @param[in]  CpuInfo          A pointer to the REGISTER_CPU_FEATURE_INFORMATION
+                               structure for the CPU executing this function.
+  @param[in]  ConfigData       A pointer to the configuration buffer returned
+                               by CPU_FEATURE_GET_CONFIG_DATA.  NULL if
+                               CPU_FEATURE_GET_CONFIG_DATA was not provided in
+                               RegisterCpuFeature().
+
+  @retval TRUE     Processor Trace feature is supported.
+  @retval FALSE    Processor Trace feature is not supported.
+
+  @note This service could be called by BSP/APs.
+**/
+BOOLEAN
+EFIAPI
+ProcTraceSupport (
+  IN UINTN                             ProcessorNumber,
+  IN REGISTER_CPU_FEATURE_INFORMATION  *CpuInfo,
+  IN VOID                              *ConfigData  OPTIONAL
+  );
+
+/**
+  Initializes Intel Processor Trace feature to specific state.
+
+  @param[in]  ProcessorNumber  The index of the CPU executing this function.
+  @param[in]  CpuInfo          A pointer to the REGISTER_CPU_FEATURE_INFORMATION
+                               structure for the CPU executing this function.
+  @param[in]  ConfigData       A pointer to the configuration buffer returned
+                               by CPU_FEATURE_GET_CONFIG_DATA.  NULL if
+                               CPU_FEATURE_GET_CONFIG_DATA was not provided in
+                               RegisterCpuFeature().
+  @param[in]  State            If TRUE, then the Processor Trace feature must be
+                               enabled.
+                               If FALSE, then the Processor Trace feature must be
+                               disabled.
+
+  @retval RETURN_SUCCESS       Intel Processor Trace feature is initialized.
+
+**/
+RETURN_STATUS
+EFIAPI
+ProcTraceInitialize (
+  IN UINTN                             ProcessorNumber,
+  IN REGISTER_CPU_FEATURE_INFORMATION  *CpuInfo,
+  IN VOID                              *ConfigData,  OPTIONAL
+  IN BOOLEAN                           State
   );
 
 #endif
