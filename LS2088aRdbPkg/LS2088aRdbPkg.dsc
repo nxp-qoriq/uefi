@@ -201,6 +201,8 @@
   AuthVariableLib|MdeModulePkg/Library/AuthVariableLibNull/AuthVariableLibNull.inf
   VarCheckLib|MdeModulePkg/Library/VarCheckLib/VarCheckLib.inf
 
+  SecureMonRngLib|LS2088aRdbPkg/Library/SecureMonRngLib/SecureMonRngLib.inf
+
 [LibraryClasses.common.SEC]
   PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
   ReportStatusCodeLib|IntelFrameworkModulePkg/Library/PeiDxeDebugLibReportStatusCode/PeiDxeDebugLibReportStatusCode.inf
@@ -735,6 +737,11 @@
   MdeModulePkg/Bus/Pci/PciBusDxe/PciBusDxe.inf
   LS2088aRdbPkg/Drivers/PciHostBridgeDxe/PciHostBridgeDxe.inf
 
+  #
+  # RNG Driver
+  #
+  LS2088aRdbPkg/Drivers/RngDxe/RngDxe.inf
+  
   #
   # Networking stack
   #

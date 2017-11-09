@@ -250,6 +250,11 @@ READ_LOCK_STATUS   = TRUE
   # DPAA2 Ethernet driver
   INF LS2088aRdbPkg/Drivers/Dpaa2EthernetDxe/Dpaa2EthernetDxe.inf
 !endif
+  
+  #
+  # RNG Driver
+  #
+  INF LS2088aRdbPkg/Drivers/RngDxe/RngDxe.inf
 
   #
   # FAT filesystem + GPT/MBR partitioning
