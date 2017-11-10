@@ -234,7 +234,7 @@
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2McDpcMcDramOffset|0x00F00000|UINT32|0x0000005E
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2McDplMaxLen|0x20000|UINT32|0x0000005F
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2McDplMcDramOffset|0x00F20000|UINT32|0x00000060
-  gLS2088aRdbTokenSpaceGuid.PcdDpaa2McPrivateRamSize|0x80000000|UINT32|0x00000061
+  gLS2088aRdbTokenSpaceGuid.PcdDpaa2McPrivateRamSize|0x80000000|UINT32|0x00000061  # 2GB (PcdDpaa2McPrivateRamSize must be 512MB aligned)
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2StreamIdStart|23|UINT32|0x00000062
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2StreamIdEnd|63|UINT32|0x00000063
   gLS2088aRdbTokenSpaceGuid.PcdDpaa2McBootTimeoutMs|200000|UINT32|0x00000064

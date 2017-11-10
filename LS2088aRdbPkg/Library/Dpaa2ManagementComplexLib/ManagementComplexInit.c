@@ -127,8 +127,8 @@ Dpaa2McAllocatePrivateMem(DPAA2_MANAGEMENT_COMPLEX *Mc, UINT8 *Num256MbBlocks)
   /* 512MB is fixed reserved size in MC Low Mem */
   ASSERT(McRamSize == MC_LOW_MEM_FIXED_SIZE);
 # else
-  /* Make MC region 512 MB aligned and calculate number of 256MB aligned blocks from it */
-  McRamSize = McRamSize & MC_RAM_BASE_ADDR_ALIGNMENT_MASK;
+  /* MC size must be 512MB Aligned */
+  ASSERT(McRamSize % MC_RAM_BASE_ADDR_ALIGNMENT == 0);
 # endif
 #endif
 
