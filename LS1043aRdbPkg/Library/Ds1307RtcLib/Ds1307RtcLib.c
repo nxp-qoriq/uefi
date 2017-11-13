@@ -1,11 +1,6 @@
 /** @Ds1307RtcLib.c
-  Implement EFI RealTimeClock with runtime services via RTC Lib for DS1307 RTC.
 
-  Based on RTC implementation available in
-  EmbeddedPkg/Library/TemplateRealTimeClockLib/RealTimeClockLib.c
-
-  Copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
-  Copyright (c) 2015, Freescale Semiconductor, Inc. All rights reserved.
+  Copyright 2017 NXP
 
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
@@ -18,40 +13,17 @@
 **/
 
 #include <PiDxe.h>
+#include <I2c.h>
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
-#include <Library/IoLib.h>
-#include <Library/RealTimeClockLib.h>
 #include <Library/DxeServicesTableLib.h>
+#include <Library/RealTimeClockLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/UefiRuntimeLib.h>
-#include <I2c.h>
 #include <Protocol/RealTimeClock.h>
 
-#define Bin(Bcd) ((Bcd) & 0x0f) + ((Bcd) >> 4) * 10
-#define Bcd(Bin) (((Bin / 10) << 4) | (Bin % 10))
-
-#define DS1307_I2C_ADDR			0x68
-
-/*
- * RTC register addresses
- */
-#define DS1307_SEC_REG_ADDR	0x00
-#define DS1307_MIN_REG_ADDR	0x01
-#define DS1307_HR_REG_ADDR		0x02
-#define DS1307_DAY_REG_ADDR	0x03
-#define DS1307_DATE_REG_ADDR	0x04
-#define DS1307_MON_REG_ADDR	0x05
-#define DS1307_YR_REG_ADDR		0x06
-#define DS1307_CTL_REG_ADDR	0x07
-
-#define DS1307_SEC_BIT_CH		0x80	/* Clock Halt (in Register 0)   */
-
-#define DS1307_CTL_BIT_RS0		0x01	/* Rate select 0                */
-#define DS1307_CTL_BIT_RS1		0x02	/* Rate select 1                */
-#define DS1307_CTL_BIT_SQWE	0x10	/* Square Wave Enable           */
-#define DS1307_CTL_BIT_OUT		0x80	/* Output Control               */
+#include "Ds1307Rtc.h"
 
 STATIC CONST CHAR16           mTimeZoneVariableName[] = L"Ds1307RtcTimeZone";
 STATIC CONST CHAR16           mDaylightVariableName[] = L"Ds1307RtcDaylight";
@@ -81,6 +53,7 @@ VOID RtcWrite(
 
 }
 
+STATIC
 BOOLEAN
 IsLeapYear (
   IN EFI_TIME   *Time
@@ -101,8 +74,9 @@ IsLeapYear (
   }
 }
 
+STATIC
 BOOLEAN
-DayValid (
+IsDayValid (
   IN  EFI_TIME  *Time
   )
 {
@@ -123,8 +97,6 @@ DayValid (
   of the hardware platform.
 
   @param  Time                  A pointer to storage to receive a snapshot of the current time.
-  @param  Capabilities          An optional pointer to a buffer to receive the real time clock
-                                device's capabilities.
 
   @retval EFI_SUCCESS           The operation completed successfully.
   @retval EFI_INVALID_PARAMETER Time is NULL.
@@ -134,9 +106,8 @@ DayValid (
 
 EFI_STATUS
 EFIAPI
-LibGetTime (
-  OUT EFI_TIME                *Time,
-  OUT  EFI_TIME_CAPABILITIES  *Capabilities
+Ds1307LibGetTime (
+  IN OUT EFI_TIME                *Time
   )
 {
   EFI_STATUS  Status = EFI_SUCCESS;
@@ -277,7 +248,7 @@ LibGetTime (
 **/
 EFI_STATUS
 EFIAPI
-LibSetTime (
+Ds1307LibSetTime (
   IN EFI_TIME                *Time
   )
 {
@@ -288,7 +259,7 @@ LibSetTime (
        (Time->Year   > 9999) ||
        (Time->Month  < 1   ) ||
        (Time->Month  > 12  ) ||
-       (!DayValid (Time)    ) ||
+       (!IsDayValid (Time)    ) ||
        (Time->Hour   > 23  ) ||
        (Time->Minute > 59  ) ||
        (Time->Second > 59  ) ||
@@ -368,7 +339,7 @@ LibSetTime (
 **/
 EFI_STATUS
 EFIAPI
-LibGetWakeupTime (
+Ds1307LibGetWakeupTime (
   OUT BOOLEAN     *Enabled,
   OUT BOOLEAN     *Pending,
   OUT EFI_TIME    *Time
@@ -394,7 +365,7 @@ LibGetWakeupTime (
 **/
 EFI_STATUS
 EFIAPI
-LibSetWakeupTime (
+Ds1307LibSetWakeupTime (
   IN BOOLEAN      Enabled,
   OUT EFI_TIME    *Time
   )
@@ -413,7 +384,7 @@ LibSetWakeupTime (
 **/
 VOID
 EFIAPI
-LibRtcVirtualNotifyEvent (
+Ds1307LibRtcVirtualNotifyEvent (
   IN EFI_EVENT        Event,
   IN VOID             *Context
   )
@@ -432,17 +403,14 @@ LibRtcVirtualNotifyEvent (
   This is the declaration of an EFI image entry point. This can be the entry point to an application
   written to this specification, an EFI boot service driver, or an EFI runtime driver.
 
-  @param  ImageHandle           Handle that identifies the loaded image.
-  @param  SystemTable           System Table for this image.
-
   @retval EFI_SUCCESS           The operation completed successfully.
+  @retval others                The operation failed.
 
 **/
 EFI_STATUS
 EFIAPI
-LibRtcInitialize (
-  IN EFI_HANDLE                            ImageHandle,
-  IN EFI_SYSTEM_TABLE                      *SystemTable
+Ds1307LibRtcInitialize (
+  VOID
   )
 {
   //
@@ -482,12 +450,12 @@ LibRtcInitialize (
   Status = gBS->CreateEventEx (
                   EVT_NOTIFY_SIGNAL,
                   TPL_NOTIFY,
-                  LibRtcVirtualNotifyEvent,
+                  Ds1307LibRtcVirtualNotifyEvent,
                   NULL,
                   &gEfiEventVirtualAddressChangeGuid,
                   &mRtcVirtualAddrChangeEvent
                   );
   ASSERT_EFI_ERROR (Status);
 
-  return EFI_SUCCESS;
+  return Status;
 }

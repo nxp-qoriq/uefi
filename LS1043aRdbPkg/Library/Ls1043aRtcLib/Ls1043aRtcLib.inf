@@ -1,8 +1,8 @@
-#  @Ds1307RtcLib.inf
+#  @file
 #
 #  Lib to provide memory journal status code reporting Routines
 #
-#  Copyright (c) 2015, Freescale Semiconductor, Inc. All rights reserved.
+#  Copyright 2017 NXP
 #
 #  This program and the accompanying materials
 #  are licensed and made available under the terms and conditions of the BSD License
@@ -14,15 +14,15 @@
 
 [Defines]
   INF_VERSION                    = 0x0001001A
-  BASE_NAME                      = Ds1307RtcLib
-  FILE_GUID                      = 4009c698-95aa-4bef-ad77-a79fc61935cd
+  BASE_NAME                      = Ls1043aRtcLib
+  FILE_GUID                      = 8fba4317-c880-4656-a694-0c57a32b2e67
   MODULE_TYPE                    = BASE
   VERSION_STRING                 = 1.0
   LIBRARY_CLASS                  = RealTimeClockLib
 
 
 [Sources.common]
-  Ds1307RtcLib.c
+  Ls1043aRtcLib.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -30,8 +30,10 @@
   LS1043aRdbPkg/LS1043aRdbPkg.dec
 
 [LibraryClasses]
+  CpldLib
   DebugLib
-  I2cLib
-
-[Guids]
-  gEfiEventVirtualAddressChangeGuid
+  Ds1307RtcLib
+  DxeServicesTableLib
+  IoLib
+  Pcf85263RtcLib
+  UefiRuntimeLib
