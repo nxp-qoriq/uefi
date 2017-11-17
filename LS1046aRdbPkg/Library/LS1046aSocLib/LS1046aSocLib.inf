@@ -55,4 +55,4 @@
   gArmPlatformTokenSpaceGuid.PcdClockInitialize
   gArmPlatformTokenSpaceGuid.PcdCounterFrequency
   gLS1046aRdbTokenSpaceGuid.PcdFManFwQspiAddr
-
+  gLS1046aRdbTokenSpaceGuid.PcdBootMode

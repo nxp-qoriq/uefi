@@ -1828,6 +1828,19 @@ VOID FdtFixupJR (VOID *Blob)
   }
 }
 
+VOID
+FdtFixupQspi (
+  VOID *Blob
+  )
+{
+  CHAR8                            *Compatible = "fsl,ls1021a-qspi";
+  CHAR8                            *StatusProp = "status";
+
+  // Set the qspi status disabled for runtime services
+  // to be available from linux
+  FixupByCompatibleField(Blob, Compatible, StatusProp, "disabled", AsciiStrSize ("disabled"), 1);
+}
+
 VOID FdtCpuSetup(VOID *Blob, UINTN BlobSize)
 {
 	struct SysInfo SocSysInfo;
@@ -1858,6 +1871,8 @@ VOID FdtCpuSetup(VOID *Blob, UINTN BlobSize)
 
 	FdtFixupPcie(Blob);
 	FdtFixupPsci(Blob);
+	if (PcdGet32(PcdBootMode) == QSPI_BOOT)
+	  FdtFixupQspi(Blob);
 
 	/* DPAA 1.x fixups */
 	FdtFixupBmanPortals(Blob);
