@@ -1468,16 +1468,16 @@ static void ft_pcie_ls_setup(void *blob, const char *pci_compat,
 		fdt_set_node_status(blob, off, FDT_STATUS_OKAY, 0);
 }
 
-#define FSL_PCIE_COMPAT "fsl,ls2088a-pcie"
+#define PCIE_COMPAT "fsl,ls2088a-pcie"
 void ft_pci_setup(void *blob)
 {
-	ft_pcie_ls_setup(blob, FSL_PCIE_COMPAT, PCIE1_BASE_ADDR, PCIE1);
+	ft_pcie_ls_setup(blob, PCIE_COMPAT, PCIE1_BASE_ADDR, PCIE1);
 
-	ft_pcie_ls_setup(blob, FSL_PCIE_COMPAT, PCIE2_BASE_ADDR, PCIE2);
+	ft_pcie_ls_setup(blob, PCIE_COMPAT, PCIE2_BASE_ADDR, PCIE2);
 
-	ft_pcie_ls_setup(blob, FSL_PCIE_COMPAT, PCIE3_BASE_ADDR, PCIE3);
+	ft_pcie_ls_setup(blob, PCIE_COMPAT, PCIE3_BASE_ADDR, PCIE3);
 
-	ft_pcie_ls_setup(blob, FSL_PCIE_COMPAT, PCIE4_BASE_ADDR, PCIE4);
+	ft_pcie_ls_setup(blob, PCIE_COMPAT, PCIE4_BASE_ADDR, PCIE4);
 }
 
 UINT8
@@ -1676,7 +1676,7 @@ void SetMsiMapEntry(void *blob, UINTN PciBase,
             PciBase);
 
     if (nodeoffset < 0) {
-        compat = FSL_PCIE_COMPAT;
+        compat = PCIE_COMPAT;
 
         nodeoffset = fdt_node_offset_by_compat_reg(blob,
                 compat, PciBase);
@@ -1710,7 +1710,7 @@ void SetMsiMapEntry(void *blob, UINTN PciBase,
  */
 
 void SetIommuMapEntry(void *blob, UINTN PciBase,
-                       UINT32 devid, UINT32 streamid)
+                       UINT32 devid, UINT32 streamid, UINT32 StreamEndId, int offset)
 {
     UINT32 *prop;
     UINT32 iommu_map[4];
@@ -1718,20 +1718,23 @@ void SetIommuMapEntry(void *blob, UINTN PciBase,
     int nodeoffset;
     char *compat = NULL;
 
-    /* find pci controller node */
-    nodeoffset = fdt_node_offset_by_compat_reg(blob, "fsl,ls-pcie",
-            PciBase);
+  nodeoffset = offset;
+  if (nodeoffset == 0) {
+      /* find pci controller node */
+      nodeoffset = fdt_node_offset_by_compat_reg(blob, "fsl,ls-pcie",
+              PciBase);
 
-    if (nodeoffset < 0) {
-        compat = FSL_PCIE_COMPAT;
+      if (nodeoffset < 0) {
+          compat = PCIE_COMPAT;
 
-        nodeoffset = fdt_node_offset_by_compat_reg(blob,
-                compat, PciBase);
-        if (nodeoffset < 0) {
-            DEBUG((EFI_D_ERROR, "PCI %a node not found \n", compat));
-            return;
-        }
-    }
+          nodeoffset = fdt_node_offset_by_compat_reg(blob,
+                  compat, PciBase);
+          if (nodeoffset < 0) {
+              DEBUG((EFI_D_ERROR, "PCI %a node not found \n", compat));
+              return;
+          }
+      }
+  }
 
     /* get phandle to iommu controller */
     prop = fdt_getprop_w(blob, nodeoffset, "iommu-map", &lenp);
@@ -1745,9 +1748,9 @@ void SetIommuMapEntry(void *blob, UINTN PciBase,
     iommu_map[0] = cpu_to_fdt32(devid);
     iommu_map[1] = *++prop;
     iommu_map[2] = cpu_to_fdt32(streamid);
-    iommu_map[3] = cpu_to_fdt32(1);
+    iommu_map[3] = cpu_to_fdt32(StreamEndId + 1);
 
-    if (devid == 0) {
+    if (devid == 0 || StreamEndId) {
       fdt_setprop_inplace(blob, nodeoffset, "iommu-map",
           iommu_map, 16);
     } else {
@@ -1846,7 +1849,7 @@ void fdt_fixup_pcie(void *blob)
                 StreamId);
         
         SetIommuMapEntry(blob, PciBaseAddress[PciNo], Bdf >> 8,
-                StreamId);
+                StreamId, 0, 0);
 
         /* Check for child */
         if (PciChildInfo[PciNo].HasChild) {
@@ -1880,42 +1883,60 @@ void fdt_fixup_pcie(void *blob)
         DEBUG((EFI_D_RELEASE, "0x%x : 0x%x, %d \n", PciBaseAddress[PciNo], Bdf, StreamId));
         SetMsiMapEntry(blob, PciBaseAddress[PciNo], Bdf >> 8, StreamId);
 
-        SetIommuMapEntry(blob, PciBaseAddress[PciNo], Bdf >> 8, StreamId);
+        SetIommuMapEntry(blob, PciBaseAddress[PciNo], Bdf >> 8, StreamId, 0 , 0);
 
         StreamId++;
     }
+}
+#define DPAA2_STREAM_ID_START 23
+#define DPAA2_STREAM_ID_END 63
+void fdt_fixup_mc (void *blob)
+{
+  int nodeoffset;
+
+  nodeoffset = fdt_node_offset_by_compatible(blob, -1, "fsl,qoriq-mc");
+  if (nodeoffset < 0) {
+    DEBUG ((EFI_D_ERROR, "Could not locate MC node \n"));
+    return;
+  }
+  SetIommuMapEntry (blob, 0, DPAA2_STREAM_ID_START, DPAA2_STREAM_ID_START,
+                    (DPAA2_STREAM_ID_END - DPAA2_STREAM_ID_START), nodeoffset);
 }
 
 void FdtCpuSetup(void *blob, UINTN blob_size)
 {
   if (PcdGet32(PcdBootMode) != QSPI_BOOT) {
-	struct SysInfo SocSysInfo;
-	GetSysInfo(&SocSysInfo);
-	UINTN SysClk = get_board_sys_clk();
+    struct SysInfo SocSysInfo;
+    UINTN SysClk;
 
-	fdt_open_into(blob, (VOID *)blob, blob_size);
+    GetSysInfo (&SocSysInfo);
+    SysClk = get_board_sys_clk();
 
-       /* Job ring 3 is used by PPA, so remove it from dtb */
-       FdtFixupJR(blob);
+    fdt_open_into(blob, (VOID *)blob, blob_size);
 
-	FixupByCompatibleField32(blob, "fsl,ns16550",
-			       "clock-frequency", SocSysInfo.FreqSystemBus/2, 1);
+     /* Job ring 3 is used by PPA, so remove it from dtb */
+    FdtFixupJR(blob);
 
-	FixupByCompatibleField32(blob, "fixed-clock",
+    FixupByCompatibleField32(blob, "fsl,ns16550",
+          "clock-frequency", SocSysInfo.FreqSystemBus/2, 1);
+
+    FixupByCompatibleField32(blob, "fixed-clock",
 			       "clock-frequency", SysClk, 1);
 
-	ft_pci_setup(blob);
+    ft_pci_setup(blob);
 
-       fdt_fixup_pcie(blob);
+    fdt_fixup_pcie(blob);
 
-	fdt_fixup_esdhc(blob);
+    fdt_fixup_mc(blob);
 
-	fdt_fixup_smmu(blob);
+    fdt_fixup_esdhc(blob);
 
-	fdt_fixup_usb(blob);
+    fdt_fixup_smmu(blob);
 
-	fdt_fixup_psci(blob);
+    fdt_fixup_usb(blob);
 
-	fdt_fixup_memory(blob);
+    fdt_fixup_psci(blob);
+
+    fdt_fixup_memory(blob);
   }
 }
