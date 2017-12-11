@@ -591,7 +591,7 @@ AhciBuildCommand (
     if (RemainedData < EFI_AHCI_MAX_DATA_PER_PRDT) {
       AhciRegisters->AhciCommandTable->PrdtTable[PrdtIndex].AhciPrdtDbc = (UINT32)RemainedData - 1;
     } else {
-      AhciRegisters->AhciCommandTable->PrdtTable[PrdtIndex].AhciPrdtDbc = EFI_AHCI_MAX_DATA_PER_PRDT - 1;
+      AhciRegisters->AhciCommandTable->PrdtTable[PrdtIndex].AhciPrdtDbc = PcdGet32(PcdPrdtMaxDataLength);
     }
 
     Data64.Uint64 = (UINT64)MemAddr;
