@@ -1361,6 +1361,9 @@
   # @Prompt Console Output Row of Text Setup
   gEfiMdeModulePkgTokenSpaceGuid.PcdSetupConOutRow|25|UINT32|0x4000000e
 
+  ## This PCD specifies the Maximum data length for a PRD Entry
+  gEfiMdeModulePkgTokenSpaceGuid.PcdPrdtMaxDataLength|0x3FFFFF|UINT32|0x4000000f
+
 [PcdsFixedAtBuild, PcdsPatchableInModule, PcdsDynamic, PcdsDynamicEx]
   ## UART clock frequency is for the baud rate configuration.
   # @Prompt Serial Port Clock Rate.
