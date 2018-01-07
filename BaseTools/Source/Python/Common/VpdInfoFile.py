@@ -79,6 +79,7 @@ class VpdInfoFile:
         #           @see BuildClassObject.PcdClassObject
         #  Value  : offset in different SKU such as [sku1_offset, sku2_offset]
         self._VpdArray = {}
+        self._VpdInfo = {}
     
     ## Add a VPD PCD collected from platform's autogen when building.
     #
@@ -87,7 +88,7 @@ class VpdInfoFile:
     #
     #  @param offset integer value for VPD's offset in specific SKU.
     #
-    def Add(self, Vpd, Offset):
+    def Add(self, Vpd, skuname,Offset):
         if (Vpd == None):
             EdkLogger.error("VpdInfoFile", BuildToolError.ATTRIBUTE_UNKNOWN_ERROR, "Invalid VPD PCD entry.")
         
@@ -102,19 +103,17 @@ class VpdInfoFile:
             if Vpd.MaxDatumSize == None or Vpd.MaxDatumSize == "":
                 Vpd.MaxDatumSize = VpdInfoFile._MAX_SIZE_TYPE[Vpd.DatumType]
         else:
-            EdkLogger.error("VpdInfoFile", BuildToolError.PARAMETER_INVALID,  
-                            "Invalid DatumType %s for VPD PCD %s.%s" % (Vpd.DatumType, Vpd.TokenSpaceGuidCName, Vpd.TokenCName))
+            if Vpd.MaxDatumSize <= 0:
+                EdkLogger.error("VpdInfoFile", BuildToolError.PARAMETER_INVALID,
+                                "Invalid max datum size for VPD PCD %s.%s" % (Vpd.TokenSpaceGuidCName, Vpd.TokenCName))
             
         if Vpd not in self._VpdArray.keys():
             #
             # If there is no Vpd instance in dict, that imply this offset for a given SKU is a new one 
             #
-            self._VpdArray[Vpd] = [Offset]
-        else:
-            #
-            # If there is an offset for a specific SKU in dict, then append this offset for other sku to array.
-            #
-            self._VpdArray[Vpd].append(Offset)
+            self._VpdArray[Vpd] = {}
+
+        self._VpdArray[Vpd].update({skuname:Offset})
             
         
     ## Generate VPD PCD information into a text file
@@ -136,12 +135,12 @@ class VpdInfoFile:
             for PcdItem in GlobalData.MixedPcd:
                 if (Pcd.TokenCName, Pcd.TokenSpaceGuidCName) in GlobalData.MixedPcd[PcdItem]:
                     PcdTokenCName = PcdItem[0]
-            for Offset in self._VpdArray[Pcd]:
-                PcdValue = str(Pcd.SkuInfoList[Pcd.SkuInfoList.keys()[i]].DefaultValue).strip()
+            for skuname in self._VpdArray[Pcd]:
+                PcdValue = str(Pcd.SkuInfoList[skuname].DefaultValue).strip()
                 if PcdValue == "" :
                     PcdValue  = Pcd.DefaultValue
 
-                Content += "%s.%s|%s|%s|%s|%s  \n" % (Pcd.TokenSpaceGuidCName, PcdTokenCName, str(Pcd.SkuInfoList.keys()[i]),str(Offset).strip(), str(Pcd.MaxDatumSize).strip(),PcdValue)
+                Content += "%s.%s|%s|%s|%s|%s  \n" % (Pcd.TokenSpaceGuidCName, PcdTokenCName, skuname,str(self._VpdArray[Pcd][skuname]).strip(), str(Pcd.MaxDatumSize).strip(),PcdValue)
                 i += 1
 
         return SaveFileOnChange(FilePath, Content, False)
@@ -178,6 +177,9 @@ class VpdInfoFile:
             
             Found = False
             
+            if (TokenSpaceName, PcdTokenName) not in self._VpdInfo:
+                self._VpdInfo[(TokenSpaceName, PcdTokenName)] = []
+            self._VpdInfo[(TokenSpaceName, PcdTokenName)].append((SkuId,Offset, Value))
             for VpdObject in self._VpdArray.keys():
                 VpdObjectTokenCName = VpdObject.TokenCName
                 for PcdItem in GlobalData.MixedPcd:
@@ -185,10 +187,10 @@ class VpdInfoFile:
                         VpdObjectTokenCName = PcdItem[0]
                 for sku in VpdObject.SkuInfoList.keys():
                     if VpdObject.TokenSpaceGuidCName == TokenSpaceName and VpdObjectTokenCName == PcdTokenName.strip() and sku == SkuId:
-                        if self._VpdArray[VpdObject][VpdObject.SkuInfoList.keys().index(sku)] == "*":
+                        if self._VpdArray[VpdObject][sku] == "*":
                             if Offset == "*":
                                 EdkLogger.error("BPDG", BuildToolError.FORMAT_INVALID, "The offset of %s has not been fixed up by third-party BPDG tool." % PcdName)                              
-                            self._VpdArray[VpdObject][VpdObject.SkuInfoList.keys().index(sku)] = Offset
+                            self._VpdArray[VpdObject][sku] = Offset
                         Found = True
             if not Found:
                 EdkLogger.error("BPDG", BuildToolError.PARSER_ERROR, "Can not find PCD defined in VPD guid file.")
@@ -216,6 +218,8 @@ class VpdInfoFile:
             return None
         
         return self._VpdArray[vpd]
+    def GetVpdInfo(self,(PcdTokenName,TokenSpaceName)):
+        return self._VpdInfo.get((TokenSpaceName, PcdTokenName))
     
 ## Call external BPDG tool to process VPD file
 #    

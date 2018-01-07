@@ -1,7 +1,7 @@
 /** @file
   This file implement the EFI_DHCP4_PROTOCOL interface.
 
-Copyright (c) 2006 - 2016, Intel Corporation. All rights reserved.<BR>
+Copyright (c) 2006 - 2017, Intel Corporation. All rights reserved.<BR>
 This program and the accompanying materials
 are licensed and made available under the terms and conditions of the BSD License
 which accompanies this distribution.  The full text of the license may be found at
@@ -782,6 +782,7 @@ EfiDhcp4Start (
   DHCP_SERVICE              *DhcpSb;
   EFI_STATUS                Status;
   EFI_TPL                   OldTpl;
+  EFI_STATUS                MediaStatus;
 
   //
   // First validate the parameters
@@ -806,6 +807,16 @@ EfiDhcp4Start (
 
   if ((DhcpSb->DhcpState != Dhcp4Init) && (DhcpSb->DhcpState != Dhcp4InitReboot)) {
     Status = EFI_ALREADY_STARTED;
+    goto ON_ERROR;
+  }
+
+  //
+  // Check Media Satus.
+  //
+  MediaStatus = EFI_SUCCESS;
+  NetLibDetectMediaWaitTimeout (DhcpSb->Controller, DHCP_CHECK_MEDIA_WAITING_TIME, &MediaStatus);
+  if (MediaStatus != EFI_SUCCESS) {
+    Status = EFI_NO_MEDIA;
     goto ON_ERROR;
   }
 

@@ -15,6 +15,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 
 #include "stdio.h"
 #include "stdlib.h"
+#include "assert.h"
 #include "CommonLib.h"
 #include "VfrUtilityLib.h"
 #include "VfrFormPkg.h"
@@ -615,9 +616,13 @@ CVfrVarDataTypeDB::DataTypeHasBitField (
   SVfrDataField       *pTmp;
 
   GetDataType (TypeName, &pType);
+
+  if (pType == NULL){
+    return FALSE;
+  }
   for (pTmp = pType->mMembers; pTmp!= NULL; pTmp = pTmp->mNext) {
     if (pTmp->mIsBitField) {
-       return TRUE;
+      return TRUE;
     }
   }
   return FALSE;
@@ -648,7 +653,7 @@ CVfrVarDataTypeDB::IsThisBitField (
     CHECK_ERROR_RETURN(GetTypeField (FName, pType, pField), VFR_RETURN_SUCCESS);
     pType  = pField->mFieldType;
   }
-  if (pField->mIsBitField) {
+  if (pField != NULL && pField->mIsBitField) {
     return TRUE;
   } else {
     return FALSE;
@@ -838,7 +843,9 @@ CVfrVarDataTypeDB::InternalTypesListInit (
   for (Index = 0; gInternalTypesTable[Index].mTypeName != NULL; Index++) {
     New                 = new SVfrDataType;
     if (New != NULL) {
-      strcpy (New->mTypeName, gInternalTypesTable[Index].mTypeName);
+      assert (strlen (gInternalTypesTable[Index].mTypeName) < MAX_NAME_LEN);
+      strncpy (New->mTypeName, gInternalTypesTable[Index].mTypeName, MAX_NAME_LEN - 1);
+      New->mTypeName[MAX_NAME_LEN - 1] = 0;
       New->mType        = gInternalTypesTable[Index].mType;
       New->mAlign       = gInternalTypesTable[Index].mAlign;
       New->mTotalSize   = gInternalTypesTable[Index].mSize;
@@ -951,6 +958,7 @@ CVfrVarDataTypeDB::CVfrVarDataTypeDB (
   mPackAlign     = DEFAULT_PACK_ALIGN;
   mPackStack     = NULL;
   mFirstNewDataTypeName = NULL;
+  mCurrDataType  = NULL;
 
   InternalTypesListInit ();
 }
@@ -1080,7 +1088,8 @@ CVfrVarDataTypeDB::SetNewTypeName (
     }
   }
 
-  strcpy(mNewDataType->mTypeName, TypeName);
+  strncpy(mNewDataType->mTypeName, TypeName, MAX_NAME_LEN - 1);
+  mNewDataType->mTypeName[MAX_NAME_LEN - 1] = 0;
   return VFR_RETURN_SUCCESS;
 }
 
@@ -1141,7 +1150,8 @@ CVfrVarDataTypeDB::DataTypeAddBitField (
 
   MaxDataTypeSize = mNewDataType->mTotalSize;
   if (FieldName != NULL) {
-    strcpy (pNewField->mFieldName, FieldName);
+    strncpy (pNewField->mFieldName, FieldName, MAX_NAME_LEN - 1);
+    pNewField->mFieldName[MAX_NAME_LEN - 1] = 0;
   }
   pNewField->mFieldType    = pFieldType;
   pNewField->mIsBitField   = TRUE;
@@ -1235,7 +1245,8 @@ CVfrVarDataTypeDB::DataTypeAddField (
   if ((pNewField = new SVfrDataField) == NULL) {
     return VFR_RETURN_OUT_FOR_RESOURCES;
   }
-  strcpy (pNewField->mFieldName, FieldName);
+  strncpy (pNewField->mFieldName, FieldName, MAX_NAME_LEN - 1);
+  pNewField->mFieldName[MAX_NAME_LEN - 1] = 0;
   pNewField->mFieldType    = pFieldType;
   pNewField->mArrayNum     = ArrayNum;
   pNewField->mIsBitField   = FALSE;
@@ -1595,6 +1606,7 @@ SVfrVarStorageNode::SVfrVarStorageNode (
   IN EFI_VARSTORE_ID       VarStoreId
   )
 {
+  memset (&mGuid, 0, sizeof (EFI_GUID));
   if (StoreName != NULL) {
     mVarStoreName = new CHAR8[strlen(StoreName) + 1];
     strcpy (mVarStoreName, StoreName);
@@ -1606,6 +1618,7 @@ SVfrVarStorageNode::SVfrVarStorageNode (
   mVarStoreType                      = EFI_VFR_VARSTORE_NAME;
   mStorageInfo.mNameSpace.mNameTable = new EFI_VARSTORE_ID[DEFAULT_NAME_TABLE_ITEMS];
   mStorageInfo.mNameSpace.mTableSize = 0;
+  mAssignedFlag                      = FALSE;
 }
 
 SVfrVarStorageNode::~SVfrVarStorageNode (

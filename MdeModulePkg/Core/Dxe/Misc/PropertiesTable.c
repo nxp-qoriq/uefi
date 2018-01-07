@@ -182,7 +182,6 @@ SortMemoryMap (
                                  it is the size of new memory map after merge.
   @param  DescriptorSize         Size, in bytes, of an individual EFI_MEMORY_DESCRIPTOR.
 **/
-STATIC
 VOID
 MergeMemoryMap (
   IN OUT EFI_MEMORY_DESCRIPTOR  *MemoryMap,
@@ -1230,11 +1229,11 @@ InsertImageRecord (
   InsertTailList (&mImagePropertiesPrivateData.ImageRecordList, &ImageRecord->Link);
   mImagePropertiesPrivateData.ImageRecordCount++;
 
-  SortImageRecord ();
-
   if (mImagePropertiesPrivateData.CodeSegmentCountMax < ImageRecord->CodeSegmentCount) {
     mImagePropertiesPrivateData.CodeSegmentCountMax = ImageRecord->CodeSegmentCount;
   }
+
+  SortImageRecord ();
 
 Finish:
   return ;

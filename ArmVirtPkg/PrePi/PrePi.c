@@ -13,10 +13,10 @@
 **/
 
 #include <PiPei.h>
+#include <Pi/PiBootMode.h>
 
 #include <Library/PrePiLib.h>
 #include <Library/PrintLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/PrePiHobListPointerLib.h>
 #include <Library/TimerLib.h>
 #include <Library/PerformanceLib.h>
@@ -24,46 +24,14 @@
 
 #include <Ppi/GuidedSectionExtraction.h>
 #include <Ppi/ArmMpCoreInfo.h>
-#include <Guid/LzmaDecompress.h>
 
 #include "PrePi.h"
-#include "LzmaDecompress.h"
 
-EFI_STATUS
+VOID
 EFIAPI
-ExtractGuidedSectionLibConstructor (
+ProcessLibraryConstructorList (
   VOID
   );
-
-EFI_STATUS
-EFIAPI
-LzmaDecompressLibConstructor (
-  VOID
-  );
-
-EFI_STATUS
-GetPlatformPpi (
-  IN  EFI_GUID  *PpiGuid,
-  OUT VOID      **Ppi
-  )
-{
-  UINTN                   PpiListSize;
-  UINTN                   PpiListCount;
-  EFI_PEI_PPI_DESCRIPTOR  *PpiList;
-  UINTN                   Index;
-
-  PpiListSize = 0;
-  ArmPlatformGetPlatformPpiList (&PpiListSize, &PpiList);
-  PpiListCount = PpiListSize / sizeof(EFI_PEI_PPI_DESCRIPTOR);
-  for (Index = 0; Index < PpiListCount; Index++, PpiList++) {
-    if (CompareGuid (PpiList->Guid, PpiGuid) == TRUE) {
-      *Ppi = PpiList->Ppi;
-      return EFI_SUCCESS;
-    }
-  }
-
-  return EFI_NOT_FOUND;
-}
 
 VOID
 PrePiMain (
@@ -115,7 +83,7 @@ PrePiMain (
   BuildCpuHob (PcdGet8 (PcdPrePiCpuMemorySize), PcdGet8 (PcdPrePiCpuIoSize));
 
   // Set the Boot Mode
-  SetBootMode (ArmPlatformGetBootMode ());
+  SetBootMode (BOOT_WITH_FULL_CONFIGURATION);
 
   // Initialize Platform HOBs (CpuHob and FvHob)
   Status = PlatformPeim ();
@@ -125,16 +93,7 @@ PrePiMain (
   PERF_START (NULL, "PEI", NULL, StartTimeStamp);
 
   // SEC phase needs to run library constructors by hand.
-  ExtractGuidedSectionLibConstructor ();
-  LzmaDecompressLibConstructor ();
-
-  // Build HOBs to pass up our version of stuff the DXE Core needs to save space
-  BuildPeCoffLoaderHob ();
-  BuildExtractSectionHob (
-    &gLzmaCustomDecompressGuid,
-    LzmaGuidedSectionGetInfo,
-    LzmaGuidedSectionExtraction
-    );
+  ProcessLibraryConstructorList ();
 
   // Assume the FV that contains the SEC (our code) also contains a compressed FV.
   Status = DecompressFirstFv ();
@@ -153,9 +112,6 @@ CEntryPoint (
   )
 {
   UINT64   StartTimeStamp;
-
-  // Initialize the platform specific controllers
-  ArmPlatformInitialize (MpId);
 
   if (PerformanceMeasurementEnabled ()) {
     // Initialize the Timer Library to setup the Timer HW controller

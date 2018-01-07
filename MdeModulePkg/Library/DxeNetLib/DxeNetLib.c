@@ -19,6 +19,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <Protocol/DriverBinding.h>
 #include <Protocol/ServiceBinding.h>
 #include <Protocol/SimpleNetwork.h>
+#include <Protocol/AdapterInformation.h>
 #include <Protocol/ManagedNetwork.h>
 #include <Protocol/Ip4Config2.h>
 #include <Protocol/ComponentName.h>
@@ -637,7 +638,9 @@ NetGetIpClass (
 
   ASSERT if NetMask is zero.
   
-  If all bits of the host address of IP are 0 or 1, IP is also not a valid unicast address.
+  If all bits of the host address of IP are 0 or 1, IP is also not a valid unicast address,
+  except when the originator is one of the endpoints of a point-to-point link with a 31-bit
+  mask (RFC3021).
 
   @param[in]  Ip                    The IP to check against.
   @param[in]  NetMask               The mask of the IP.
@@ -657,9 +660,13 @@ NetIp4IsUnicast (
   if (Ip == 0 || IP4_IS_LOCAL_BROADCAST (Ip)) {
     return FALSE;
   }
-  
-  if (((Ip &~NetMask) == ~NetMask) || ((Ip &~NetMask) == 0)) {
-    return FALSE;
+
+  if (NetGetMaskLength (NetMask) != 31) {
+    if (((Ip &~NetMask) == ~NetMask) || ((Ip &~NetMask) == 0)) {
+      return FALSE;
+    }
+  } else {
+    return TRUE;
   }
 
   return TRUE;
@@ -2494,6 +2501,185 @@ Exit:
   }
 
   return Status;
+}
+
+/**
+
+  Detect media state for a network device. This routine will wait for a period of time at 
+  a specified checking interval when a certain network is under connecting until connection 
+  process finishs or timeout. If Aip protocol is supported by low layer drivers, three kinds
+  of media states can be detected: EFI_SUCCESS, EFI_NOT_READY and EFI_NO_MEDIA, represents
+  connected state, connecting state and no media state respectively. When function detects 
+  the current state is EFI_NOT_READY, it will loop to wait for next time's check until state 
+  turns to be EFI_SUCCESS or EFI_NO_MEDIA. If Aip protocol is not supported, function will 
+  call NetLibDetectMedia() and return state directly.
+
+  @param[in]   ServiceHandle    The handle where network service binding protocols are
+                                installed on.
+  @param[in]   Timeout          The maximum number of 100ns units to wait when network
+                                is connecting. Zero value means detect once and return
+                                immediately.
+  @param[out]  MediaState       The pointer to the detected media state.
+
+  @retval EFI_SUCCESS           Media detection success.
+  @retval EFI_INVALID_PARAMETER ServiceHandle is not a valid network device handle or 
+                                MediaState pointer is NULL.
+  @retval EFI_DEVICE_ERROR      A device error occurred.
+  @retval EFI_TIMEOUT           Network is connecting but timeout.
+
+**/
+EFI_STATUS
+EFIAPI
+NetLibDetectMediaWaitTimeout (
+  IN  EFI_HANDLE            ServiceHandle,
+  IN  UINT64                Timeout,
+  OUT EFI_STATUS            *MediaState
+  )
+{
+  EFI_STATUS                        Status;
+  EFI_HANDLE                        SnpHandle;
+  EFI_SIMPLE_NETWORK_PROTOCOL       *Snp;
+  EFI_ADAPTER_INFORMATION_PROTOCOL  *Aip;
+  EFI_ADAPTER_INFO_MEDIA_STATE      *MediaInfo;
+  BOOLEAN                           MediaPresent;
+  UINTN                             DataSize;
+  EFI_STATUS                        TimerStatus;
+  EFI_EVENT                         Timer;
+  UINT64                            TimeRemained;
+
+  if (MediaState == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+  *MediaState = EFI_SUCCESS;
+  MediaInfo   = NULL;
+
+  //
+  // Get SNP handle
+  //
+  Snp = NULL;
+  SnpHandle = NetLibGetSnpHandle (ServiceHandle, &Snp);
+  if (SnpHandle == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  Status = gBS->HandleProtocol (
+                  SnpHandle,
+                  &gEfiAdapterInformationProtocolGuid,
+                  (VOID *) &Aip
+                  );
+  if (EFI_ERROR (Status)) {
+
+    MediaPresent = TRUE;
+    Status = NetLibDetectMedia (ServiceHandle, &MediaPresent);
+    if (!EFI_ERROR (Status)) {
+      if (MediaPresent) {
+        *MediaState = EFI_SUCCESS;
+      } else {
+        *MediaState = EFI_NO_MEDIA;
+      }
+    }
+
+    //
+    // NetLibDetectMedia doesn't support EFI_NOT_READY status, return now!
+    //
+    return Status;
+  }
+
+  Status = Aip->GetInformation (
+                  Aip,
+                  &gEfiAdapterInfoMediaStateGuid,
+                  (VOID **) &MediaInfo,
+                  &DataSize
+                  );
+  if (!EFI_ERROR (Status)) {
+
+    *MediaState = MediaInfo->MediaState;
+    FreePool (MediaInfo);
+    if (*MediaState != EFI_NOT_READY || Timeout < MEDIA_STATE_DETECT_TIME_INTERVAL) {
+
+      return EFI_SUCCESS;
+    }
+  } else {
+
+    if (MediaInfo != NULL) {
+      FreePool (MediaInfo);
+    }
+
+    if (Status == EFI_UNSUPPORTED) {
+
+      //
+      // If gEfiAdapterInfoMediaStateGuid is not supported, call NetLibDetectMedia to get media state!
+      //
+      MediaPresent = TRUE;
+      Status = NetLibDetectMedia (ServiceHandle, &MediaPresent);
+      if (!EFI_ERROR (Status)) {
+        if (MediaPresent) {
+          *MediaState = EFI_SUCCESS;
+        } else {
+          *MediaState = EFI_NO_MEDIA;
+        }
+      }
+      return Status;
+    }
+
+    return Status;
+  }
+
+  //
+  // Loop to check media state 
+  //
+
+  Timer        = NULL;
+  TimeRemained = Timeout;
+  Status = gBS->CreateEvent (EVT_TIMER, TPL_CALLBACK, NULL, NULL, &Timer);
+  if (EFI_ERROR (Status)) {
+    return EFI_DEVICE_ERROR;
+  }
+
+  do {
+    Status = gBS->SetTimer (
+                    Timer,
+                    TimerRelative,
+                    MEDIA_STATE_DETECT_TIME_INTERVAL
+                    );
+    if (EFI_ERROR (Status)) {
+      gBS->CloseEvent(Timer);
+      return EFI_DEVICE_ERROR;
+    }
+
+    do {
+      TimerStatus = gBS->CheckEvent (Timer);
+      if (!EFI_ERROR (TimerStatus)) {
+
+        TimeRemained -= MEDIA_STATE_DETECT_TIME_INTERVAL;
+        Status = Aip->GetInformation (
+                        Aip,
+                        &gEfiAdapterInfoMediaStateGuid,
+                        (VOID **) &MediaInfo,
+                        &DataSize
+                        );
+        if (!EFI_ERROR (Status)) {
+
+          *MediaState = MediaInfo->MediaState;
+          FreePool (MediaInfo);
+        } else {
+
+          if (MediaInfo != NULL) {
+            FreePool (MediaInfo);
+          }
+          gBS->CloseEvent(Timer);
+          return Status;
+        }
+      }
+    } while (TimerStatus == EFI_NOT_READY);
+  } while (*MediaState == EFI_NOT_READY && TimeRemained >= MEDIA_STATE_DETECT_TIME_INTERVAL);
+
+  gBS->CloseEvent(Timer);
+  if (*MediaState == EFI_NOT_READY && TimeRemained < MEDIA_STATE_DETECT_TIME_INTERVAL) {
+    return EFI_TIMEOUT;
+  } else {
+    return EFI_SUCCESS;
+  }
 }
 
 /**

@@ -1,8 +1,8 @@
 /** @file
   Include file that supports UEFI.
 
-  This include file must contain things defined in the UEFI 2.6 specification.
-  If a code construct is defined in the UEFI 2.6 specification it must be included
+  This include file must contain things defined in the UEFI 2.7 specification.
+  If a code construct is defined in the UEFI 2.7 specification it must be included
   by this include file.
 
 Copyright (c) 2006 - 2017, Intel Corporation. All rights reserved.<BR>
@@ -701,8 +701,7 @@ EFI_STATUS
                                  then EFI_INVALID_PARAMETER is returned.
   @param[in]  VendorGuid         A unique identifier for the vendor.
   @param[in]  Attributes         Attributes bitmask to set for the variable.
-  @param[in]  DataSize           The size in bytes of the Data buffer. Unless the EFI_VARIABLE_APPEND_WRITE, 
-                                 EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS, or 
+  @param[in]  DataSize           The size in bytes of the Data buffer. Unless the EFI_VARIABLE_APPEND_WRITE or
                                  EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS attribute is set, a size of zero 
                                  causes the variable to be deleted. When the EFI_VARIABLE_APPEND_WRITE attribute is 
                                  set, then a SetVariable() call with a DataSize of zero will not cause any change to 
@@ -721,9 +720,8 @@ EFI_STATUS
   @retval EFI_DEVICE_ERROR       The variable could not be retrieved due to a hardware error.
   @retval EFI_WRITE_PROTECTED    The variable in question is read-only.
   @retval EFI_WRITE_PROTECTED    The variable in question cannot be deleted.
-  @retval EFI_SECURITY_VIOLATION The variable could not be written due to EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS 
-                                 or EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACESS being set, but the AuthInfo 
-                                 does NOT pass the validation check carried out by the firmware.
+  @retval EFI_SECURITY_VIOLATION The variable could not be written due to EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACESS being set,
+                                 but the AuthInfo does NOT pass the validation check carried out by the firmware.
   
   @retval EFI_NOT_FOUND          The variable trying to be updated or deleted was not found.
 
@@ -1777,6 +1775,7 @@ EFI_STATUS
 // EFI Runtime Services Table
 //
 #define EFI_SYSTEM_TABLE_SIGNATURE      SIGNATURE_64 ('I','B','I',' ','S','Y','S','T')
+#define EFI_2_70_SYSTEM_TABLE_REVISION  ((2 << 16) | (70))
 #define EFI_2_60_SYSTEM_TABLE_REVISION  ((2 << 16) | (60))
 #define EFI_2_50_SYSTEM_TABLE_REVISION  ((2 << 16) | (50))
 #define EFI_2_40_SYSTEM_TABLE_REVISION  ((2 << 16) | (40))
@@ -1787,7 +1786,7 @@ EFI_STATUS
 #define EFI_2_00_SYSTEM_TABLE_REVISION  ((2 << 16) | (00))
 #define EFI_1_10_SYSTEM_TABLE_REVISION  ((1 << 16) | (10))
 #define EFI_1_02_SYSTEM_TABLE_REVISION  ((1 << 16) | (02))
-#define EFI_SYSTEM_TABLE_REVISION       EFI_2_60_SYSTEM_TABLE_REVISION
+#define EFI_SYSTEM_TABLE_REVISION       EFI_2_70_SYSTEM_TABLE_REVISION
 #define EFI_SPECIFICATION_VERSION       EFI_SYSTEM_TABLE_REVISION
 
 #define EFI_RUNTIME_SERVICES_SIGNATURE  SIGNATURE_64 ('R','U','N','T','S','E','R','V')

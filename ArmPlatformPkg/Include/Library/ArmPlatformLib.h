@@ -28,32 +28,6 @@
 #include <Library/ArmLib.h>
 
 /**
-  This structure is used to describe a region of the EFI memory map
-
-  Every EFI regions of the system memory described by their physical start address and their size
-  can have different attributes. Some regions can be tested and other untested.
-
-**/
-typedef struct {
-  EFI_RESOURCE_ATTRIBUTE_TYPE  ResourceAttribute;
-  EFI_PHYSICAL_ADDRESS         PhysicalStart;
-  UINT64                       NumberOfBytes;
-} ARM_SYSTEM_MEMORY_REGION_DESCRIPTOR;
-
-/**
-  Return the core per cluster. The method may differ per core type
-
-  This function might be called from assembler before any stack is set.
-
-  @return   Return the core count per cluster
-
-**/
-UINTN
-ArmGetCpuCountPerCluster (
-  VOID
-  );
-
-/**
   Return the core position from the value of its MpId register
 
   This function returns the core position from the position 0 in the processor.
@@ -135,17 +109,6 @@ ArmPlatformPeiBootAction (
 RETURN_STATUS
 ArmPlatformInitialize (
   IN  UINTN                     MpId
-  );
-
-/**
-  Initialize the system (or sometimes called permanent) memory
-
-  This memory is generally represented by the DRAM.
-
-**/
-VOID
-ArmPlatformInitializeSystemMemory (
-  VOID
   );
 
 /**

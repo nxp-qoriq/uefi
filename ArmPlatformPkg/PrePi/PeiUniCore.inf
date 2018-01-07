@@ -39,7 +39,6 @@
   EmbeddedPkg/EmbeddedPkg.dec
   ArmPkg/ArmPkg.dec
   ArmPlatformPkg/ArmPlatformPkg.dec
-  IntelFrameworkModulePkg/IntelFrameworkModulePkg.dec
 
 [LibraryClasses]
   BaseLib
@@ -51,7 +50,6 @@
   SerialPortLib
   ExtractGuidedSectionLib
   LzmaDecompressLib
-  PeCoffGetEntryPointLib
   DebugAgentLib
   PrePiLib
   ArmPlatformLib

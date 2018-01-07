@@ -1925,7 +1925,7 @@ EfiPxeBcSetParameters (
       // Update the previous PxeBcCallback protocol.
       //
       Status = gBS->HandleProtocol (
-                      Private->Controller,
+                      Mode->UsingIpv6 ? Private->Ip6Nic->Controller : Private->Ip4Nic->Controller,
                       &gEfiPxeBaseCodeCallbackProtocolGuid,
                       (VOID **) &Private->PxeBcCallback
                       );
@@ -2347,7 +2347,7 @@ EfiPxeLoadFile (
   EFI_PXE_BASE_CODE_PROTOCOL  *PxeBc;
   BOOLEAN                     UsingIpv6;
   EFI_STATUS                  Status;
-  BOOLEAN                     MediaPresent;
+  EFI_STATUS                  MediaStatus;
 
   if (FilePath == NULL || !IsDevicePathEnd (FilePath)) {
     return EFI_INVALID_PARAMETER;
@@ -2373,9 +2373,9 @@ EfiPxeLoadFile (
   //
   // Check media status before PXE start
   //
-  MediaPresent = TRUE;
-  NetLibDetectMedia (Private->Controller, &MediaPresent);
-  if (!MediaPresent) {
+  MediaStatus = EFI_SUCCESS;
+  NetLibDetectMediaWaitTimeout (Private->Controller, PXEBC_CHECK_MEDIA_WAITING_TIME, &MediaStatus);
+  if (MediaStatus != EFI_SUCCESS) {
     return EFI_NO_MEDIA;
   }
 

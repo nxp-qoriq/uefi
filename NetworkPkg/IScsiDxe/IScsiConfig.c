@@ -541,6 +541,7 @@ IScsiConvertAttemptConfigDataToIfrNvData (
     IScsiIpToStr (&Ip, FALSE, IfrNvData->SubnetMask);
     CopyMem (&Ip.v4, &SessionConfigData->Gateway, sizeof (EFI_IPv4_ADDRESS));
     IScsiIpToStr (&Ip, FALSE, IfrNvData->Gateway);
+    ZeroMem (IfrNvData->TargetIp, sizeof (IfrNvData->TargetIp));
     if (SessionConfigData->TargetIp.v4.Addr[0] != '\0') {
       CopyMem (&Ip.v4, &SessionConfigData->TargetIp, sizeof (EFI_IPv4_ADDRESS));
       IScsiIpToStr (&Ip, FALSE, IfrNvData->TargetIp);
@@ -3421,6 +3422,9 @@ IScsiFormCallback (
   ISCSI_CONFIG_IFR_NVDATA     OldIfrNvData;
   EFI_STATUS                  Status;
   EFI_INPUT_KEY               Key;
+  ISCSI_NIC_INFO              *NicInfo;
+
+  NicInfo = NULL;
 
   if ((Action == EFI_BROWSER_ACTION_FORM_OPEN) || (Action == EFI_BROWSER_ACTION_FORM_CLOSE)) {
     //
@@ -3591,10 +3595,36 @@ IScsiFormCallback (
     case KEY_IP_MODE:
       switch (Value->u8) {
       case IP_MODE_IP6:
+        NicInfo = IScsiGetNicInfoByIndex (Private->Current->NicIndex); 
+        if(NicInfo == NULL) {
+          break;
+        }
+
+        if(!NicInfo->Ipv6Available) {			
+  	      //
+          // Current NIC doesn't Support IPv6, hence use IPv4.    
+          //    
+          IfrNvData->IpMode = IP_MODE_IP4;
+  		
+          CreatePopUp (
+            EFI_LIGHTGRAY | EFI_BACKGROUND_BLUE,
+            &Key,
+            L"Current NIC doesn't Support IPv6!",
+            NULL
+            );
+        }
+	  
       case IP_MODE_IP4:
+        ZeroMem (IfrNvData->LocalIp, sizeof (IfrNvData->LocalIp));
+        ZeroMem (IfrNvData->SubnetMask, sizeof (IfrNvData->SubnetMask));
+        ZeroMem (IfrNvData->Gateway, sizeof (IfrNvData->Gateway));
         ZeroMem (IfrNvData->TargetIp, sizeof (IfrNvData->TargetIp));
         Private->Current->AutoConfigureMode = 0;
-
+        ZeroMem (&Private->Current->SessionConfigData.LocalIp, sizeof (EFI_IP_ADDRESS));
+        ZeroMem (&Private->Current->SessionConfigData.SubnetMask, sizeof (EFI_IPv4_ADDRESS));
+        ZeroMem (&Private->Current->SessionConfigData.Gateway, sizeof (EFI_IP_ADDRESS));
+        ZeroMem (&Private->Current->SessionConfigData.TargetIp, sizeof (EFI_IP_ADDRESS));
+        
         break;
       }
 

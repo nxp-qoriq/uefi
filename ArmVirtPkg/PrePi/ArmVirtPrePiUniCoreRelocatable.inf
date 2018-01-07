@@ -23,6 +23,7 @@
 
 [Sources]
   PrePi.c
+  FdtParser.c
 
 [Sources.AArch64]
   AArch64/ArchPrePi.c
@@ -39,21 +40,18 @@
   ArmPkg/ArmPkg.dec
   ArmPlatformPkg/ArmPlatformPkg.dec
   ArmVirtPkg/ArmVirtPkg.dec
-  IntelFrameworkModulePkg/IntelFrameworkModulePkg.dec
 
 [LibraryClasses]
   BaseLib
   DebugLib
+  FdtLib
   ArmLib
   IoLib
   TimerLib
   SerialPortLib
   ExtractGuidedSectionLib
   LzmaDecompressLib
-  PeCoffGetEntryPointLib
   PrePiLib
-  ArmPlatformLib
-  ArmPlatformStackLib
   MemoryAllocationLib
   HobLib
   PrePiHobListPointerLib

@@ -122,8 +122,9 @@ HttpBootStart (
   UINTN                Index;
   EFI_STATUS           Status;
   CHAR8                *Uri;
-  
 
+  Uri = NULL;
+  
   if (Private == NULL || FilePath == NULL) {
     return EFI_INVALID_PARAMETER;
   }
@@ -154,6 +155,9 @@ HttpBootStart (
       //
       Status = HttpBootStop (Private);
       if (EFI_ERROR (Status)) {
+        if (Uri != NULL) {
+          FreePool (Uri);
+        }
         return Status;
       }
     } else {
@@ -327,6 +331,7 @@ HttpBootLoadFile (
     //
     Status = HttpBootDiscoverBootInfo (Private);
     if (EFI_ERROR (Status)) {
+      AsciiPrint ("\n  Error: Could not discover the boot information for DHCP server.\n");
       goto ON_EXIT;
     }
   }
@@ -369,6 +374,7 @@ HttpBootLoadFile (
                  &Private->ImageType
                  );
       if (EFI_ERROR (Status) && Status != EFI_BUFFER_TOO_SMALL) {
+        AsciiPrint ("\n  Error: Could not retrieve NBP file size from HTTP server.\n");
         goto ON_EXIT;
       }
     }
@@ -394,6 +400,22 @@ HttpBootLoadFile (
   
 ON_EXIT:
   HttpBootUninstallCallback (Private);
+
+  if (Status == EFI_ACCESS_DENIED) {
+    AsciiPrint ("\n  Error: Could not establish connection with HTTP server.\n");
+  } else if (Status == EFI_BUFFER_TOO_SMALL && Buffer != NULL) {
+    AsciiPrint ("\n  Error: Buffer size is smaller than the requested file.\n");
+  } else if (Status == EFI_OUT_OF_RESOURCES) {
+    AsciiPrint ("\n  Error: Could not allocate I/O buffers.\n");
+  } else if (Status == EFI_DEVICE_ERROR) {
+    AsciiPrint ("\n  Error: Network device error.\n");
+  } else if (Status == EFI_TIMEOUT) {
+    AsciiPrint ("\n  Error: Server response timeout.\n");
+  } else if (Status == EFI_ABORTED) {
+    AsciiPrint ("\n  Error: Remote boot cancelled.\n");
+  } else if (Status != EFI_BUFFER_TOO_SMALL) {
+    AsciiPrint ("\n  Error: Unexpected network error.\n");
+  }
   return Status;
 }
 
@@ -530,7 +552,7 @@ HttpBootDxeLoadFile (
 {
   HTTP_BOOT_PRIVATE_DATA        *Private;
   HTTP_BOOT_VIRTUAL_NIC         *VirtualNic;
-  BOOLEAN                       MediaPresent;
+  EFI_STATUS                    MediaStatus;
   BOOLEAN                       UsingIpv6;
   EFI_STATUS                    Status;
   HTTP_BOOT_IMAGE_TYPE          ImageType;
@@ -552,9 +574,10 @@ HttpBootDxeLoadFile (
   //
   // Check media status before HTTP boot start
   //
-  MediaPresent = TRUE;
-  NetLibDetectMedia (Private->Controller, &MediaPresent);
-  if (!MediaPresent) {
+  MediaStatus = EFI_SUCCESS;
+  NetLibDetectMediaWaitTimeout (Private->Controller, HTTP_BOOT_CHECK_MEDIA_WAITING_TIME, &MediaStatus);
+  if (MediaStatus != EFI_SUCCESS) {
+    AsciiPrint ("\n  Error: Could not detect network connection.\n");
     return EFI_NO_MEDIA;
   }
   
@@ -595,6 +618,8 @@ HttpBootDxeLoadFile (
     Status = HttpBootRegisterRamDisk (Private, *BufferSize, Buffer, ImageType);
     if (!EFI_ERROR (Status)) {
       Status = EFI_WARN_FILE_SYSTEM;
+    } else {
+      AsciiPrint ("\n  Error: Could not register RAM disk to the system.\n");
     }
   }
 
@@ -686,6 +711,7 @@ HttpBootCallback (
           if (HttpHeader != NULL) {
             Print (L"\n  HTTP ERROR: Resource Redirected.\n  New Location: %a\n", HttpHeader->FieldValue);
           }
+          break; 
         }
       }
       

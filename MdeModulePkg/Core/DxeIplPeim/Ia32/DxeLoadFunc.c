@@ -99,7 +99,7 @@ Create4GPageTablesIa32Pae (
   NumberOfPdpEntriesNeeded = (UINT32) LShiftU64 (1, (PhysicalAddressBits - 30));
 
   TotalPagesNum = NumberOfPdpEntriesNeeded + 1;
-  PageAddress = (UINTN) AllocatePages (TotalPagesNum);
+  PageAddress = (UINTN) AllocatePageTableMemory (TotalPagesNum);
   ASSERT (PageAddress != 0);
 
   PageMap = (VOID *) PageAddress;
@@ -148,6 +148,12 @@ Create4GPageTablesIa32Pae (
       sizeof (PAGE_MAP_AND_DIRECTORY_POINTER)
       );
   }
+
+  //
+  // Protect the page table by marking the memory used for page table to be
+  // read-only.
+  //
+  EnablePageTableProtection ((UINTN)PageMap, FALSE);
 
   return (UINTN) PageMap;
 }
@@ -209,6 +215,41 @@ IsExecuteDisableBitAvailable (
   }
 
   return Available;
+}
+
+/**
+  The function will check if page table should be setup or not.
+
+  @retval TRUE      Page table should be created.
+  @retval FALSE     Page table should not be created.
+
+**/
+BOOLEAN
+ToBuildPageTable (
+  VOID
+  )
+{
+  if (!IsIa32PaeSupport ()) {
+    return FALSE;
+  }
+
+  if (IsNullDetectionEnabled ()) {
+    return TRUE;
+  }
+
+  if (PcdGet8 (PcdHeapGuardPropertyMask) != 0) {
+    return TRUE;
+  }
+
+  if (PcdGetBool (PcdCpuStackGuard)) {
+    return TRUE;
+  }
+
+  if (PcdGetBool (PcdSetNxForStack) && IsExecuteDisableBitAvailable ()) {
+    return TRUE;
+  }
+
+  return FALSE;
 }
 
 /**
@@ -385,10 +426,7 @@ HandOffToDxeCore (
     TopOfStack = (EFI_PHYSICAL_ADDRESS) (UINTN) ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
 
     PageTables = 0;
-    BuildPageTablesIa32Pae = (BOOLEAN) (IsIa32PaeSupport () &&
-                                        (IsNullDetectionEnabled () ||
-                                         (PcdGetBool (PcdSetNxForStack) &&
-                                          IsExecuteDisableBitAvailable ())));
+    BuildPageTablesIa32Pae = ToBuildPageTable ();
     if (BuildPageTablesIa32Pae) {
       PageTables = Create4GPageTablesIa32Pae (BaseOfStack, STACK_SIZE);
       if (IsExecuteDisableBitAvailable ()) {

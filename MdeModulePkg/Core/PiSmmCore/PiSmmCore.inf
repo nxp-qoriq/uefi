@@ -40,6 +40,8 @@
   SmramProfileRecord.c
   MemoryAttributesTable.c
   SmiHandlerProfile.c
+  HeapGuard.c
+  HeapGuard.h
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -79,7 +81,6 @@
   gEdkiiSmmExitBootServicesProtocolGuid         ## SOMETIMES_PRODUCES
   gEdkiiSmmLegacyBootProtocolGuid               ## SOMETIMES_PRODUCES
   gEdkiiSmmReadyToBootProtocolGuid              ## PRODUCES
-  gEdkiiSmmEndOfS3ResumeProtocolGuid            ## SOMETIMES_PRODUCES
 
   gEfiSmmSwDispatch2ProtocolGuid                ## SOMETIMES_CONSUMES
   gEfiSmmSxDispatch2ProtocolGuid                ## SOMETIMES_CONSUMES
@@ -89,6 +90,9 @@
   gEfiSmmGpiDispatch2ProtocolGuid               ## SOMETIMES_CONSUMES
   gEfiSmmIoTrapDispatch2ProtocolGuid            ## SOMETIMES_CONSUMES
   gEfiSmmUsbDispatch2ProtocolGuid               ## SOMETIMES_CONSUMES
+  gEfiSmmCpuProtocolGuid                        ## SOMETIMES_CONSUMES
+  gEdkiiSmmMemoryAttributeProtocolGuid          ## CONSUMES
+  gEfiSmmSxDispatch2ProtocolGuid                ## SOMETIMES_CONSUMES
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdLoadFixAddressSmmCodePageNumber     ## SOMETIMES_CONSUMES
@@ -97,6 +101,9 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdMemoryProfilePropertyMask           ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdMemoryProfileDriverPath             ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdSmiHandlerProfilePropertyMask       ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPageType                   ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPoolType                   ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPropertyMask               ## CONSUMES
 
 [Guids]
   gAprioriGuid                                  ## SOMETIMES_CONSUMES   ## File
@@ -116,6 +123,7 @@
   ## SOMETIMES_PRODUCES   ## GUID # Install protocol
   ## SOMETIMES_PRODUCES   ## GUID # SmiHandlerRegister
   gSmiHandlerProfileGuid
+  gEdkiiEndOfS3ResumeGuid ## SOMETIMES_PRODUCES ## GUID # Install protocol
 
 [UserExtensions.TianoCore."ExtraFiles"]
   PiSmmCoreExtra.uni

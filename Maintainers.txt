@@ -91,6 +91,7 @@ CorebootModulePkg, CorebootPayloadPkg
 W: https://github.com/tianocore/tianocore.github.io/wiki/Coreboot_UEFI_payload
 M: Maurice Ma <maurice.ma@intel.com>
 M: Prince Agyeman <prince.agyeman@intel.com>
+M: Benjamin You <benjamin.you@intel.com>
 S: Maintained
 
 CryptoPkg
@@ -166,6 +167,11 @@ MdeModulePkg
 W: https://github.com/tianocore/tianocore.github.io/wiki/MdeModulePkg
 M: Star Zeng <star.zeng@intel.com>
 M: Eric Dong <eric.dong@intel.com>
+M: NetworkPkg maintainers
+  (Universal/Network and related libraries, header files)
+R: Ruiyu Ni <ruiyu.ni@intel.com>
+  (especially for Bus, Universal/Console, Universal/Disk,
+   Universal/BdsDxe and related libraries, header files)
 
 MdePkg
 W: https://github.com/tianocore/tianocore.github.io/wiki/MdePkg
@@ -204,11 +210,6 @@ PcAtChipsetPkg
 W: https://github.com/tianocore/tianocore.github.io/wiki/PcAtChipsetPkg
 M: Ruiyu Ni <ruiyu.ni@intel.com>
 
-PerformancePkg
-W: https://github.com/tianocore/tianocore.github.io/wiki/PerformancePkg
-M: Daryl McDaniel <edk2-lists@mc2research.org>
-M: Jaben Carsey <jaben.carsey@intel.com>
-
 QuarkPlatformPkg, QuarkSocPkg
 M: Michael D Kinney <michael.d.kinney@intel.com>
 M: Kelly Steele <kelly.steele@intel.com>
@@ -245,6 +246,7 @@ M: Jaben Carsey <jaben.carsey@intel.com>
 UefiCpuPkg
 W: https://github.com/tianocore/tianocore.github.io/wiki/UefiCpuPkg
 M: Eric Dong <eric.dong@intel.com>
+R: Laszlo Ersek <lersek@redhat.com>
 
 UnixPkg
 W: https://github.com/tianocore/tianocore.github.io/wiki/UnixPkg

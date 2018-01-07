@@ -25,7 +25,6 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/HobLib.h>
 #include <Library/SerialPortLib.h>
-#include <Library/ArmPlatformLib.h>
 
 #define SerialPrint(txt)  SerialPortWrite (txt, AsciiStrLen(txt)+1);
 
@@ -59,12 +58,6 @@ PlatformPeim (
 VOID
 BuildMemoryTypeInformationHob (
   VOID
-  );
-
-EFI_STATUS
-GetPlatformPpi (
-  IN  EFI_GUID  *PpiGuid,
-  OUT VOID      **Ppi
   );
 
 // Initialize the Architecture specific controllers

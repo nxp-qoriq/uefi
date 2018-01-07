@@ -686,6 +686,55 @@ BdsAllocateMemoryForPerformanceData (
 }
 
 /**
+  Enter an infinite loop of calling the Boot Manager Menu.
+
+  This is a last resort alternative to BdsEntry() giving up for good. This
+  function never returns.
+
+  @param[in] BootManagerMenu  The EFI_BOOT_MANAGER_LOAD_OPTION located and/or
+                              created by the EfiBootManagerGetBootManagerMenu()
+                              call in BdsEntry().
+**/
+VOID
+BdsBootManagerMenuLoop (
+  IN EFI_BOOT_MANAGER_LOAD_OPTION *BootManagerMenu
+  )
+{
+  EFI_INPUT_KEY Key;
+
+  //
+  // Normally BdsDxe does not print anything to the system console, but this is
+  // a last resort -- the end-user will likely not see any DEBUG messages
+  // logged in this situation.
+  //
+  // AsciiPrint() will NULL-check gST->ConOut internally. We check gST->ConIn
+  // here to see if it makes sense to request and wait for a keypress.
+  //
+  if (gST->ConIn != NULL) {
+    AsciiPrint (
+      "%a: No bootable option or device was found.\n"
+      "%a: Press any key to enter the Boot Manager Menu.\n",
+      gEfiCallerBaseName,
+      gEfiCallerBaseName
+      );
+    BdsWaitForSingleEvent (gST->ConIn->WaitForKey, 0);
+
+    //
+    // Drain any queued keys.
+    //
+    while (!EFI_ERROR (gST->ConIn->ReadKeyStroke (gST->ConIn, &Key))) {
+      //
+      // just throw away Key
+      //
+    }
+  }
+
+  for (;;) {
+    EfiBootManagerBoot (BootManagerMenu);
+  }
+}
+
+/**
 
   Service routine for BdsInstance->Entry(). Devices are connected, the
   consoles are initialized, and the boot options are tried.
@@ -1088,14 +1137,17 @@ BdsEntry (
     } while (BootSuccess);
   }
 
-  if (BootManagerMenuStatus != EFI_NOT_FOUND) {
-    EfiBootManagerFreeLoadOption (&BootManagerMenu);
-  }
-
   if (!BootSuccess) {
     LoadOptions = EfiBootManagerGetLoadOptions (&LoadOptionCount, LoadOptionTypePlatformRecovery);
     ProcessLoadOptions (LoadOptions, LoadOptionCount);
     EfiBootManagerFreeLoadOptions (LoadOptions, LoadOptionCount);
+  }
+
+  //
+  // If BootManagerMenu is available, fall back to it indefinitely.
+  //
+  if (BootManagerMenuStatus != EFI_NOT_FOUND) {
+    BdsBootManagerMenuLoop (&BootManagerMenu);
   }
 
   DEBUG ((EFI_D_ERROR, "[Bds] Unable to boot!\n"));
@@ -1112,8 +1164,7 @@ BdsEntry (
   @param  VendorGuid             A unique identifier for the vendor.
   @param  Attributes             Attributes bitmask to set for the variable.
   @param  DataSize               The size in bytes of the Data buffer. Unless the EFI_VARIABLE_APPEND_WRITE, 
-                                 EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS, or 
-                                 EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS attribute is set, a size of zero 
+                                 or EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS attribute is set, a size of zero
                                  causes the variable to be deleted. When the EFI_VARIABLE_APPEND_WRITE attribute is 
                                  set, then a SetVariable() call with a DataSize of zero will not cause any change to 
                                  the variable value (the timestamp associated with the variable may be updated however 
@@ -1131,9 +1182,8 @@ BdsEntry (
   @retval EFI_DEVICE_ERROR       The variable could not be retrieved due to a hardware error.
   @retval EFI_WRITE_PROTECTED    The variable in question is read-only.
   @retval EFI_WRITE_PROTECTED    The variable in question cannot be deleted.
-  @retval EFI_SECURITY_VIOLATION The variable could not be written due to EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS 
-                                 or EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACESS being set, but the AuthInfo 
-                                 does NOT pass the validation check carried out by the firmware.
+  @retval EFI_SECURITY_VIOLATION The variable could not be written due to EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACESS
+                                 being set, but the AuthInfo does NOT pass the validation check carried out by the firmware.
 
   @retval EFI_NOT_FOUND          The variable trying to be updated or deleted was not found.
 **/

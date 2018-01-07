@@ -621,11 +621,6 @@ UefiMain (
           ShellInfoObject.ConsoleInfo->RowCounter = 0;
 
           //
-          // Reset the CTRL-C event (yes we ignore the return values)
-          //
-          Status = gBS->CheckEvent (ShellInfoObject.NewEfiShellProtocol->ExecutionBreak);
-
-          //
           // Display Prompt
           //
           Status = DoShellPrompt();
@@ -726,6 +721,7 @@ FreeResources:
 **/
 EFI_STATUS
 SetBuiltInAlias(
+  VOID
   )
 {
   EFI_STATUS          Status;
@@ -1345,9 +1341,14 @@ DoShellPrompt (
   // Null terminate the string and parse it
   //
   if (!EFI_ERROR (Status)) {
+    //
+    // Reset the CTRL-C event just before running the command (yes we ignore the return values)
+    //
+    Status = gBS->CheckEvent (ShellInfoObject.NewEfiShellProtocol->ExecutionBreak);
+
     CmdLine[BufferSize / sizeof (CHAR16)] = CHAR_NULL;
     Status = RunCommand(CmdLine);
-    }
+  }
 
   //
   // Done with this command
@@ -1646,7 +1647,7 @@ ShellConvertVariables (
   //
   // now do the replacements...
   //
-  NewCommandLine1 = AllocateCopyPool(NewSize, OriginalCommandLine);
+  NewCommandLine1 = AllocateZeroPool (NewSize);
   NewCommandLine2 = AllocateZeroPool(NewSize);
   ItemTemp        = AllocateZeroPool(ItemSize+(2*sizeof(CHAR16)));
   if (NewCommandLine1 == NULL || NewCommandLine2 == NULL || ItemTemp == NULL) {
@@ -1655,6 +1656,8 @@ ShellConvertVariables (
     SHELL_FREE_NON_NULL(ItemTemp);
     return (NULL);
   }
+  CopyMem (NewCommandLine1, OriginalCommandLine, StrSize (OriginalCommandLine));
+
   for (MasterEnvList = EfiShellGetEnv(NULL)
     ;  MasterEnvList != NULL && *MasterEnvList != CHAR_NULL
     ;  MasterEnvList += StrLen(MasterEnvList) + 1

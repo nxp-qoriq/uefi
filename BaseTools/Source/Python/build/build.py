@@ -50,6 +50,7 @@ from PatchPcdValue.PatchPcdValue import *
 
 import Common.EdkLogger
 import Common.GlobalData as GlobalData
+from GenFds.GenFds import GenFds
 
 # Version and Copyright
 VersionNumber = "0.60" + ' ' + gBUILD_VERSION
@@ -760,6 +761,8 @@ class Build():
         self.SkipAutoGen    = BuildOptions.SkipAutoGen
         self.Reparse        = BuildOptions.Reparse
         self.SkuId          = BuildOptions.SkuId
+        if self.SkuId:
+            GlobalData.gSKUID_CMD = self.SkuId
         self.ConfDirectory = BuildOptions.ConfDirectory
         self.SpawnMode      = True
         self.BuildReport    = BuildReport(BuildOptions.ReportFile, BuildOptions.ReportType)
@@ -774,6 +777,7 @@ class Build():
         GlobalData.gUseHashCache = BuildOptions.UseHashCache
         GlobalData.gBinCacheDest   = BuildOptions.BinCacheDest
         GlobalData.gBinCacheSource = BuildOptions.BinCacheSource
+        GlobalData.gEnableGenfdsMultiThread = BuildOptions.GenfdsMultiThread
 
         if GlobalData.gBinCacheDest and not GlobalData.gUseHashCache:
             EdkLogger.error("build", OPTION_NOT_SUPPORTED, ExtraData="--binary-destination must be used together with --hash.")
@@ -823,6 +827,7 @@ class Build():
         self.LoadFixAddress = 0
         self.UniFlag        = BuildOptions.Flag
         self.BuildModules = []
+        self.HashSkipModules = []
         self.Db_Flag = False
         self.LaunchPrebuildFlag = False
         self.PlatformBuildPath = os.path.join(GlobalData.gConfDirectory,'.cache', '.PlatformBuild')
@@ -1208,7 +1213,7 @@ class Build():
     #   @param  CreateDepModuleMakeFile     Flag used to indicate creating makefile
     #                                       for dependent modules/Libraries
     #
-    def _BuildPa(self, Target, AutoGenObject, CreateDepsCodeFile=True, CreateDepsMakeFile=True, BuildModule=False):
+    def _BuildPa(self, Target, AutoGenObject, CreateDepsCodeFile=True, CreateDepsMakeFile=True, BuildModule=False, FfsCommand={}):
         if AutoGenObject == None:
             return False
 
@@ -1224,7 +1229,7 @@ class Build():
 
             if not self.SkipAutoGen or Target == 'genmake':
                 self.Progress.Start("Generating makefile")
-                AutoGenObject.CreateMakeFile(CreateDepsMakeFile)
+                AutoGenObject.CreateMakeFile(CreateDepsMakeFile, FfsCommand)
                 self.Progress.Stop("done!")
             if Target == "genmake":
                 return True
@@ -1731,6 +1736,12 @@ class Build():
                 self.LoadFixAddress = Wa.Platform.LoadFixAddress
                 self.BuildReport.AddPlatformReport(Wa)
                 self.Progress.Stop("done!")
+
+                # Add ffs build to makefile
+                CmdListDict = {}
+                if GlobalData.gEnableGenfdsMultiThread and self.Fdf:
+                    CmdListDict = self._GenFfsCmd()
+
                 for Arch in Wa.ArchList:
                     GlobalData.gGlobalDefines['ARCH'] = Arch
                     Pa = PlatformAutoGen(Wa, self.PlatformFile, BuildTarget, ToolChain, Arch)
@@ -1740,7 +1751,7 @@ class Build():
                         if Ma == None:
                             continue
                         self.BuildModules.append(Ma)
-                    self._BuildPa(self.Target, Pa)
+                    self._BuildPa(self.Target, Pa, FfsCommand=CmdListDict)
 
                 # Create MAP file when Load Fix Address is enabled.
                 if self.Target in ["", "all", "fds"]:
@@ -1819,6 +1830,10 @@ class Build():
                 self.Fdf = Wa.FdfFile
                 self.LoadFixAddress = Wa.Platform.LoadFixAddress
                 Wa.CreateMakeFile(False)
+                # Add ffs build to makefile
+                CmdListDict = None
+                if GlobalData.gEnableGenfdsMultiThread and self.Fdf:
+                    CmdListDict = self._GenFfsCmd()
                 self.Progress.Stop("done!")
                 MaList = []
                 ExitFlag = threading.Event()
@@ -1832,19 +1847,21 @@ class Build():
                         if self.ModuleFile.Dir == Module.Dir and self.ModuleFile.Name == Module.Name:
                             Ma = ModuleAutoGen(Wa, Module, BuildTarget, ToolChain, Arch, self.PlatformFile)
                             if Ma == None: continue
+                            MaList.append(Ma)
+                            if Ma.CanSkipbyHash():
+                                self.HashSkipModules.append(Ma)
+                                continue
                             # Not to auto-gen for targets 'clean', 'cleanlib', 'cleanall', 'run', 'fds'
                             if self.Target not in ['clean', 'cleanlib', 'cleanall', 'run', 'fds']:
                                 # for target which must generate AutoGen code and makefile
                                 if not self.SkipAutoGen or self.Target == 'genc':
                                     Ma.CreateCodeFile(True)
-                                if self.Target == "genc":
-                                    continue
-
                                 if not self.SkipAutoGen or self.Target == 'genmake':
-                                    Ma.CreateMakeFile(True)
-                                if self.Target == "genmake":
-                                    continue
-                            MaList.append(Ma)
+                                    if CmdListDict and self.Fdf and (Module.File, Arch) in CmdListDict:
+                                        Ma.CreateMakeFile(True, CmdListDict[Module.File, Arch])
+                                        del CmdListDict[Module.File, Arch]
+                                    else:
+                                        Ma.CreateMakeFile(True)
                             self.BuildModules.append(Ma)
                     self.AutoGenTime += int(round((time.time() - AutoGenStart)))
                     MakeStart = time.time()
@@ -1927,6 +1944,17 @@ class Build():
                     #
                     self._SaveMapFile (MapBuffer, Wa)
 
+    def _GenFfsCmd(self):
+        CmdListDict = {}
+        GenFfsDict = GenFds.GenFfsMakefile('', GlobalData.gFdfParser, self, self.ArchList, GlobalData)
+        for Cmd in GenFfsDict:
+            tmpInf, tmpArch = GenFfsDict[Cmd]
+            if (tmpInf, tmpArch) not in CmdListDict.keys():
+                CmdListDict[tmpInf, tmpArch] = [Cmd]
+            else:
+                CmdListDict[tmpInf, tmpArch].append(Cmd)
+        return CmdListDict
+
     ## Build a platform in multi-thread mode
     #
     def _MultiThreadBuildPlatform(self):
@@ -1962,6 +1990,11 @@ class Build():
                 self.BuildReport.AddPlatformReport(Wa)
                 Wa.CreateMakeFile(False)
 
+                # Add ffs build to makefile
+                CmdListDict = None
+                if GlobalData.gEnableGenfdsMultiThread and self.Fdf:
+                    CmdListDict = self._GenFfsCmd()
+
                 # multi-thread exit flag
                 ExitFlag = threading.Event()
                 ExitFlag.clear()
@@ -1989,6 +2022,7 @@ class Build():
                         if Ma == None:
                             continue
                         if Ma.CanSkipbyHash():
+                            self.HashSkipModules.append(Ma)
                             continue
 
                         # Not to auto-gen for targets 'clean', 'cleanlib', 'cleanall', 'run', 'fds'
@@ -2000,7 +2034,11 @@ class Build():
                                 continue
 
                             if not self.SkipAutoGen or self.Target == 'genmake':
-                                Ma.CreateMakeFile(True)
+                                if CmdListDict and self.Fdf and (Module.File, Arch) in CmdListDict:
+                                    Ma.CreateMakeFile(True, CmdListDict[Module.File, Arch])
+                                    del CmdListDict[Module.File, Arch]
+                                else:
+                                    Ma.CreateMakeFile(True)
                             if self.Target == "genmake":
                                 continue
                         self.BuildModules.append(Ma)
@@ -2183,7 +2221,10 @@ class Build():
     def CreateAsBuiltInf(self):
         for Module in self.BuildModules:
             Module.CreateAsBuiltInf()
+        for Module in self.HashSkipModules:
+            Module.CreateAsBuiltInf(True)
         self.BuildModules = []
+        self.HashSkipModules = []
     ## Do some clean-up works when error occurred
     def Relinquish(self):
         OldLogLevel = EdkLogger.GetLevel()
@@ -2316,7 +2357,7 @@ def MyOptionParser():
     Parser.add_option("--hash", action="store_true", dest="UseHashCache", default=False, help="Enable hash-based caching during build process.")
     Parser.add_option("--binary-destination", action="store", type="string", dest="BinCacheDest", help="Generate a cache of binary files in the specified directory.")
     Parser.add_option("--binary-source", action="store", type="string", dest="BinCacheSource", help="Consume a cache of binary files from the specified directory.")
-
+    Parser.add_option("--genfds-multi-thread", action="store_true", dest="GenfdsMultiThread", default=False, help="Enable GenFds multi thread to generate ffs file.")
     (Opt, Args) = Parser.parse_args()
     return (Opt, Args)
 

@@ -2,7 +2,7 @@
   The implementation for Ping shell command.
 
   (C) Copyright 2015 Hewlett-Packard Development Company, L.P.<BR>
-  Copyright (c) 2009 - 2016, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2009 - 2017, Intel Corporation. All rights reserved.<BR>
   (C) Copyright 2016 Hewlett Packard Enterprise Development LP<BR>
 
   This program and the accompanying materials
@@ -629,6 +629,7 @@ ON_EXIT:
     Status = Private->ProtocolPointers.Receive (Private->IpProtocol, &Private->RxToken);
 
     if (EFI_ERROR (Status)) {
+      ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_PING_RECEIVE), gShellNetwork1HiiHandle, Status);
       Private->Status = EFI_ABORTED;
     }
   } else {
@@ -828,7 +829,11 @@ Ping6ReceiveEchoReply (
 
   Private->RxToken.Status = EFI_NOT_READY;
 
-  return (Private->ProtocolPointers.Receive (Private->IpProtocol, &Private->RxToken));
+  Status = Private->ProtocolPointers.Receive (Private->IpProtocol, &Private->RxToken);
+  if (EFI_ERROR (Status)) {
+    ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_PING_RECEIVE), gShellNetwork1HiiHandle, Status);
+  }
+  return Status;
 }
 
 /**
@@ -961,7 +966,7 @@ PingCreateIpInstance (
   UINTN                            HandleNum;
   EFI_HANDLE                       *HandleBuffer;
   BOOLEAN                          UnspecifiedSrc;
-  BOOLEAN                          MediaPresent;
+  EFI_STATUS                       MediaStatus;
   EFI_SERVICE_BINDING_PROTOCOL     *EfiSb;
   VOID                             *IpXCfg;
   EFI_IP6_CONFIG_DATA              Ip6Config;
@@ -973,7 +978,7 @@ PingCreateIpInstance (
 
   HandleBuffer      = NULL;
   UnspecifiedSrc    = FALSE;
-  MediaPresent      = TRUE;
+  MediaStatus       = EFI_SUCCESS;
   EfiSb             = NULL;
   IpXInterfaceInfo  = NULL;
   IfInfoSize        = 0;
@@ -1030,8 +1035,8 @@ PingCreateIpInstance (
       //
       // Check media.
       //
-      NetLibDetectMedia (HandleBuffer[HandleIndex], &MediaPresent);
-      if (!MediaPresent) {
+      NetLibDetectMediaWaitTimeout (HandleBuffer[HandleIndex], 0, &MediaStatus);
+      if (MediaStatus != EFI_SUCCESS) {
         //
         // Skip this one.
         //

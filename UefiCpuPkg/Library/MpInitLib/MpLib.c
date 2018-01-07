@@ -195,6 +195,10 @@ SaveVolatileRegisters (
     VolatileRegisters->Dr6 = AsmReadDr6 ();
     VolatileRegisters->Dr7 = AsmReadDr7 ();
   }
+
+  AsmReadGdtr (&VolatileRegisters->Gdtr);
+  AsmReadIdtr (&VolatileRegisters->Idtr);
+  VolatileRegisters->Tr = AsmReadTr ();
 }
 
 /**
@@ -211,6 +215,7 @@ RestoreVolatileRegisters (
   )
 {
   CPUID_VERSION_INFO_EDX        VersionInfoEdx;
+  IA32_TSS_DESCRIPTOR           *Tss;
 
   AsmWriteCr0 (VolatileRegisters->Cr0);
   AsmWriteCr3 (VolatileRegisters->Cr3);
@@ -229,6 +234,18 @@ RestoreVolatileRegisters (
       AsmWriteDr3 (VolatileRegisters->Dr3);
       AsmWriteDr6 (VolatileRegisters->Dr6);
       AsmWriteDr7 (VolatileRegisters->Dr7);
+    }
+  }
+
+  AsmWriteGdtr (&VolatileRegisters->Gdtr);
+  AsmWriteIdtr (&VolatileRegisters->Idtr);
+  if (VolatileRegisters->Tr != 0 &&
+      VolatileRegisters->Tr < VolatileRegisters->Gdtr.Limit) {
+    Tss = (IA32_TSS_DESCRIPTOR *)(VolatileRegisters->Gdtr.Base +
+                                  VolatileRegisters->Tr);
+    if (Tss->Bits.P == 1) {
+      Tss->Bits.Type &= 0xD;  // 1101 - Clear busy bit just in case
+      AsmWriteTr (VolatileRegisters->Tr);
     }
   }
 }
@@ -536,7 +553,7 @@ InitializeApData (
   This function will be called from AP reset code if BSP uses WakeUpAP.
 
   @param[in] ExchangeInfo     Pointer to the MP exchange info buffer
-  @param[in] NumApsExecuting  Number of current executing AP
+  @param[in] ApIndex          Number of current executing AP
 **/
 VOID
 EFIAPI
@@ -936,15 +953,20 @@ WakeUpAP (
     }
     if (CpuMpData->InitFlag == ApInitConfig) {
       //
-      // Wait for one potential AP waken up in one specified period
+      // Here support two methods to collect AP count through adjust
+      // PcdCpuApInitTimeOutInMicroSeconds values.
       //
-      if (CpuMpData->CpuCount == 0) {
-        TimedWaitForApFinish (
-          CpuMpData,
-          PcdGet32 (PcdCpuMaxLogicalProcessorNumber) - 1,
-          PcdGet32 (PcdCpuApInitTimeOutInMicroSeconds)
-          );
-      }
+      // one way is set a value to just let the first AP to start the
+      // initialization, then through the later while loop to wait all Aps
+      // finsh the initialization.
+      // The other way is set a value to let all APs finished the initialzation.
+      // In this case, the later while loop is useless.
+      //
+      TimedWaitForApFinish (
+        CpuMpData,
+        PcdGet32 (PcdCpuMaxLogicalProcessorNumber) - 1,
+        PcdGet32 (PcdCpuApInitTimeOutInMicroSeconds)
+        );
 
       while (CpuMpData->MpCpuExchangeInfo->NumApsExecuting != 0) {
         CpuPause();

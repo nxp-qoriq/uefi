@@ -978,8 +978,9 @@ FindAcpiPtr (
 /**
   Get the DMAR ACPI table.
 
-  @retval EFI_SUCCESS    The DMAR ACPI table is got.
-  @retval EFI_NOT_FOUND  The DMAR ACPI table is not found.
+  @retval EFI_SUCCESS           The DMAR ACPI table is got.
+  @retval EFI_ALREADY_STARTED   The DMAR ACPI table has been got previously.
+  @retval EFI_NOT_FOUND         The DMAR ACPI table is not found.
 **/
 EFI_STATUS
 GetDmarAcpiTable (
@@ -989,6 +990,10 @@ GetDmarAcpiTable (
   VOID                              *AcpiTable;
   EFI_STATUS                        Status;
 
+  if (mAcpiDmarTable != NULL) {
+    return EFI_ALREADY_STARTED;
+  }
+
   AcpiTable = NULL;
   Status = EfiGetSystemConfigurationTable (
              &gEfiAcpi20TableGuid,
@@ -996,7 +1001,7 @@ GetDmarAcpiTable (
              );
   if (EFI_ERROR (Status)) {
     Status = EfiGetSystemConfigurationTable (
-               &gEfiAcpiTableGuid,
+               &gEfiAcpi10TableGuid,
                &AcpiTable
                );
   }
@@ -1006,10 +1011,10 @@ GetDmarAcpiTable (
                       (EFI_ACPI_2_0_ROOT_SYSTEM_DESCRIPTION_POINTER *)AcpiTable,
                       EFI_ACPI_4_0_DMA_REMAPPING_TABLE_SIGNATURE
                       );
-  DEBUG ((DEBUG_INFO,"DMAR Table - 0x%08x\n", mAcpiDmarTable));
   if (mAcpiDmarTable == NULL) {
-    return EFI_UNSUPPORTED;
+    return EFI_NOT_FOUND;
   }
+  DEBUG ((DEBUG_INFO,"DMAR Table - 0x%08x\n", mAcpiDmarTable));
   VtdDumpDmarTable();
 
   return EFI_SUCCESS;

@@ -24,6 +24,7 @@ gOptions = None
 gCaseInsensitive = False
 gAllFiles = None
 gCommand = None
+gSKUID_CMD = None
 
 gGlobalDefines = {}
 gPlatformDefines = {}
@@ -39,6 +40,8 @@ gCommandMaxLength = 4096
 # for debug trace purpose when problem occurs
 gProcessingFile = ''
 gBuildingModule = ''
+gSkuids = []
+gDefaultStores = []
 
 ## Regular expression for matching macro used in DSC/DEC/INF file inclusion
 gMacroRefPattern = re.compile("\$\(([A-Z][_A-Z0-9]*)\)", re.UNICODE)
@@ -86,6 +89,9 @@ BuildOptionPcd = []
 #
 MixedPcd = {}
 
+# Structure Pcd dict
+gStructurePcd = {}
+
 # Pcd name for the Pcd which used in the Conditional directives
 gConditionalPcds = []
 
@@ -95,3 +101,4 @@ gBinCacheSource = None
 gPlatformHash = None
 gPackageHash = {}
 gModuleHash = {}
+gEnableGenfdsMultiThread = False

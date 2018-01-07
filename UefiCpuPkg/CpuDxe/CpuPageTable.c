@@ -87,6 +87,8 @@ PAGE_ATTRIBUTE_TABLE mPageAttributeTable[] = {
   {Page1G,  SIZE_1GB, PAGING_1G_ADDRESS_MASK_64},
 };
 
+PAGE_TABLE_POOL   *mPageTablePool = NULL;
+
 /**
   Enable write protection function for AP.
 
@@ -172,10 +174,6 @@ GetCurrentPagingContext (
   }
   if ((AsmReadCr0 () & BIT31) != 0) {
     PagingContext->ContextData.X64.PageTableBase = (AsmReadCr3 () & PAGING_4K_ADDRESS_MASK_64);
-    if ((AsmReadCr0 () & BIT16) == 0) {
-      AsmWriteCr0 (AsmReadCr0 () | BIT16);
-      SyncMemoryPageAttributesAp (SyncCpuEnableWriteProtection);
-    }
   } else {
     PagingContext->ContextData.X64.PageTableBase = 0;
   }
@@ -442,8 +440,8 @@ ConvertPageEntryAttribute (
   *PageEntry = NewPageEntry;
   if (CurrentPageEntry != NewPageEntry) {
     *IsModified = TRUE;
-    DEBUG ((DEBUG_INFO, "ConvertPageEntryAttribute 0x%lx", CurrentPageEntry));
-    DEBUG ((DEBUG_INFO, "->0x%lx\n", NewPageEntry));
+    DEBUG ((DEBUG_VERBOSE, "ConvertPageEntryAttribute 0x%lx", CurrentPageEntry));
+    DEBUG ((DEBUG_VERBOSE, "->0x%lx\n", NewPageEntry));
   } else {
     *IsModified = FALSE;
   }
@@ -562,6 +560,59 @@ SplitPage (
 }
 
 /**
+ Check the WP status in CR0 register. This bit is used to lock or unlock write
+ access to pages marked as read-only.
+
+  @retval TRUE    Write protection is enabled.
+  @retval FALSE   Write protection is disabled.
+**/
+BOOLEAN
+IsReadOnlyPageWriteProtected (
+  VOID
+  )
+{
+  return ((AsmReadCr0 () & BIT16) != 0);
+}
+
+/**
+  Disable write protection function for AP.
+
+  @param[in,out] Buffer  The pointer to private data buffer.
+**/
+VOID
+EFIAPI
+SyncCpuDisableWriteProtection (
+  IN OUT VOID *Buffer
+  )
+{
+  AsmWriteCr0 (AsmReadCr0() & ~BIT16);
+}
+
+/**
+ Disable Write Protect on pages marked as read-only.
+**/
+VOID
+DisableReadOnlyPageWriteProtect (
+  VOID
+  )
+{
+  AsmWriteCr0 (AsmReadCr0() & ~BIT16);
+  SyncMemoryPageAttributesAp (SyncCpuDisableWriteProtection);
+}
+
+/**
+ Enable Write Protect on pages marked as read-only.
+**/
+VOID
+EnableReadOnlyPageWriteProtect (
+  VOID
+  )
+{
+  AsmWriteCr0 (AsmReadCr0() | BIT16);
+  SyncMemoryPageAttributesAp (SyncCpuEnableWriteProtection);
+}
+
+/**
   This function modifies the page attributes for the memory region specified by BaseAddress and
   Length from their current attributes to the attributes specified by Attributes.
 
@@ -609,6 +660,7 @@ ConvertMemoryPageAttributes (
   PAGE_ATTRIBUTE                    SplitAttribute;
   RETURN_STATUS                     Status;
   BOOLEAN                           IsEntryModified;
+  BOOLEAN                           IsWpEnabled;
 
   if ((BaseAddress & (SIZE_4KB - 1)) != 0) {
     DEBUG ((DEBUG_ERROR, "BaseAddress(0x%lx) is not aligned!\n", BaseAddress));
@@ -665,14 +717,27 @@ ConvertMemoryPageAttributes (
   if (IsModified != NULL) {
     *IsModified = FALSE;
   }
+  if (AllocatePagesFunc == NULL) {
+    AllocatePagesFunc = AllocatePageTableMemory;
+  }
+
+  //
+  // Make sure that the page table is changeable.
+  //
+  IsWpEnabled = IsReadOnlyPageWriteProtected ();
+  if (IsWpEnabled) {
+    DisableReadOnlyPageWriteProtect ();
+  }
 
   //
   // Below logic is to check 2M/4K page to make sure we donot waist memory.
   //
+  Status = EFI_SUCCESS;
   while (Length != 0) {
     PageEntry = GetPageTableEntry (&CurrentPagingContext, BaseAddress, &PageAttribute);
     if (PageEntry == NULL) {
-      return RETURN_UNSUPPORTED;
+      Status = RETURN_UNSUPPORTED;
+      goto Done;
     }
     PageEntryLength = PageAttributeToLength (PageAttribute);
     SplitAttribute = NeedSplitPage (BaseAddress, Length, PageEntry, PageAttribute);
@@ -690,11 +755,13 @@ ConvertMemoryPageAttributes (
       Length -= PageEntryLength;
     } else {
       if (AllocatePagesFunc == NULL) {
-        return RETURN_UNSUPPORTED;
+        Status = RETURN_UNSUPPORTED;
+        goto Done;
       }
       Status = SplitPage (PageEntry, PageAttribute, SplitAttribute, AllocatePagesFunc);
       if (RETURN_ERROR (Status)) {
-        return RETURN_UNSUPPORTED;
+        Status = RETURN_UNSUPPORTED;
+        goto Done;
       }
       if (IsSplitted != NULL) {
         *IsSplitted = TRUE;
@@ -709,7 +776,14 @@ ConvertMemoryPageAttributes (
     }
   }
 
-  return RETURN_SUCCESS;
+Done:
+  //
+  // Restore page table write protection, if any.
+  //
+  if (IsWpEnabled) {
+    EnableReadOnlyPageWriteProtect ();
+  }
+  return Status;
 }
 
 /**
@@ -770,6 +844,20 @@ AssignMemoryPageAttributes (
 }
 
 /**
+ Check if Execute Disable feature is enabled or not.
+**/
+BOOLEAN
+IsExecuteDisableEnabled (
+  VOID
+  )
+{
+  MSR_CORE_IA32_EFER_REGISTER    MsrEfer;
+
+  MsrEfer.Uint64 = AsmReadMsr64 (MSR_IA32_EFER);
+  return (MsrEfer.Bits.NXE == 1);
+}
+
+/**
   Update GCD memory space attributes according to current page table setup.
 **/
 VOID
@@ -790,7 +878,7 @@ RefreshGcdMemoryAttributesFromPaging (
   UINT64                              PageStartAddress;
   UINT64                              Attributes;
   UINT64                              Capabilities;
-  BOOLEAN                             DoUpdate;
+  UINT64                              NewAttributes;
   UINTN                               Index;
 
   //
@@ -802,14 +890,47 @@ RefreshGcdMemoryAttributesFromPaging (
 
   GetCurrentPagingContext (&PagingContext);
 
-  DoUpdate      = FALSE;
-  Capabilities  = 0;
-  Attributes    = 0;
-  BaseAddress   = 0;
-  PageLength    = 0;
+  Attributes      = 0;
+  NewAttributes   = 0;
+  BaseAddress     = 0;
+  PageLength      = 0;
+
+  if (IsExecuteDisableEnabled ()) {
+    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP | EFI_MEMORY_XP;
+  } else {
+    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP;
+  }
 
   for (Index = 0; Index < NumberOfDescriptors; Index++) {
     if (MemorySpaceMap[Index].GcdMemoryType == EfiGcdMemoryTypeNonExistent) {
+      continue;
+    }
+
+    //
+    // Sync the actual paging related capabilities back to GCD service first.
+    // As a side effect (good one), this can also help to avoid unnecessary
+    // memory map entries due to the different capabilities of the same type
+    // memory, such as multiple RT_CODE and RT_DATA entries in memory map,
+    // which could cause boot failure of some old Linux distro (before v4.3).
+    //
+    Status = gDS->SetMemorySpaceCapabilities (
+                    MemorySpaceMap[Index].BaseAddress,
+                    MemorySpaceMap[Index].Length,
+                    MemorySpaceMap[Index].Capabilities | Capabilities
+                    );
+    if (EFI_ERROR (Status)) {
+      //
+      // If we cannot udpate the capabilities, we cannot update its
+      // attributes either. So just simply skip current block of memory.
+      //
+      DEBUG ((
+        DEBUG_WARN,
+        "Failed to update capability: [%lu] %016lx - %016lx (%016lx -> %016lx)\r\n",
+        (UINT64)Index, MemorySpaceMap[Index].BaseAddress,
+        MemorySpaceMap[Index].BaseAddress + MemorySpaceMap[Index].Length - 1,
+        MemorySpaceMap[Index].Capabilities,
+        MemorySpaceMap[Index].Capabilities | Capabilities
+        ));
       continue;
     }
 
@@ -826,7 +947,9 @@ RefreshGcdMemoryAttributesFromPaging (
       PageLength -= (MemorySpaceMap[Index].BaseAddress - BaseAddress);
     }
 
-    // Sync real page attributes to GCD
+    //
+    // Sync actual page attributes to GCD
+    //
     BaseAddress       = MemorySpaceMap[Index].BaseAddress;
     MemorySpaceLength = MemorySpaceMap[Index].Length;
     while (MemorySpaceLength > 0) {
@@ -842,23 +965,26 @@ RefreshGcdMemoryAttributesFromPaging (
         PageStartAddress  = (*PageEntry) & (UINT64)PageAttributeToMask(PageAttribute);
         PageLength        = PageAttributeToLength (PageAttribute) - (BaseAddress - PageStartAddress);
         Attributes        = GetAttributesFromPageEntry (PageEntry);
-
-        if (Attributes != (MemorySpaceMap[Index].Attributes & EFI_MEMORY_PAGETYPE_MASK)) {
-          DoUpdate = TRUE;
-          Attributes |= (MemorySpaceMap[Index].Attributes & ~EFI_MEMORY_PAGETYPE_MASK);
-          Capabilities = Attributes | MemorySpaceMap[Index].Capabilities;
-        } else {
-          DoUpdate = FALSE;
-        }
       }
 
       Length = MIN (PageLength, MemorySpaceLength);
-      if (DoUpdate) {
-        gDS->SetMemorySpaceCapabilities (BaseAddress, Length, Capabilities);
-        gDS->SetMemorySpaceAttributes (BaseAddress, Length, Attributes);
-        DEBUG ((DEBUG_INFO, "Update memory space attribute: [%02d] %016lx - %016lx (%08lx -> %08lx)\r\n",
-                             Index, BaseAddress, BaseAddress + Length - 1,
-                             MemorySpaceMap[Index].Attributes, Attributes));
+      if (Attributes != (MemorySpaceMap[Index].Attributes &
+                         EFI_MEMORY_PAGETYPE_MASK)) {
+        NewAttributes = (MemorySpaceMap[Index].Attributes &
+                         ~EFI_MEMORY_PAGETYPE_MASK) | Attributes;
+        Status = gDS->SetMemorySpaceAttributes (
+                        BaseAddress,
+                        Length,
+                        NewAttributes
+                        );
+        ASSERT_EFI_ERROR (Status);
+        DEBUG ((
+          DEBUG_INFO,
+          "Updated memory space attribute: [%lu] %016lx - %016lx (%016lx -> %016lx)\r\n",
+          (UINT64)Index, BaseAddress, BaseAddress + Length - 1,
+          MemorySpaceMap[Index].Attributes,
+          NewAttributes
+          ));
       }
 
       PageLength        -= Length;
@@ -868,6 +994,127 @@ RefreshGcdMemoryAttributesFromPaging (
   }
 
   FreePool (MemorySpaceMap);
+}
+
+/**
+  Initialize a buffer pool for page table use only.
+
+  To reduce the potential split operation on page table, the pages reserved for
+  page table should be allocated in the times of PAGE_TABLE_POOL_UNIT_PAGES and
+  at the boundary of PAGE_TABLE_POOL_ALIGNMENT. So the page pool is always
+  initialized with number of pages greater than or equal to the given PoolPages.
+
+  Once the pages in the pool are used up, this method should be called again to
+  reserve at least another PAGE_TABLE_POOL_UNIT_PAGES. Usually this won't happen
+  often in practice.
+
+  @param[in] PoolPages      The least page number of the pool to be created.
+
+  @retval TRUE    The pool is initialized successfully.
+  @retval FALSE   The memory is out of resource.
+**/
+BOOLEAN
+InitializePageTablePool (
+  IN  UINTN                           PoolPages
+  )
+{
+  VOID                      *Buffer;
+  BOOLEAN                   IsModified;
+
+  //
+  // Always reserve at least PAGE_TABLE_POOL_UNIT_PAGES, including one page for
+  // header.
+  //
+  PoolPages += 1;   // Add one page for header.
+  PoolPages = ((PoolPages - 1) / PAGE_TABLE_POOL_UNIT_PAGES + 1) *
+              PAGE_TABLE_POOL_UNIT_PAGES;
+  Buffer = AllocateAlignedPages (PoolPages, PAGE_TABLE_POOL_ALIGNMENT);
+  if (Buffer == NULL) {
+    DEBUG ((DEBUG_ERROR, "ERROR: Out of aligned pages\r\n"));
+    return FALSE;
+  }
+
+  //
+  // Link all pools into a list for easier track later.
+  //
+  if (mPageTablePool == NULL) {
+    mPageTablePool = Buffer;
+    mPageTablePool->NextPool = mPageTablePool;
+  } else {
+    ((PAGE_TABLE_POOL *)Buffer)->NextPool = mPageTablePool->NextPool;
+    mPageTablePool->NextPool = Buffer;
+    mPageTablePool = Buffer;
+  }
+
+  //
+  // Reserve one page for pool header.
+  //
+  mPageTablePool->FreePages  = PoolPages - 1;
+  mPageTablePool->Offset = EFI_PAGES_TO_SIZE (1);
+
+  //
+  // Mark the whole pool pages as read-only.
+  //
+  ConvertMemoryPageAttributes (
+    NULL,
+    (PHYSICAL_ADDRESS)(UINTN)Buffer,
+    EFI_PAGES_TO_SIZE (PoolPages),
+    EFI_MEMORY_RO,
+    PageActionSet,
+    AllocatePageTableMemory,
+    NULL,
+    &IsModified
+    );
+  ASSERT (IsModified == TRUE);
+
+  return TRUE;
+}
+
+/**
+  This API provides a way to allocate memory for page table.
+
+  This API can be called more than once to allocate memory for page tables.
+
+  Allocates the number of 4KB pages and returns a pointer to the allocated
+  buffer. The buffer returned is aligned on a 4KB boundary.
+
+  If Pages is 0, then NULL is returned.
+  If there is not enough memory remaining to satisfy the request, then NULL is
+  returned.
+
+  @param  Pages                 The number of 4 KB pages to allocate.
+
+  @return A pointer to the allocated buffer or NULL if allocation fails.
+
+**/
+VOID *
+EFIAPI
+AllocatePageTableMemory (
+  IN UINTN           Pages
+  )
+{
+  VOID                            *Buffer;
+
+  if (Pages == 0) {
+    return NULL;
+  }
+
+  //
+  // Renew the pool if necessary.
+  //
+  if (mPageTablePool == NULL ||
+      Pages > mPageTablePool->FreePages) {
+    if (!InitializePageTablePool (Pages)) {
+      return NULL;
+    }
+  }
+
+  Buffer = (UINT8 *)mPageTablePool + mPageTablePool->Offset;
+
+  mPageTablePool->Offset     += EFI_PAGES_TO_SIZE (Pages);
+  mPageTablePool->FreePages  -= Pages;
+
+  return Buffer;
 }
 
 /**
@@ -881,6 +1128,18 @@ InitializePageTableLib (
   PAGE_TABLE_LIB_PAGING_CONTEXT     CurrentPagingContext;
 
   GetCurrentPagingContext (&CurrentPagingContext);
+
+  //
+  // Reserve memory of page tables for future uses, if paging is enabled.
+  //
+  if (CurrentPagingContext.ContextData.X64.PageTableBase != 0 &&
+      (CurrentPagingContext.ContextData.Ia32.Attributes &
+       PAGE_TABLE_LIB_PAGING_CONTEXT_IA32_X64_ATTRIBUTES_PAE) != 0) {
+    DisableReadOnlyPageWriteProtect ();
+    InitializePageTablePool (1);
+    EnableReadOnlyPageWriteProtect ();
+  }
+
   DEBUG ((DEBUG_INFO, "CurrentPagingContext:\n", CurrentPagingContext.MachineType));
   DEBUG ((DEBUG_INFO, "  MachineType   - 0x%x\n", CurrentPagingContext.MachineType));
   DEBUG ((DEBUG_INFO, "  PageTableBase - 0x%x\n", CurrentPagingContext.ContextData.X64.PageTableBase));

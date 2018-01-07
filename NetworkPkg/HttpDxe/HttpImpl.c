@@ -65,7 +65,6 @@ EfiHttpGetModeData (
   }
 
   HttpInstance = HTTP_INSTANCE_FROM_PROTOCOL (This);
-  ASSERT (HttpInstance != NULL);
 
   if ((HttpConfigData->AccessPoint.IPv6Node == NULL) ||
       (HttpConfigData->AccessPoint.IPv4Node == NULL)) {
@@ -149,7 +148,7 @@ EfiHttpConfigure (
   }
 
   HttpInstance = HTTP_INSTANCE_FROM_PROTOCOL (This);
-  ASSERT (HttpInstance != NULL && HttpInstance->Service != NULL);
+  ASSERT (HttpInstance->Service != NULL);
 
   if (HttpConfigData != NULL) {
 
@@ -291,7 +290,6 @@ EfiHttpRequest (
   }
 
   HttpInstance = HTTP_INSTANCE_FROM_PROTOCOL (This);
-  ASSERT (HttpInstance != NULL);
 
   //
   // Capture the method into HttpInstance.
@@ -472,6 +470,8 @@ EfiHttpRequest (
 
           FreePool (HostName);
 
+          HttpUrlFreeParser (UrlParser);
+
           //
           // Queue the HTTP token and return.
           //
@@ -523,6 +523,7 @@ EfiHttpRequest (
       
       FreePool (HostNameStr);
       if (EFI_ERROR (Status)) {
+        DEBUG ((EFI_D_ERROR, "Error: Could not retrieve the host address from DNS server.\n"));
         goto Error1;
       }
     }
@@ -622,8 +623,6 @@ EfiHttpRequest (
     goto Error3;
   }
 
-  ASSERT (RequestMsg != NULL);
-
   //
   // Every request we insert a TxToken and a response call would remove the TxToken.
   // In cases of PUT/POST/PATCH, after an initial request-response pair, we would do a
@@ -654,6 +653,10 @@ EfiHttpRequest (
   
   if (HostName != NULL) {
     FreePool (HostName);
+  }
+
+  if (UrlParser != NULL) {
+    HttpUrlFreeParser (UrlParser);
   }
   
   return EFI_SUCCESS;
@@ -698,7 +701,7 @@ Error1:
   if (Wrap != NULL) {
     FreePool (Wrap);
   }
-  if (UrlParser!= NULL) {
+  if (UrlParser != NULL) {
     HttpUrlFreeParser (UrlParser);
   }
 
@@ -880,7 +883,6 @@ EfiHttpCancel (
   }
 
   HttpInstance = HTTP_INSTANCE_FROM_PROTOCOL (This);
-  ASSERT (HttpInstance != NULL);
 
   if (HttpInstance->State != HTTP_STATE_TCP_CONNECTED) {
     return EFI_NOT_STARTED;
@@ -1538,7 +1540,6 @@ EfiHttpResponse (
   }
   
   HttpInstance = HTTP_INSTANCE_FROM_PROTOCOL (This);
-  ASSERT (HttpInstance != NULL);
 
   if (HttpInstance->State != HTTP_STATE_TCP_CONNECTED) {
     return EFI_NOT_STARTED;
@@ -1634,7 +1635,6 @@ EfiHttpPoll (
   }
 
   HttpInstance = HTTP_INSTANCE_FROM_PROTOCOL (This);
-  ASSERT (HttpInstance != NULL);
 
   if (HttpInstance->State != HTTP_STATE_TCP_CONNECTED) {
     return EFI_NOT_STARTED;

@@ -1,7 +1,7 @@
 ## @file
 # Common routines used by workspace
 #
-# Copyright (c) 2012 - 2016, Intel Corporation. All rights reserved.<BR>
+# Copyright (c) 2012 - 2017, Intel Corporation. All rights reserved.<BR>
 # This program and the accompanying materials
 # are licensed and made available under the terms and conditions of the BSD License
 # which accompanies this distribution.  The full text of the license may be found at
@@ -15,6 +15,7 @@ from Common.Misc import sdict
 from Common.DataType import SUP_MODULE_USER_DEFINED
 from BuildClassObject import LibraryClassObject
 import Common.GlobalData as GlobalData
+from Workspace.BuildClassObject import StructurePcd
 
 ## Get all packages from platform for specified arch, target and toolchain
 #
@@ -42,11 +43,17 @@ def GetPackageList(Platform, BuildDatabase, Arch, Target, Toolchain):
 #  @param Target: Current target
 #  @param Toolchain: Current toolchain
 #  @retval: A dictionary contains instances of PcdClassObject with key (PcdCName, TokenSpaceGuid)
+#  @retval: A dictionary contains real GUIDs of TokenSpaceGuid
 #
-def GetDeclaredPcd(Platform, BuildDatabase, Arch, Target, Toolchain):
+def GetDeclaredPcd(Platform, BuildDatabase, Arch, Target, Toolchain,additionalPkgs):
     PkgList = GetPackageList(Platform, BuildDatabase, Arch, Target, Toolchain)
+    PkgList = set(PkgList)
+    PkgList |= additionalPkgs
     DecPcds = {}
+    GuidDict = {}
     for Pkg in PkgList:
+        Guids = Pkg.Guids
+        GuidDict.update(Guids)
         for Pcd in Pkg.Pcds:
             PcdCName = Pcd[0]
             PcdTokenName = Pcd[1]
@@ -57,7 +64,7 @@ def GetDeclaredPcd(Platform, BuildDatabase, Arch, Target, Toolchain):
                         break
             if (PcdCName, PcdTokenName) not in DecPcds.keys():
                 DecPcds[PcdCName, PcdTokenName] = Pkg.Pcds[Pcd]
-    return DecPcds
+    return DecPcds, GuidDict
 
 ## Get all dependent libraries for a module
 #

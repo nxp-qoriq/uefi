@@ -179,43 +179,48 @@ ShellLibConstructorWorker (
 {
   EFI_STATUS  Status;
 
-  //
-  // UEFI 2.0 shell interfaces (used preferentially)
-  //
-  Status = gBS->OpenProtocol(
-    ImageHandle,
-    &gEfiShellProtocolGuid,
-    (VOID **)&gEfiShellProtocol,
-    ImageHandle,
-    NULL,
-    EFI_OPEN_PROTOCOL_GET_PROTOCOL
-   );
-  if (EFI_ERROR(Status)) {
+  if (gEfiShellProtocol == NULL) {
     //
-    // Search for the shell protocol
+    // UEFI 2.0 shell interfaces (used preferentially)
     //
-    Status = gBS->LocateProtocol(
+    Status = gBS->OpenProtocol (
+      ImageHandle,
       &gEfiShellProtocolGuid,
+      (VOID **)&gEfiShellProtocol,
+      ImageHandle,
       NULL,
-      (VOID **)&gEfiShellProtocol
-     );
-    if (EFI_ERROR(Status)) {
-      gEfiShellProtocol = NULL;
+      EFI_OPEN_PROTOCOL_GET_PROTOCOL
+    );
+    if (EFI_ERROR (Status)) {
+      //
+      // Search for the shell protocol
+      //
+      Status = gBS->LocateProtocol (
+        &gEfiShellProtocolGuid,
+        NULL,
+        (VOID **)&gEfiShellProtocol
+      );
+      if (EFI_ERROR (Status)) {
+        gEfiShellProtocol = NULL;
+      }
     }
   }
-  Status = gBS->OpenProtocol(
-    ImageHandle,
-    &gEfiShellParametersProtocolGuid,
-    (VOID **)&gEfiShellParametersProtocol,
-    ImageHandle,
-    NULL,
-    EFI_OPEN_PROTOCOL_GET_PROTOCOL
-   );
-  if (EFI_ERROR(Status)) {
-    gEfiShellParametersProtocol = NULL;
+
+  if (gEfiShellParametersProtocol == NULL) {
+    Status = gBS->OpenProtocol (
+      ImageHandle,
+      &gEfiShellParametersProtocolGuid,
+      (VOID **)&gEfiShellParametersProtocol,
+      ImageHandle,
+      NULL,
+      EFI_OPEN_PROTOCOL_GET_PROTOCOL
+    );
+    if (EFI_ERROR (Status)) {
+      gEfiShellParametersProtocol = NULL;
+    }
   }
 
-  if (gEfiShellParametersProtocol == NULL || gEfiShellProtocol == NULL) {
+  if (gEfiShellProtocol == NULL) {
     //
     // Moved to seperate function due to complexity
     //
@@ -238,10 +243,14 @@ ShellLibConstructorWorker (
   }
 
   //
-  // only success getting 2 of either the old or new, but no 1/2 and 1/2
+  // Getting either EDK Shell's ShellEnvironment2 and ShellInterface protocol
+  //  or UEFI Shell's Shell protocol.
+  // When ShellLib is linked to a driver producing DynamicCommand protocol,
+  //  ShellParameters protocol is set by DynamicCommand.Handler().
   //
-  if ((mEfiShellEnvironment2 != NULL && mEfiShellInterface          != NULL) ||
-      (gEfiShellProtocol     != NULL && gEfiShellParametersProtocol != NULL)   ) {
+  if ((mEfiShellEnvironment2 != NULL && mEfiShellInterface != NULL) ||
+      (gEfiShellProtocol     != NULL)
+      ) {
     if (gEfiShellProtocol != NULL) {
       FileFunctionMap.GetFileInfo     = gEfiShellProtocol->GetFileInfo;
       FileFunctionMap.SetFileInfo     = gEfiShellProtocol->SetFileInfo;
@@ -320,35 +329,45 @@ ShellLibDestructor (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
+  EFI_STATUS           Status;
+
   if (mEfiShellEnvironment2 != NULL) {
-    gBS->CloseProtocol(mEfiShellEnvironment2Handle==NULL?ImageHandle:mEfiShellEnvironment2Handle,
+    Status = gBS->CloseProtocol(mEfiShellEnvironment2Handle==NULL?ImageHandle:mEfiShellEnvironment2Handle,
                        &gEfiShellEnvironment2Guid,
                        ImageHandle,
                        NULL);
-    mEfiShellEnvironment2 = NULL;
+    if (!EFI_ERROR (Status)) {
+      mEfiShellEnvironment2       = NULL;
+      mEfiShellEnvironment2Handle = NULL;
+    }
   }
   if (mEfiShellInterface != NULL) {
-    gBS->CloseProtocol(ImageHandle,
+    Status = gBS->CloseProtocol(ImageHandle,
                        &gEfiShellInterfaceGuid,
                        ImageHandle,
                        NULL);
-    mEfiShellInterface = NULL;
+    if (!EFI_ERROR (Status)) {
+      mEfiShellInterface = NULL;
+    }
   }
   if (gEfiShellProtocol != NULL) {
-    gBS->CloseProtocol(ImageHandle,
+    Status = gBS->CloseProtocol(ImageHandle,
                        &gEfiShellProtocolGuid,
                        ImageHandle,
                        NULL);
-    gEfiShellProtocol = NULL;
+    if (!EFI_ERROR (Status)) {
+      gEfiShellProtocol = NULL;
+    }
   }
   if (gEfiShellParametersProtocol != NULL) {
-    gBS->CloseProtocol(ImageHandle,
+    Status = gBS->CloseProtocol(ImageHandle,
                        &gEfiShellParametersProtocolGuid,
                        ImageHandle,
                        NULL);
-    gEfiShellParametersProtocol = NULL;
+    if (!EFI_ERROR (Status)) {
+      gEfiShellParametersProtocol = NULL;
+    }
   }
-  mEfiShellEnvironment2Handle = NULL;
 
   return (EFI_SUCCESS);
 }
@@ -369,6 +388,7 @@ ShellLibDestructor (
 EFI_STATUS
 EFIAPI
 ShellInitialize (
+  VOID
   )
 {
   EFI_STATUS Status;

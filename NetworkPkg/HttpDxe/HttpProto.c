@@ -1876,7 +1876,7 @@ HttpTcpReceiveHeader (
       //
       // Check whether we received end of HTTP headers.
       //
-      *EndofHeader = AsciiStrStr (*HttpHeaders, HTTP_END_OF_HDR_STR); 
+      *EndofHeader = AsciiStrStr (*HttpHeaders, HTTP_END_OF_HDR_STR);
     };
     
     //
@@ -1996,7 +1996,9 @@ HttpTcpReceiveHeader (
   //
   // Skip the CRLF after the HTTP headers.
   //
-  *EndofHeader = *EndofHeader + AsciiStrLen (HTTP_END_OF_HDR_STR);  
+  *EndofHeader = *EndofHeader + AsciiStrLen (HTTP_END_OF_HDR_STR);
+
+  *SizeofHeaders = *EndofHeader - *HttpHeaders;
 
   return EFI_SUCCESS;
 }

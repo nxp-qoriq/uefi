@@ -994,7 +994,7 @@ PxeBcInstallCallback (
   //
   PxeBc  = &Private->PxeBc;
   Status = gBS->HandleProtocol (
-                  Private->Controller,
+                  Private->Mode.UsingIpv6 ? Private->Ip6Nic->Controller : Private->Ip4Nic->Controller,
                   &gEfiPxeBaseCodeCallbackProtocolGuid,
                   (VOID **) &Private->PxeBcCallback
                   );
@@ -1010,7 +1010,7 @@ PxeBcInstallCallback (
     // Install a default callback if user didn't offer one.
     //
     Status = gBS->InstallProtocolInterface (
-                    &Private->Controller,
+                    Private->Mode.UsingIpv6 ? &Private->Ip6Nic->Controller : &Private->Ip4Nic->Controller,
                     &gEfiPxeBaseCodeCallbackProtocolGuid,
                     EFI_NATIVE_INTERFACE,
                     &Private->LoadFileCallback
@@ -1054,7 +1054,7 @@ PxeBcUninstallCallback (
     PxeBc->SetParameters (PxeBc, NULL, NULL, NULL, NULL, &NewMakeCallback);
 
     gBS->UninstallProtocolInterface (
-          Private->Controller,
+          Private->Mode.UsingIpv6 ? Private->Ip6Nic->Controller : Private->Ip4Nic->Controller,
           &gEfiPxeBaseCodeCallbackProtocolGuid,
           &Private->LoadFileCallback
           );
@@ -1242,7 +1242,7 @@ ON_EXIT:
   } else if (Status == EFI_NO_MEDIA) {
     AsciiPrint ("\n  PXE-E12: Could not detect network connection.\n");
   } else if (Status == EFI_NO_RESPONSE) {
-    AsciiPrint ("\n  PXE-E16: No offer received.\n");
+    AsciiPrint ("\n  PXE-E16: No valid offer received.\n");
   } else if (Status == EFI_TIMEOUT) {
     AsciiPrint ("\n  PXE-E18: Server response timeout.\n");
   } else if (Status == EFI_ABORTED) {
