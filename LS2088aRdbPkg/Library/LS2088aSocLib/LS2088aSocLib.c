@@ -2,6 +2,7 @@
   SoC specific Library for LS2088A SoC, containing functions to initialize various SoC components
 
   Copyright (c) 2015, Freescale Semiconductor, Inc. All rights reserved.
+  Copyright 2017-2018 NXP
 
   This program and the accompanying materials
   are licensed and made available under the terms and conditions of the BSD License
@@ -1449,35 +1450,44 @@ int fdt_node_offset_by_compat_reg(void *blob, const char *compat,
 	return -FDT_ERR_NOTFOUND;
 }
 
+#define PCIE_COMPAT_LS2088 "fsl,ls2088a-pcie"
+#define PCIE_COMPAT_LS2080 "fsl,ls2080a-pcie"
+
 static void ft_pcie_ls_setup(void *blob, const char *pci_compat,
 			     unsigned long ctrl_addr, enum _SERDES_LANE_PROTOCOL dev)
 {
-	UINTN off;
-	UINT64 SerDes1ProtocolMap = 0x0;
-	UINT64 SerDes2ProtocolMap = 0x0;
+  INT32 off;
+  UINT64 SerDes1ProtocolMap = 0x0;
+  UINT64 SerDes2ProtocolMap = 0x0;
 
-	off = fdt_node_offset_by_compat_reg(blob, pci_compat,
-					    (UINT32)ctrl_addr);
-	if (off < 0)
-		return;
+  off = fdt_node_offset_by_compat_reg(blob, pci_compat,
+      (UINT32)ctrl_addr);
+  if (off < 0) {
+    pci_compat = PCIE_COMPAT_LS2080;
+    off = fdt_node_offset_by_compat_reg(blob, pci_compat,
+        (UINT32)ctrl_addr);
+    if (off < 0) {
+      DEBUG((EFI_D_ERROR, "%a() :%d  PCI node not found \n",__func__,__LINE__));
+      return;
+    }
+  }
 
-	GetSerdesProtocolMaps(&SerDes1ProtocolMap, &SerDes2ProtocolMap);
-	if (!IsSerDesLaneProtocolConfigured(SerDes1ProtocolMap, SerDes2ProtocolMap, dev))
-		fdt_set_node_status(blob, off, FDT_STATUS_DISABLED, 0);
-       else
-		fdt_set_node_status(blob, off, FDT_STATUS_OKAY, 0);
+  GetSerdesProtocolMaps(&SerDes1ProtocolMap, &SerDes2ProtocolMap);
+  if (!IsSerDesLaneProtocolConfigured(SerDes1ProtocolMap, SerDes2ProtocolMap, dev))
+    fdt_set_node_status(blob, off, FDT_STATUS_DISABLED, 0);
+  else
+    fdt_set_node_status(blob, off, FDT_STATUS_OKAY, 0);
 }
 
-#define PCIE_COMPAT "fsl,ls2088a-pcie"
 void ft_pci_setup(void *blob)
 {
-	ft_pcie_ls_setup(blob, PCIE_COMPAT, PCIE1_BASE_ADDR, PCIE1);
+	ft_pcie_ls_setup(blob, PCIE_COMPAT_LS2088, PCIE1_BASE_ADDR, PCIE1);
 
-	ft_pcie_ls_setup(blob, PCIE_COMPAT, PCIE2_BASE_ADDR, PCIE2);
+	ft_pcie_ls_setup(blob, PCIE_COMPAT_LS2088, PCIE2_BASE_ADDR, PCIE2);
 
-	ft_pcie_ls_setup(blob, PCIE_COMPAT, PCIE3_BASE_ADDR, PCIE3);
+	ft_pcie_ls_setup(blob, PCIE_COMPAT_LS2088, PCIE3_BASE_ADDR, PCIE3);
 
-	ft_pcie_ls_setup(blob, PCIE_COMPAT, PCIE4_BASE_ADDR, PCIE4);
+	ft_pcie_ls_setup(blob, PCIE_COMPAT_LS2088, PCIE4_BASE_ADDR, PCIE4);
 }
 
 UINT8
@@ -1676,14 +1686,19 @@ void SetMsiMapEntry(void *blob, UINTN PciBase,
             PciBase);
 
     if (nodeoffset < 0) {
-        compat = PCIE_COMPAT;
+      compat = PCIE_COMPAT_LS2088;
+      nodeoffset = fdt_node_offset_by_compat_reg(blob,
+          compat, PciBase);
 
+      if (nodeoffset < 0) {
+        compat = PCIE_COMPAT_LS2080;
         nodeoffset = fdt_node_offset_by_compat_reg(blob,
-                compat, PciBase);
+            compat, PciBase);
         if (nodeoffset < 0) {
-            DEBUG((EFI_D_ERROR, "PCI %a node not found \n", compat));
-            return;
+          DEBUG((EFI_D_ERROR, "%a() :%d  PCI node not found \n",__func__,__LINE__));
+          return;
         }
+      }
     }
 
     prop = (UINT32 *)fdt_getprop(blob, nodeoffset, "msi-parent", 0);
@@ -1718,23 +1733,28 @@ void SetIommuMapEntry(void *blob, UINTN PciBase,
     int nodeoffset;
     char *compat = NULL;
 
-  nodeoffset = offset;
-  if (nodeoffset == 0) {
+    nodeoffset = offset;
+    if (nodeoffset == 0) {
       /* find pci controller node */
       nodeoffset = fdt_node_offset_by_compat_reg(blob, "fsl,ls-pcie",
-              PciBase);
+          PciBase);
 
       if (nodeoffset < 0) {
-          compat = PCIE_COMPAT;
+        compat = PCIE_COMPAT_LS2088;
+        nodeoffset = fdt_node_offset_by_compat_reg(blob,
+            compat, PciBase);
 
+        if (nodeoffset < 0) {
+          compat = PCIE_COMPAT_LS2080;
           nodeoffset = fdt_node_offset_by_compat_reg(blob,
-                  compat, PciBase);
+              compat, PciBase);
           if (nodeoffset < 0) {
-              DEBUG((EFI_D_ERROR, "PCI %a node not found \n", compat));
-              return;
+            DEBUG((EFI_D_ERROR, "%a() :%d  PCI node not found \n",__func__,__LINE__));
+            return;
           }
+        }
       }
-  }
+    }
 
     /* get phandle to iommu controller */
     prop = fdt_getprop_w(blob, nodeoffset, "iommu-map", &lenp);
