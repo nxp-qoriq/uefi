@@ -2150,6 +2150,85 @@ DdrSdramInitialization (
   return TotalMemory;
 }
 
+VOID
+DpDdrCtrlStaticInit (
+  )
+{
+  struct CcsrDdr *Ddr;
+  Ddr = (VOID *)DDR_CTRL3_ADDR;
+
+  DdrWrite32 (&Ddr->SdramClkCntl, 0x2000000);
+  DdrWrite32 (&Ddr->Cs0Bnds, 0xff);
+  DdrWrite32 (&Ddr->Cs0Config, 0x80050322);
+  DdrWrite32 (&Ddr->Cs0Config2, 0x0);
+  DdrWrite32 (&Ddr->Cs1Bnds, 0xff);
+  DdrWrite32 (&Ddr->Cs1Config, 0x80000322);
+  DdrWrite32 (&Ddr->Cs1Config2, 0x0);
+  DdrWrite32 (&Ddr->Cs2Bnds, 0x0);
+  DdrWrite32 (&Ddr->Cs2Config, 0x0);
+  DdrWrite32 (&Ddr->Cs2Config2, 0x0);
+  DdrWrite32 (&Ddr->Cs3Bnds, 0x0);
+  DdrWrite32 (&Ddr->Cs3Config, 0x0);
+  DdrWrite32 (&Ddr->Cs3Config2, 0x0);
+  DdrWrite32 (&Ddr->TimingCfg3, 0x10c1000);
+  DdrWrite32 (&Ddr->TimingCfg0, 0x91550018);
+  DdrWrite32 (&Ddr->TimingCfg1, 0xbbb48c42);
+  DdrWrite32 (&Ddr->TimingCfg2, 0x48c111);
+  DdrWrite32 (&Ddr->TimingCfg4, 0x2);
+  DdrWrite32 (&Ddr->TimingCfg5, 0x3401400);
+  DdrWrite32 (&Ddr->TimingCfg6, 0x0);
+  DdrWrite32 (&Ddr->TimingCfg7, 0x13300000);
+  DdrWrite32 (&Ddr->TimingCfg8, 0x2115600);
+  DdrWrite32 (&Ddr->TimingCfg9, 0x0);
+  DdrWrite32 (&Ddr->DdrZqCntl, 0x8a090705);
+  DdrWrite32 (&Ddr->DqMap0, 0x5752ec54);
+  DdrWrite32 (&Ddr->DqMap1, 0xd55d4000);
+  DdrWrite32 (&Ddr->DqMap2, 0x0);
+  DdrWrite32 (&Ddr->DqMap3, 0xc00001);
+  DdrWrite32 (&Ddr->SdramCfg3, 0x0);
+  DdrWrite32 (&Ddr->SdramMode, 0x3010210);
+  DdrWrite32 (&Ddr->SdramMode2, 0x0);
+  DdrWrite32 (&Ddr->SdramMode3, 0x10210);
+  DdrWrite32 (&Ddr->SdramMode4, 0x0);
+  DdrWrite32 (&Ddr->SdramMode5, 0x10210);
+  DdrWrite32 (&Ddr->SdramMode6, 0x0);
+  DdrWrite32 (&Ddr->SdramMode7, 0x10210);
+  DdrWrite32 (&Ddr->SdramMode8, 0x0);
+  DdrWrite32 (&Ddr->SdramMode9, 0x500);
+  DdrWrite32 (&Ddr->SdramMode10, 0x4400000);
+  DdrWrite32 (&Ddr->SdramMode11, 0x400);
+  DdrWrite32 (&Ddr->SdramMode12, 0x4400000);
+  DdrWrite32 (&Ddr->SdramMode13, 0x400);
+  DdrWrite32 (&Ddr->SdramMode14, 0x4400000);
+  DdrWrite32 (&Ddr->SdramMode15, 0x400);
+  DdrWrite32 (&Ddr->SdramMode16, 0x4400000);
+  DdrWrite32 (&Ddr->SdramMdCntl, 0x0);
+  DdrWrite32 (&Ddr->SdramInterval, 0x18600000);
+  DdrWrite32 (&Ddr->SdramDataInit, 0xdeadbeef);
+  DdrWrite32 (&Ddr->DdrWrlvlCntl, 0x8675060d);
+  DdrWrite32 (&Ddr->DdrWrlvlCntl2, 0xc0a0a00);
+  DdrWrite32 (&Ddr->DdrWrlvlCntl3, 0x9);
+  DdrWrite32 (&Ddr->DdrSrCntr, 0x0);
+  DdrWrite32 (&Ddr->DdrSdramRcw1, 0x0);
+  DdrWrite32 (&Ddr->DdrSdramRcw2, 0x0);
+  DdrWrite32 (&Ddr->DdrSdramRcw3, 0x0);
+  DdrWrite32 (&Ddr->DdrSdramRcw4, 0x0);
+  DdrWrite32 (&Ddr->DdrSdramRcw5, 0x0);
+  DdrWrite32 (&Ddr->DdrSdramRcw6, 0x0);
+  DdrWrite32 (&Ddr->DdrCdr1, 0x80080000);
+  DdrWrite32 (&Ddr->SdramCfg2, 0x401111);
+  DdrWrite32 (&Ddr->InitAddr, 0x0);
+  DdrWrite32 (&Ddr->InitExtAddr, 0x0);
+  DdrWrite32 (&Ddr->DdrCdr2, 0x40);
+  DdrWrite32 (&Ddr->ErrIntEn, 0x0);
+  DdrWrite32 (&Ddr->Debug[28], 0x70006e);
+  DdrWrite32 (&Ddr->SdramCfg2, 0x401101);
+  DdrWrite32 (&Ddr->Debug[25], 0x9000);
+  DdrWrite32 (&Ddr->SdramCfg, 0x650c4004);
+  DdrWrite32 (&Ddr->SdramCfg, 0xe50c4004);
+  DdrWrite32 (&Ddr->SdramCfg2, 0x401111);
+  DdrWrite32 (&Ddr->SdramInterval, 0x18600000);
+}
 
 UINT64
 DramInit (
@@ -2164,5 +2243,6 @@ DramInit (
 #else
    DramSize = DdrSdramInitialization();
 #endif
+   DpDdrCtrlStaticInit ();
    return DramSize;
 }
