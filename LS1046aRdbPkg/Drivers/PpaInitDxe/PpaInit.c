@@ -100,8 +100,12 @@ GetPpaImagefromFlash (
 
 	Status = FitGetConfNode(FitImage, (void *)(PcdGetPtr(PcdPpaFitConfiguration/*PcdPpaFitConfiguration*/)), &CfgNodeOffset);
 	if (EFI_ERROR (Status)) {
-		DEBUG((EFI_D_ERROR, "Did not find configuration node in FIT header (0x%x).\n", Status));
-		goto EXIT_FREE_FIT;
+		DEBUG((EFI_D_ERROR, "Did not find configuration node in FIT header check for config@1 (0x%x).\n", Status));
+		Status = FitGetConfNode(FitImage, "config@1", &CfgNodeOffset);
+		if (EFI_ERROR (Status)) {
+			DEBUG((EFI_D_ERROR, "Did not find configuration node in FIT config@1  header (0x%x).\n", Status));
+			goto EXIT_FREE_FIT;
+		}
 	}
 
 	Status = FitGetNodeFromConf(FitImage, CfgNodeOffset, FIT_FIRMWARE_IMAGE, &NodeOffset);

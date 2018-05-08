@@ -540,7 +540,7 @@
   gArmPlatformTokenSpaceGuid.PcdDefaultBootArgument|L"MemoryMapped(0x0,0x61120000,0x61AFFFFF) -f \"MemoryMapped(0x0,0x61C00000,0x638FFFFF)\" -c \"console=ttyS0,115200 root=/dev/ram0 earlycon=uart8250,0x21c0500\""
 
   # PPA
-  gLS1046aRdbTokenSpaceGuid.PcdPpaFitConfiguration|"config@1"
+  gLS1046aRdbTokenSpaceGuid.PcdPpaFitConfiguration|"config-1"
 
   # Use the serial console for both ConIn & ConOut
   gArmPlatformTokenSpaceGuid.PcdDefaultConOutPaths|L"VenHw(D3987D4B-971A-435F-8CAF-4967EB627241)/Uart(115200,8,N,1)/VenPcAnsi();"
