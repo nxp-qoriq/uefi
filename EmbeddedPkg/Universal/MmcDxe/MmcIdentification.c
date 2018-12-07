@@ -123,7 +123,7 @@ EmmcSetEXTCSD (
              EMMC_CMD6_ARG_VALUE(Value) | EMMC_CMD6_ARG_CMD_SET(1);
   Status = Host->SendCommand (Host, MMC_CMD6, Argument);
   if (EFI_ERROR (Status)) {
-    DEBUG ((EFI_D_ERROR, "EmmcSetEXTCSD(): Failed to send CMD6 Argument 0x%x, Status=%r.\n", Argument, Status));
+    DEBUG ((EFI_D_ERROR, "EmmcSetEXTCSD(): Failed to send CMD6, Status=%r.\n", Status));
     return Status;
   }
   // Make sure device exiting prog mode
@@ -310,14 +310,11 @@ InitializeEmmcDevice (
       }
       Status = EmmcSetEXTCSD (MmcHostInstance, EXTCSD_BUS_WIDTH, BusMode);
       if (EFI_ERROR (Status)) {
-        continue;
-      } else {
-        DEBUG ((DEBUG_INFO, "InitializeEmmcDevice(): Set EXTCSD bus width %d successfully\n", BusMode));
-        break;
+        DEBUG ((DEBUG_ERROR, "InitializeEmmcDevice(): Failed to set EXTCSD bus width, Status:%r\n", Status));
       }
+      return Status;
     }
   }
-
   return Status;
 }
 
