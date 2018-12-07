@@ -88,16 +88,13 @@ PL011UartInitializePort (
   HardwareFifoDepth = (PL011_UARTPID2_VER (MmioRead32 (UartBase + UARTPID2)) \
                        > PL011_VER_R1P4) \
                       ? 32 : 16 ;
+    LineControl = PL011_UARTLCR_H_FEN;
   // The PL011 supports a buffer of 1, 16 or 32 chars. Therefore we can accept
   // 1 char buffer as the minimum FIFO size. Because everything can be rounded
   // down, there is no maximum FIFO size.
   if ((*ReceiveFifoDepth == 0) || (*ReceiveFifoDepth >= HardwareFifoDepth)) {
-    // Enable FIFO
-    LineControl = PL011_UARTLCR_H_FEN;
     *ReceiveFifoDepth = HardwareFifoDepth;
   } else {
-    // Disable FIFO
-    LineControl = 0;
     // Nothing else to do. 1 byte FIFO is default.
     *ReceiveFifoDepth = 1;
   }
