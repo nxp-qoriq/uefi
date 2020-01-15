@@ -10,5 +10,23 @@ full_cmd=${BASH_SOURCE:-$0} # see http://mywiki.wooledge.org/BashFAQ/028 for a d
 dir=$(dirname "$full_cmd")
 cmd=${full_cmd##*/}
 
+git_version()
+{
+  command -v git>/dev/null 2>&1
+  if [ $? -eq 0 ] && [ -n "$1" ]
+  then
+    head_or_tag=`git -C $1 describe --always 2>/dev/null`
+    printf $head_or_tag
+    git -C $1 diff-index --ignore-submodules --exit-code HEAD>/dev/null
+    if [ $? -eq 1 ]; then
+      printf '%s' -dirty
+    fi
+  else
+    printf "unknown"
+  fi
+}
+
+export WORKSPACE_GIT_VERSION=$(git_version $WORKSPACE)
+export PACKAGES_PATH_GIT_VERSION=$(git_version $PACKAGES_PATH)
 export PYTHONPATH="$dir/../../Source/Python${PYTHONPATH:+:"$PYTHONPATH"}"
 exec "${python_exe:-python}" "$dir/../../Source/Python/$cmd/$cmd.py" "$@"
