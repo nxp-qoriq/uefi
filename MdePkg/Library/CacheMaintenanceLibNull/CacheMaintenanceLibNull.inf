@@ -1,0 +1,35 @@
+## @file
+#  Null instance of Cache Maintenance Library.
+#
+#  Copyright (c) 2007 - 2018, Intel Corporation. All rights reserved.<BR>
+#  Portions copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = CacheMaintenanceLibNull
+  MODULE_UNI_FILE                = CacheMaintenanceLibNull.uni
+  FILE_GUID                      = f006a70a-3cc3-4784-b6da-33ca1bba983e
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.1
+  LIBRARY_CLASS                  = CacheMaintenanceLib
+
+
+#
+#  VALID_ARCHITECTURES           = IA32 X64 EBC ARM AARCH64
+#
+
+[Sources.AARCH64]
+  CacheNull.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+
