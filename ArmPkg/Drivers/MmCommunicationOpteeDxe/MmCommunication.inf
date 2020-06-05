@@ -1,0 +1,47 @@
+#/** @file
+#
+#  DXE MM Communicate driver
+#
+#  Copyright (c) 2020, Linaro Ltd. All rights reserved.<BR>
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#**/
+
+[Defines]
+  INF_VERSION                    = 0x0001001A
+  BASE_NAME                      = OpteeMmCommunication
+  FILE_GUID                      = 48BFDFCF-4A6B-4A17-B734-0040B1316131
+  MODULE_TYPE                    = DXE_RUNTIME_DRIVER
+  VERSION_STRING                 = 0.1
+  ENTRY_POINT                    = MmCommunicationInitialize
+
+[Sources]
+  MmCommunication.c
+
+[Packages]
+  ArmPkg/ArmPkg.dec
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  MemoryAllocationLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiLib
+  UefiRuntimeLib
+  UefiRuntimeServicesTableLib
+  OpteeLib
+
+[Protocols]
+  gEfiMmCommunicationProtocolGuid              ## PRODUCES
+
+[Guids]
+  gEfiEndOfDxeEventGroupGuid
+  gEfiEventExitBootServicesGuid
+  gEfiEventReadyToBootGuid
+
+[Depex]
+  gEfiCpuArchProtocolGuid
