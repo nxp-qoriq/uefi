@@ -251,7 +251,7 @@ SendCommunicateBuffer (
   SMM_VARIABLE_COMMUNICATE_HEADER           *SmmVariableFunctionHeader;
 
   CommSize = DataSize + SMM_COMMUNICATE_HEADER_SIZE + SMM_VARIABLE_COMMUNICATE_HEADER_SIZE;
-  Status = mSmmCommunication->Communicate (mSmmCommunication, mVariableBufferPhysical, &CommSize);
+  Status = mSmmCommunication->Communicate (mSmmCommunication, mVariableBuffer, &CommSize);
   ASSERT_EFI_ERROR (Status);
 
   SmmCommunicateHeader      = (EFI_SMM_COMMUNICATE_HEADER *) mVariableBuffer;
