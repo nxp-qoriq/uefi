@@ -14,6 +14,7 @@
 
 [LibraryClasses.common]
   TableHelperLib|DynamicTablesPkg/Library/Common/TableHelperLib/TableHelperLib.inf
+  AmlLib|DynamicTablesPkg/Library/Common/AmlLib/AmlLib.inf
 
 [Components.common]
   #
@@ -38,3 +39,10 @@
   #
   DynamicTablesPkg/Drivers/DynamicTableManagerDxe/DynamicTableManagerDxe.inf
 
+  #
+  DynamicTablesPkg/Library/Common/TableHelperLib/TableHelperLib.inf
+  #
+
+  #
+  DynamicTablesPkg/Library/Common/AmlLib/AmlLib.inf
+  #
