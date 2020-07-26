@@ -1,0 +1,36 @@
+## @file
+#  DefaultType16 Table Generator
+#
+#  Copyright (c) 2017 - 2018, ARM Limited. All rights reserved.
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION    = 0x00010019
+  BASE_NAME      = DefaultType16LibArm
+  FILE_GUID      = d715a082-413c-4819-b6f3-6d08be9fc687
+  VERSION_STRING = 1.0
+  MODULE_TYPE    = DXE_DRIVER
+  LIBRARY_CLASS  = NULL|DXE_DRIVER
+  CONSTRUCTOR    = SmbiosDefaultType16LibConstructor
+  DESTRUCTOR     = SmbiosDefaultType16LibDestructor
+
+[Sources]
+  DefaultType16Generator.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  DynamicTablesPkg/DynamicTablesPkg.dec
+
+[LibraryClasses]
+  BaseLib
+
+[Pcd]
+
+[Protocols]
+
+[Guids]
+

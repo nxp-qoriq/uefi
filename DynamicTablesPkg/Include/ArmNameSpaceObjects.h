@@ -56,8 +56,112 @@ typedef enum ArmObjectID {
   EArmObjDeviceHandleAcpi,             ///< 32 - Device Handle Acpi
   EArmObjDeviceHandlePci,              ///< 33 - Device Handle Pci
   EArmObjGenericInitiatorAffinityInfo, ///< 34 - Generic Initiator Affinity
+  EArmObjSystemSlotType9,
+  EArmObjMemorryArrayType16,
+  EArmObjMemoryDeviceType17,
+  EArmObjMemoryMappedAddressType19,
+  EArmObjSystemBootType32,
   EArmObjMax
 } EARM_OBJECT_ID;
+
+/** A structure that describes
+    SMBIOS Type32 table.
+
+    ID: EArmObjSystemBootType32
+ */
+typedef struct CmArmSystemBootType32Info {
+  UINT8   BootStatus;
+} CM_ARM_SYSTEM_BOOT_TYPE32_INFO;
+
+/** A structure that describes the
+    SMBIOS Type19 table.
+
+    ID: EArmObjMemoryMappedAddressType19
+*/
+typedef struct CmArmMemoryMappedAddressType19Info {
+  UINT32    StartingAddress;
+  UINT32    EndingAddress;
+  UINT16    MemoryArrayHandle;
+  UINT8     PartitionWidth;
+  UINT64    ExtendedStartingAddress;
+  UINT64    ExtendedEndingAddress;
+}CM_ARM_MEM_MAP_ADDRESS_TYPE19_INFO;
+
+/** A structure that describes the
+    Memory Device (Type 17) table.
+
+    ID: EArmObjMemoryDeviceType17
+*/
+typedef struct {
+  UINT16                     MemoryArrayHandle;
+  UINT16                     MemoryErrorInformationHandle;
+  UINT16                     TotalWidth;
+  UINT16                     DataWidth;
+  UINT16                     Size;
+  UINT8                      FormFactor;         ///< The enumeration value from MEMORY_FORM_FACTOR.
+  UINT8                      DeviceSet;
+  SMBIOS_TABLE_STRING        DeviceLocator;
+  SMBIOS_TABLE_STRING        BankLocator;
+  UINT8                      MemoryType;         ///< The enumeration value from MEMORY_DEVICE_TYPE.
+  MEMORY_DEVICE_TYPE_DETAIL  TypeDetail;
+  UINT16                     Speed;
+  SMBIOS_TABLE_STRING        Manufacturer;
+  SMBIOS_TABLE_STRING        SerialNumber;
+  SMBIOS_TABLE_STRING        AssetTag;
+  SMBIOS_TABLE_STRING        PartNumber;
+  UINT8                      Attributes;
+  UINT32                     ExtendedSize;
+  UINT16                     ConfiguredMemoryClockSpeed;
+  UINT16                     MinimumVoltage;
+  UINT16                     MaximumVoltage;
+  UINT16                     ConfiguredVoltage;
+  UINT8                      MemoryTechnology;   ///< The enumeration value from MEMORY_DEVICE_TECHNOLOGY
+  MEMORY_DEVICE_OPERATING_MODE_CAPABILITY   MemoryOperatingModeCapability;
+  SMBIOS_TABLE_STRING        FirwareVersion;
+  UINT16                     ModuleManufacturerID;
+  UINT16                     ModuleProductID;
+  UINT16                     MemorySubsystemControllerManufacturerID;
+  UINT16                     MemorySubsystemControllerProductID;
+  UINT64                     NonVolatileSize;
+  UINT64                     VolatileSize;
+  UINT64                     CacheSize;
+  UINT64                     LogicalSize;
+  UINT32                     ExtendedSpeed;
+  UINT32                     ExtendedConfiguredMemorySpeed;
+} CM_ARM_MEMORY_DEVICE_TYPE17_INFO;
+
+/** A structure that describes the
+    SMBIOS Type16 table.
+
+    ID: EArmObjMemorryArrayType16
+ */
+typedef struct CmArmMemoryArrayType16Info {
+  UINT8   Location;                     ///< The enumeration value from MEMORY_ARRAY_LOCATION.
+  UINT8   Use;                          ///< The enumeration value from MEMORY_ARRAY_USE.
+  UINT8   MemoryErrorCorrection;        ///< The enumeration value from MEMORY_ERROR_CORRECTION.
+  UINT32  MaximumCapacity;
+  UINT16  MemoryErrorInformationHandle;
+  UINT16  NumberOfMemoryDevices;
+} CM_ARM_MEMORY_ARRAY_TYPE16_INFO;
+
+/** A structure that describes the
+    System Slot (Type 9) table.
+
+    ID: EArmObjSystemSlotType9
+*/
+typedef struct {
+  SMBIOS_TABLE_STRING         SlotDesignation;
+  UINT8                       SlotType;                 ///< The enumeration value from MISC_SLOT_TYPE.
+  UINT8                       SlotDataBusWidth;         ///< The enumeration value from MISC_SLOT_DATA_BUS_WIDTH.
+  UINT8                       CurrentUsage;             ///< The enumeration value from MISC_SLOT_USAGE.
+  UINT8                       SlotLength;               ///< The enumeration value from MISC_SLOT_LENGTH.
+  UINT16                      SlotID;
+  MISC_SLOT_CHARACTERISTICS1  SlotCharacteristics1;
+  MISC_SLOT_CHARACTERISTICS2  SlotCharacteristics2;
+  UINT16                      SegmentGroupNum;
+  UINT8                       BusNum;
+  UINT8                       DevFuncNum;
+} CM_ARM_SYSTEM_SLOT_TYPE9_INFO;
 
 /** A structure that describes the
     ARM Boot Architecture flags.

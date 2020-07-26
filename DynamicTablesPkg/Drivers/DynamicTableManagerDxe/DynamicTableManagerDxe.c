@@ -7,10 +7,13 @@
 
 **/
 
+#include <IndustryStandard/SmBios.h>
+
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Protocol/AcpiTable.h>
+#include <Protocol/Smbios.h>
 
 // Module specific include files.
 #include <AcpiTableGenerator.h>
@@ -30,6 +33,323 @@ GET_OBJECT_LIST (
   EStdObjAcpiTableList,
   CM_STD_OBJ_ACPI_TABLE_INFO
   )
+
+/** This macro expands to a function that retrieves the SMBIOS Table
+    List from the Configuration Manager.
+*/
+GET_OBJECT_LIST (
+  EObjNameSpaceStandard,
+  EStdObjSmbiosTableList,
+  CM_STD_OBJ_SMBIOS_TABLE_INFO
+  )
+
+/** A helper function to build and install a single SMBIOS table.
+
+  This is a helper function that invokes the Table generator interface
+  for building an SMBIOS table. It uses the SmbiosProtocol to install the
+  table, then frees the resources allocated for generating it.
+
+  @param [in]  TableFactoryProtocol Pointer to the Table Factory Protocol
+                                    interface.
+  @param [in]  CfgMgrProtocol       Pointer to the Configuration Manager
+                                    Protocol Interface.
+  @param [in]  Generator            Pointer to the Table generator.
+  @param [in]  SmbiosProtocol       Pointer to the Smbios protocol.
+  @param [in]  SmbiosTableInfo      Pointer to the Smbios table Info.
+
+  @retval EFI_SUCCESS           Success.
+  @retval EFI_INVALID_PARAMETER A parameter is invalid.
+  @retval EFI_NOT_FOUND         Required object is not found.
+  @retval EFI_BAD_BUFFER_SIZE   Size returned by the Configuration Manager
+                                is less than the Object size for the
+                                requested object.
+**/
+STATIC
+EFI_STATUS
+EFIAPI
+BuildAndInstallSingleSmbiosTable (
+  IN CONST EDKII_DYNAMIC_TABLE_FACTORY_PROTOCOL  * CONST TableFactoryProtocol,
+  IN CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL  * CONST CfgMgrProtocol,
+  IN CONST SMBIOS_TABLE_GENERATOR                * CONST Generator,
+  IN       EFI_SMBIOS_PROTOCOL                   *       SmbiosProtocol,
+  IN       CM_STD_OBJ_SMBIOS_TABLE_INFO          * CONST SmbiosTableInfo
+  )
+{
+  EFI_STATUS                    Status;
+  EFI_STATUS                    Status1;
+  SMBIOS_HANDLE                 SmbiosHandle;
+  SMBIOS_STRUCTURE            * SmbiosTable = NULL;
+
+  Status = Generator->BuildSmbiosTable (
+                        Generator,
+                        SmbiosTableInfo,
+                        CfgMgrProtocol,
+                        &SmbiosTable
+                        );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((
+      DEBUG_ERROR,
+      "ERROR: Failed to Build Table." \
+      " TableGeneratorId = 0x%x. Status = %r\n",
+      SmbiosTableInfo->TableGeneratorId,
+      Status
+      ));
+  }
+
+  if (SmbiosTable == NULL) {
+    Status = EFI_NOT_FOUND;
+    goto exit_handler;
+  }
+
+  SmbiosHandle = SmbiosTableInfo->SmbiosTableData->Handle;
+  DEBUG ((
+        DEBUG_ERROR,
+        "INFO : SMBIOS Table Handle [%lld]. Status = %r\n",
+        SmbiosHandle,
+        Status
+        ));
+
+  // Install SMBIOS table
+  Status = SmbiosProtocol->Add (
+      SmbiosProtocol,
+      NULL,
+      &SmbiosHandle,
+      SmbiosTable
+      );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((
+          DEBUG_ERROR,
+          "ERROR: Failed to Install SMBIOS Table. Status = %r\n",
+          Status
+          ));
+    // Free any allocated resources.
+    goto exit_handler;
+  }
+
+  DEBUG ((
+        DEBUG_INFO,
+        "INFO: SMBIOS Table installed. Status = %r\n",
+        Status
+        ));
+
+exit_handler:
+  // Free any resources allocated for generating the tables.
+  if (Generator->FreeTableResources != NULL) {
+    Status1 = Generator->FreeTableResources (
+        Generator,
+        SmbiosTableInfo,
+        CfgMgrProtocol,
+        &SmbiosTable
+        );
+    if (EFI_ERROR (Status1)) {
+      DEBUG ((
+            DEBUG_ERROR,
+            "ERROR: Failed to Free Table Resources." \
+            "TableGeneratorId = 0x%x. Status = %r\n",
+            SmbiosTableInfo->TableGeneratorId,
+            Status1
+            ));
+    }
+
+    // Return the first error status in case of failure
+    if (!EFI_ERROR (Status)) {
+      Status = Status1;
+    }
+  }
+
+  return Status;
+}
+
+STATIC
+EFI_STATUS
+EFIAPI
+BuildAndInstallSmbiosTable (
+  IN CONST EDKII_DYNAMIC_TABLE_FACTORY_PROTOCOL * CONST TableFactoryProtocol,
+  IN CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL * CONST CfgMgrProtocol,
+  IN       EFI_SMBIOS_PROTOCOL                  *       SmbiosProtocol,
+  IN       CM_STD_OBJ_SMBIOS_TABLE_INFO         * CONST SmbiosTableInfo
+  )
+{
+  EFI_STATUS                      Status;
+  CONST SMBIOS_TABLE_GENERATOR  * Generator;
+
+  ASSERT (TableFactoryProtocol != NULL);
+  ASSERT (CfgMgrProtocol != NULL);
+  ASSERT (SmbiosProtocol != NULL);
+  ASSERT (SmbiosTableInfo != NULL);
+
+  DEBUG ((
+    DEBUG_INFO,
+    "EStdObjSmbiosTableList: Address = 0x%p," \
+    " TableGeneratorId = 0x%x\n",
+    SmbiosTableInfo,
+    SmbiosTableInfo->TableGeneratorId
+    ));
+
+  Generator = NULL;
+  Status = TableFactoryProtocol->GetSmbiosTableGenerator (
+                                   TableFactoryProtocol,
+                                   SmbiosTableInfo->TableGeneratorId,
+                                   &Generator
+                                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((
+      DEBUG_ERROR,
+      "ERROR: Table Generator not found." \
+      " TableGeneratorId = 0x%x. Status = %r\n",
+      SmbiosTableInfo->TableGeneratorId,
+      Status
+      ));
+    return Status;
+  }
+
+  if (Generator == NULL) {
+    return EFI_NOT_FOUND;
+  }
+
+  if (Generator->BuildSmbiosTable != NULL) {
+    Status = BuildAndInstallSingleSmbiosTable (
+               TableFactoryProtocol,
+               CfgMgrProtocol,
+               Generator,
+               SmbiosProtocol,
+               SmbiosTableInfo
+               );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((
+        DEBUG_ERROR,
+        "ERROR: Failed to find build and install SMBIOS Table." \
+        " Status = %r\n",
+        Status
+        ));
+    }
+  } else {
+    Status = EFI_INVALID_PARAMETER;
+    DEBUG ((
+      DEBUG_ERROR,
+      "ERROR: Table Generator does not implement the"   \
+      " SMBIOS_TABLE_GENERATOR_BUILD_TABLE interface."  \
+      " TableGeneratorId = 0x%x. Status = %r\n",
+      SmbiosTableInfo->TableGeneratorId,
+      Status
+      ));
+  }
+
+  return Status;
+}
+
+/** Generate and install SMBIOS tables.
+
+  The function gathers the information necessary for installing the
+  ACPI tables from the Configuration Manager, invokes the generators
+  and installs them (via BuildAndInstallSmbiosTable).
+
+  @param [in]  TableFactoryProtocol Pointer to the Table Factory Protocol
+                                    interface.
+  @param [in]  CfgMgrProtocol       Pointer to the Configuration Manager
+                                    Protocol Interface.
+
+  @retval EFI_SUCCESS   Success.
+  @retval EFI_NOT_FOUND If a mandatory table or a generator is not found.
+**/
+STATIC
+EFI_STATUS
+EFIAPI
+ProcessSmbiosTables (
+  IN CONST EDKII_DYNAMIC_TABLE_FACTORY_PROTOCOL  * CONST TableFactoryProtocol,
+  IN CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL  * CONST CfgMgrProtocol
+  )
+{
+  EFI_STATUS                      Status;
+  EFI_SMBIOS_PROTOCOL           * SmbiosProtocol;
+  CM_STD_OBJ_SMBIOS_TABLE_INFO  * SmbiosTableInfo;
+  UINT32                          SmbiosTableCount;
+  UINT32                          Idx;
+
+  ASSERT (TableFactoryProtocol != NULL);
+  ASSERT (CfgMgrProtocol != NULL);
+
+  /* Find the SMBIOS protocol */
+  Status = gBS->LocateProtocol (
+                  &gEfiSmbiosProtocolGuid,
+                  NULL,
+                  (VOID**)&SmbiosProtocol
+                  );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((
+      DEBUG_ERROR,
+      "ERROR: Failed to get SMBIOS Protocol GUID. Status = %r\n",
+      Status
+      ));
+    return Status;
+  }
+
+  Status = GetEStdObjSmbiosTableList (
+             CfgMgrProtocol,
+             CM_NULL_TOKEN,
+             &SmbiosTableInfo,
+             &SmbiosTableCount
+             );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((
+      DEBUG_ERROR,
+      "ERROR: Failed to get SMBIOS Table List. Status = %r\n",
+      Status
+      ));
+    return Status;
+  }
+
+  if (0 == SmbiosTableCount) {
+    DEBUG ((
+      DEBUG_ERROR,
+      "ERROR: EStdObjSmbiosTableList: SmbiosTableCount = %d\n",
+      SmbiosTableCount
+      ));
+    return EFI_NOT_FOUND;
+  }
+
+  // Add  Tables
+  for (Idx = 0; Idx < SmbiosTableCount; Idx++) {
+    DEBUG ((
+      DEBUG_INFO,
+      "INFO: SmbiosTableInfo[%d].TableGeneratorId = 0x%x\n",
+      Idx,
+      SmbiosTableInfo[Idx].TableGeneratorId
+      ));
+
+    // Skip the Reserved table Generator ID for standard generators
+    if ((IS_GENERATOR_NAMESPACE_STD (SmbiosTableInfo[Idx].TableGeneratorId))  &&
+        ((CREATE_STD_SMBIOS_TABLE_GEN_ID (EStdSmbiosTableIdReserved)          >=
+            SmbiosTableInfo[Idx].TableGeneratorId)                            ||
+         (CREATE_STD_SMBIOS_TABLE_GEN_ID (EStdSmbiosTableIdMax)               <=
+            SmbiosTableInfo[Idx].TableGeneratorId))) {
+      DEBUG ((
+        DEBUG_ERROR,
+        "WARNING: Invalid SMBIOS Generator table ID = 0x%x, Skipping...\n",
+        SmbiosTableInfo[Idx].TableGeneratorId
+        ));
+      continue;
+    }
+
+    Status = BuildAndInstallSmbiosTable (
+               TableFactoryProtocol,
+               CfgMgrProtocol,
+               SmbiosProtocol,
+               &SmbiosTableInfo[Idx]
+               );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((
+        DEBUG_ERROR,
+        "ERROR: Failed to find, build, and install SMBIOS Table." \
+        " Status = %r\n",
+        Status
+        ));
+      return Status;
+    }
+  } // for
+
+  return Status;
+}
 
 /** A helper function to build and install a single ACPI table.
 
@@ -725,5 +1045,15 @@ DynamicTableManagerDxeInitialize (
       Status
       ));
   }
+
+  Status = ProcessSmbiosTables (TableFactoryProtocol, CfgMgrProtocol);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((
+          DEBUG_ERROR,
+          "ERROR: SMBIOS Table processing failure. Status = %r\n",
+          Status
+          ));
+  }
+
   return Status;
 }
