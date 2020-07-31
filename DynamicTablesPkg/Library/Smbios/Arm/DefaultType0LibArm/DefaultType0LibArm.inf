@@ -1,0 +1,36 @@
+## @file
+#  DefaultType0 Table Generator
+#
+#  Copyright (c) 2020, Puresoftware Limited. All rights reserved.
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION    = 0x00010019
+  BASE_NAME      = DefaultType0LibArm
+  FILE_GUID      = 016d5e8e-cc6e-4dfd-aef9-e5b35622fc9a
+  VERSION_STRING = 1.0
+  MODULE_TYPE    = DXE_DRIVER
+  LIBRARY_CLASS  = NULL|DXE_DRIVER
+  CONSTRUCTOR    = SmbiosDefaultType0LibConstructor
+  DESTRUCTOR     = SmbiosDefaultType0LibDestructor
+
+[Sources]
+  DefaultType0Generator.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  DynamicTablesPkg/DynamicTablesPkg.dec
+
+[LibraryClasses]
+  BaseLib
+
+[Pcd]
+
+[Protocols]
+
+[Guids]
+

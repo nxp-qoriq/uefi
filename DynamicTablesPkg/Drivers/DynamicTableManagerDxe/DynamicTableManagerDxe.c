@@ -103,7 +103,7 @@ BuildAndInstallSingleSmbiosTable (
 
   SmbiosHandle = SmbiosTableInfo->SmbiosTableData->Handle;
   DEBUG ((
-        DEBUG_ERROR,
+        DEBUG_INFO,
         "INFO : SMBIOS Table Handle [%lld]. Status = %r\n",
         SmbiosHandle,
         Status

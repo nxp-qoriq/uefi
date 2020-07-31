@@ -23,6 +23,31 @@
 #pragma pack(1)
 
 typedef struct {
+  SMBIOS_TABLE_TYPE0 Base;
+  UINT8              Strings [];
+} ARM_TYPE0;
+
+typedef struct {
+  SMBIOS_TABLE_TYPE1 Base;
+  UINT8              Strings [];
+} ARM_TYPE1;
+
+typedef struct {
+  SMBIOS_TABLE_TYPE3 Base;
+  UINT8              Strings [];
+} ARM_TYPE3;
+
+typedef struct {
+  SMBIOS_TABLE_TYPE4 Base;
+  UINT8              Strings [];
+} ARM_TYPE4;
+
+typedef struct {
+  SMBIOS_TABLE_TYPE7 Base;
+  UINT8              Strings [];
+} ARM_TYPE7;
+
+typedef struct {
   SMBIOS_TABLE_TYPE9 Base;
   UINT8              Strings [];
 } ARM_TYPE9;

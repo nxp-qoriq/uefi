@@ -1,6 +1,5 @@
-
 /** @file
-  Type32 Table Generator
+  Type1 Table Generator
 
   Copyright (c) 2020, Puresoftware Limited. All rights reserved.
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -13,6 +12,7 @@
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PcdLib.h>
+#include <Library/PrintLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <PiDxe.h>
@@ -28,32 +28,35 @@
 #include <SmbiosTableGenerator.h>
 #include <SmbiosTableHelper.h>
 
-#define DEFAULT_TYPE32_STRINGS                      \
-  "\0"                               /* nothing */
-
-STATIC ARM_TYPE32 mArmDefaultType32 = {
-  {
-    { /* SMBIOS_STRUCTURE Hdr */
-      EFI_SMBIOS_TYPE_SYSTEM_BOOT_INFORMATION, /* UINT8 Type */
-      sizeof (SMBIOS_TABLE_TYPE32),            /* UINT8 Length */
-      SMBIOS_HANDLE_PI_RESERVED
-    },
-  },
-  DEFAULT_TYPE32_STRINGS
-};
+#define DEFAULT_TYPE1_STRINGS              \
+  "ARM   \0"            /* Manufacturer */ \
+  "LX2160    \0"        /* Product Name */ \
+  "B \0"                /* Version */      \
+  "                    \0"  /* 20 character buffer */
 
 #pragma pack()
 
-/** This macro expands to a function that retrieves System boot
-    (Type 32) Information from the Configuration Manager.
+STATIC ARM_TYPE1 mArmDefaultType1 = {
+  {
+    { /* SMBIOS_STRUCTURE Hdr */
+      EFI_SMBIOS_TYPE_SYSTEM_INFORMATION,      /* UINT8 Type */
+      sizeof (SMBIOS_TABLE_TYPE1),             /* UINT8 Length */
+      SMBIOS_HANDLE_PI_RESERVED
+    },
+  },
+  DEFAULT_TYPE1_STRINGS
+};
+
+/** This macro expands to a function that retrieves System
+    (Type 1) Information from the Configuration Manager.
 */
 GET_OBJECT_LIST (
   EObjNameSpaceArm,
-  EArmObjSystemBootType32,
-  CM_ARM_SYSTEM_BOOT_TYPE32_INFO
+  EArmObjSystemInfoType1,
+  CM_ARM_SYSTEM_TYPE1_INFO
   );
 
-/** Updates the information in the Tyhpe 32 Table.
+/** Updates the information in the Type 1 Table.
 
   @param [in]  CfgMgrProtocol Pointer to the Configuration Manager
                               Protocol Interface.
@@ -68,35 +71,78 @@ GET_OBJECT_LIST (
 STATIC
 EFI_STATUS
 EFIAPI
-AddSystemBootType32Info (
+AddSystemType1Info (
   IN  CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL  * CONST CfgMgrProtocol
 )
 {
   EFI_STATUS                          Status = EFI_SUCCESS;
-  CM_ARM_SYSTEM_BOOT_TYPE32_INFO    * Type32Info;
+  CM_ARM_SYSTEM_TYPE1_INFO          * Type1Info;
+  CHAR16                            * Manufacturer;
+  CHAR16                            * ProdName;
+  CHAR16                            * Version;
 
   ASSERT (CfgMgrProtocol != NULL);
 
-  Status = GetEArmObjSystemBootType32 (
+  Status = GetEArmObjSystemInfoType1 (
       CfgMgrProtocol,
       CM_NULL_TOKEN,
-      &Type32Info,
+      &Type1Info,
       NULL
       );
   if (EFI_ERROR (Status)) {
     DEBUG ((
           DEBUG_ERROR,
-          "ERROR: SMBIOS: Failed to get Type32 table. Status = %r\n",
+          "ERROR: SMBIOS: Failed to get Type1 table. Status = %r\n",
           Status
           ));
   }
 
-  mArmDefaultType32.Base.BootStatus  = Type32Info->BootStatus;
+  mArmDefaultType1.Base.Manufacturer        = 1;
+  mArmDefaultType1.Base.ProductName         = 2;
+  mArmDefaultType1.Base.Version             = Type1Info->Version;
+  mArmDefaultType1.Base.SerialNumber        = Type1Info->SerialNumber;
+  mArmDefaultType1.Base.Uuid                = Type1Info->Uuid;
+  mArmDefaultType1.Base.WakeUpType          = Type1Info->WakeUpType;
+  mArmDefaultType1.Base.SKUNumber           = Type1Info->SKUNumber;
+  mArmDefaultType1.Base.Family              = Type1Info->Family;
+  /* Update the default strings */
+  Manufacturer = AllocateZeroPool ((sizeof (CHAR16)) * SMBIOS_STRING_MAX_LENGTH);
+  switch (Type1Info->Manufacturer)
+  {
+    case 1:
+    default:
+              (void)UnicodeSPrint (Manufacturer, SMBIOS_STRING_MAX_LENGTH - 1, L"NXP   ", Type1Info->Manufacturer);
+  }
+  UnicodeStrToAsciiStr(Manufacturer, (CHAR8 *)&(mArmDefaultType1.Strings[0]));
+
+  ProdName  = AllocateZeroPool ((sizeof (CHAR16)) * SMBIOS_STRING_MAX_LENGTH);
+  switch (Type1Info->ProductName)
+  {
+    case 1:
+              (void)UnicodeSPrint (ProdName, SMBIOS_STRING_MAX_LENGTH - 1, L"LS1046ARDB", Type1Info->ProductName);
+              break;
+    case 2:
+              (void)UnicodeSPrint (ProdName, SMBIOS_STRING_MAX_LENGTH - 1, L"LS1046FRWY", Type1Info->ProductName);
+              break;
+    case 3:
+    default:
+              (void)UnicodeSPrint (ProdName, SMBIOS_STRING_MAX_LENGTH - 1, L"LX2160ARDB", Type1Info->ProductName);
+  }
+  UnicodeStrToAsciiStr(ProdName, (CHAR8 *)&(mArmDefaultType1.Strings[7]));
+
+  Version = AllocateZeroPool ((sizeof (CHAR16)) * SMBIOS_STRING_MAX_LENGTH);
+  (void)UnicodeSPrint (Version, SMBIOS_STRING_MAX_LENGTH - 1, L"B%d", Type1Info->Version);
+  UnicodeStrToAsciiStr(Version, (CHAR8 *)&(mArmDefaultType1.Strings[18]));
+
+  /* Free the resources */
+  FreePool(Manufacturer);
+  FreePool(ProdName);
+  FreePool(Version);
 
   return Status;
 }
 
-/** Construct the Default Type32 table.
+/** Construct the Default Type1 table.
 
   This function invokes the Configuration Manager protocol interface
   to get the required hardware information for generating the SMBIOS
@@ -121,7 +167,7 @@ AddSystemBootType32Info (
 STATIC
 EFI_STATUS
 EFIAPI
-BuildType32Table (
+BuildType1Table (
   IN  CONST SMBIOS_TABLE_GENERATOR                  *       This,
   IN        CM_STD_OBJ_SMBIOS_TABLE_INFO            * CONST SmbiosTableInfo,
   IN  CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL    * CONST CfgMgrProtocol,
@@ -139,35 +185,35 @@ BuildType32Table (
   *Table = NULL;
 
   // Update BootArch Info
-  Status = AddSystemBootType32Info (CfgMgrProtocol);
+  Status = AddSystemType1Info (CfgMgrProtocol);
   if (EFI_ERROR (Status)) {
     goto error_handler;
   }
 
-  *Table = (SMBIOS_STRUCTURE*)&mArmDefaultType32;
+  *Table = (SMBIOS_STRUCTURE*)&mArmDefaultType1;
 
 error_handler:
   return Status;
 }
 
-/** The interface for the System Boot Table Generator.
+/** The interface for the System Info Table Generator.
 */
 STATIC
 CONST
-SMBIOS_TABLE_GENERATOR DefaultType32Generator = {
+SMBIOS_TABLE_GENERATOR DefaultType1Generator = {
   // Generator ID
-  CREATE_STD_SMBIOS_TABLE_GEN_ID (EStdSmbiosTableIdType32),
+  CREATE_STD_SMBIOS_TABLE_GEN_ID (EStdSmbiosTableIdType01),
   // Generator Description
-  L"SMBIOS.STD.TYPE32.GENERATOR",
+  L"SMBIOS.STD.TYPE1.GENERATOR",
   // Type
-  32,
+  1,
   // Build Table function
-  BuildType32Table,
+  BuildType1Table,
   // Free Resource handle
   NULL
 };
 
-/** Register the Generator with the ACPI Table Factory.
+/** Register the Generator with the SMBIOS Table Factory.
 
   @param [in]  ImageHandle  The handle to the image.
   @param [in]  SystemTable  Pointer to the System Table.
@@ -179,19 +225,19 @@ SMBIOS_TABLE_GENERATOR DefaultType32Generator = {
 **/
 EFI_STATUS
 EFIAPI
-SmbiosDefaultType32LibConstructor (
+SmbiosDefaultType1LibConstructor (
   IN CONST EFI_HANDLE                ImageHandle,
   IN       EFI_SYSTEM_TABLE  * CONST SystemTable
   )
 {
   EFI_STATUS  Status;
-  Status = RegisterSmbiosTableGenerator (&DefaultType32Generator);
-  DEBUG ((DEBUG_INFO, "DefaultType32  : Register Generator. Status = %r\n", Status));
+  Status = RegisterSmbiosTableGenerator (&DefaultType1Generator);
+  DEBUG ((DEBUG_INFO, "DefaultType1  : Register Generator. Status = %r\n", Status));
   ASSERT_EFI_ERROR (Status);
   return Status;
 }
 
-/** Deregister the Generator from the ACPI Table Factory.
+/** Deregister the Generator from the SMBIOS Table Factory.
 
   @param [in]  ImageHandle  The handle to the image.
   @param [in]  SystemTable  Pointer to the System Table.
@@ -202,14 +248,14 @@ SmbiosDefaultType32LibConstructor (
 **/
 EFI_STATUS
 EFIAPI
-SmbiosDefaultType32LibDestructor (
+SmbiosDefaultType1LibDestructor (
   IN CONST EFI_HANDLE                ImageHandle,
   IN       EFI_SYSTEM_TABLE  * CONST SystemTable
   )
 {
   EFI_STATUS  Status;
-  Status = DeregisterSmbiosTableGenerator (&DefaultType32Generator);
-  DEBUG ((DEBUG_INFO, "DefaultType32  : Deregister Generator. Status = %r\n", Status));
+  Status = DeregisterSmbiosTableGenerator (&DefaultType1Generator);
+  DEBUG ((DEBUG_INFO, "DefaultType1  : Deregister Generator. Status = %r\n", Status));
   ASSERT_EFI_ERROR (Status);
   return Status;
 }

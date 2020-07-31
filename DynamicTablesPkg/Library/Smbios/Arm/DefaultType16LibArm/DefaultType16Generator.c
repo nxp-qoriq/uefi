@@ -174,7 +174,7 @@ SMBIOS_TABLE_GENERATOR DefaultType16Generator = {
   NULL
 };
 
-/** Register the Generator with the ACPI Table Factory.
+/** Register the Generator with the SMBIOS Table Factory.
 
   @param [in]  ImageHandle  The handle to the image.
   @param [in]  SystemTable  Pointer to the System Table.
@@ -193,12 +193,12 @@ SmbiosDefaultType16LibConstructor (
 {
   EFI_STATUS  Status;
   Status = RegisterSmbiosTableGenerator (&DefaultType16Generator);
-  DEBUG ((DEBUG_ERROR, "DefaultType16  : Register Generator. Status = %r\n", Status));
+  DEBUG ((DEBUG_INFO, "DefaultType16  : Register Generator. Status = %r\n", Status));
   ASSERT_EFI_ERROR (Status);
   return Status;
 }
 
-/** Deregister the Generator from the ACPI Table Factory.
+/** Deregister the Generator from the SMBIOS Table Factory.
 
   @param [in]  ImageHandle  The handle to the image.
   @param [in]  SystemTable  Pointer to the System Table.

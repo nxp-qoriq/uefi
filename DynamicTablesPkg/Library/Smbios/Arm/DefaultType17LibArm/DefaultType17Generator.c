@@ -219,7 +219,7 @@ SmbiosDefaultType17LibConstructor (
 {
   EFI_STATUS  Status;
   Status = RegisterSmbiosTableGenerator (&DefaultType17Generator);
-  DEBUG ((DEBUG_ERROR, "DefaultType17  : Register Generator. Status = %r\n", Status));
+  DEBUG ((DEBUG_INFO, "DefaultType17  : Register Generator. Status = %r\n", Status));
   ASSERT_EFI_ERROR (Status);
   return Status;
 }

@@ -1,6 +1,5 @@
-
 /** @file
-  Type32 Table Generator
+  Type7 Table Generator
 
   Copyright (c) 2020, Puresoftware Limited. All rights reserved.
   SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -13,6 +12,7 @@
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PcdLib.h>
+#include <Library/PrintLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 #include <PiDxe.h>
@@ -28,32 +28,34 @@
 #include <SmbiosTableGenerator.h>
 #include <SmbiosTableHelper.h>
 
-#define DEFAULT_TYPE32_STRINGS                      \
-  "\0"                               /* nothing */
+#define DEFAULT_TYPE7_STRINGS                      \
+  "L1 Instruction\0"                 /* L1I  */    \
+  "L1 Data\0"                        /* L1D  */    \
+  "L2\0"                             /* L2   */
 
-STATIC ARM_TYPE32 mArmDefaultType32 = {
+STATIC ARM_TYPE7 mArmDefaultType7 = {
   {
     { /* SMBIOS_STRUCTURE Hdr */
-      EFI_SMBIOS_TYPE_SYSTEM_BOOT_INFORMATION, /* UINT8 Type */
-      sizeof (SMBIOS_TABLE_TYPE32),            /* UINT8 Length */
-      SMBIOS_HANDLE_PI_RESERVED
+      EFI_SMBIOS_TYPE_CACHE_INFORMATION,       /* UINT8 Type */
+      sizeof (SMBIOS_TABLE_TYPE7),             /* UINT8 Length */
+      SMBIOS_HANDLE_A57_L1I
     },
   },
-  DEFAULT_TYPE32_STRINGS
+  DEFAULT_TYPE7_STRINGS
 };
 
 #pragma pack()
 
-/** This macro expands to a function that retrieves System boot
-    (Type 32) Information from the Configuration Manager.
+/** This macro expands to a function that retrieves System
+    CPU cache (Type 7) Information from the Configuration Manager.
 */
 GET_OBJECT_LIST (
   EObjNameSpaceArm,
-  EArmObjSystemBootType32,
-  CM_ARM_SYSTEM_BOOT_TYPE32_INFO
+  EArmObjCpuCacheDeviceInfoType7,
+  CM_ARM_CPU_CACHE_DEVICE_TYPE7_INFO
   );
 
-/** Updates the information in the Tyhpe 32 Table.
+/** Updates the information in the Tyhpe 7 Table.
 
   @param [in]  CfgMgrProtocol Pointer to the Configuration Manager
                               Protocol Interface.
@@ -68,35 +70,53 @@ GET_OBJECT_LIST (
 STATIC
 EFI_STATUS
 EFIAPI
-AddSystemBootType32Info (
+AddCpuCacheDeviceType7Info (
   IN  CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL  * CONST CfgMgrProtocol
 )
 {
-  EFI_STATUS                          Status = EFI_SUCCESS;
-  CM_ARM_SYSTEM_BOOT_TYPE32_INFO    * Type32Info;
+  EFI_STATUS                              Status = EFI_SUCCESS;
+  CM_ARM_CPU_CACHE_DEVICE_TYPE7_INFO    * Type7Info;
+  CHAR16                                * SocketDesignation;
 
   ASSERT (CfgMgrProtocol != NULL);
 
-  Status = GetEArmObjSystemBootType32 (
+  Status = GetEArmObjCpuCacheDeviceInfoType7 (
       CfgMgrProtocol,
       CM_NULL_TOKEN,
-      &Type32Info,
+      &Type7Info,
       NULL
       );
   if (EFI_ERROR (Status)) {
     DEBUG ((
           DEBUG_ERROR,
-          "ERROR: SMBIOS: Failed to get Type32 table. Status = %r\n",
+          "ERROR: SMBIOS: Failed to get Type7 table. Status = %r\n",
           Status
           ));
   }
 
-  mArmDefaultType32.Base.BootStatus  = Type32Info->BootStatus;
+  mArmDefaultType7.Base.CacheConfiguration      = Type7Info->CacheConfiguration;
+  mArmDefaultType7.Base.MaximumCacheSize        = Type7Info->MaximumCacheSize;
+  mArmDefaultType7.Base.InstalledSize           = Type7Info->InstalledSize;
+  mArmDefaultType7.Base.SupportedSRAMType       = Type7Info->SupportedSRAMType;
+  mArmDefaultType7.Base.CurrentSRAMType         = Type7Info->CurrentSRAMType;
+  mArmDefaultType7.Base.CacheSpeed              = Type7Info->CacheSpeed;
+  mArmDefaultType7.Base.ErrorCorrectionType     = Type7Info->ErrorCorrectionType;
+  mArmDefaultType7.Base.SystemCacheType         = Type7Info->SystemCacheType;
+  mArmDefaultType7.Base.Associativity           = Type7Info->Associativity;
+  mArmDefaultType7.Base.MaximumCacheSize2       = Type7Info->MaximumCacheSize2;
+  mArmDefaultType7.Base.InstalledSize2          = Type7Info->InstalledSize2;
+  mArmDefaultType7.Base.SocketDesignation       = Type7Info->SocketDesignation;
+  /* Update the default strings */
+  SocketDesignation = AllocateZeroPool ((sizeof (CHAR16)) * SMBIOS_STRING_MAX_LENGTH);
+  (void)UnicodeSPrint (SocketDesignation, SMBIOS_STRING_MAX_LENGTH - 1, L"L%d Instruction", Type7Info->SocketDesignation);
+  UnicodeStrToAsciiStr(SocketDesignation, (CHAR8 *)&(mArmDefaultType7.Strings[0]));
+  /* Free the resources */
+  FreePool(SocketDesignation);
 
   return Status;
 }
 
-/** Construct the Default Type32 table.
+/** Construct the Default Type7 table.
 
   This function invokes the Configuration Manager protocol interface
   to get the required hardware information for generating the SMBIOS
@@ -121,7 +141,7 @@ AddSystemBootType32Info (
 STATIC
 EFI_STATUS
 EFIAPI
-BuildType32Table (
+BuildType7Table (
   IN  CONST SMBIOS_TABLE_GENERATOR                  *       This,
   IN        CM_STD_OBJ_SMBIOS_TABLE_INFO            * CONST SmbiosTableInfo,
   IN  CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL    * CONST CfgMgrProtocol,
@@ -138,36 +158,36 @@ BuildType32Table (
 
   *Table = NULL;
 
-  // Update BootArch Info
-  Status = AddSystemBootType32Info (CfgMgrProtocol);
+  // Update cpu cache Info
+  Status = AddCpuCacheDeviceType7Info (CfgMgrProtocol);
   if (EFI_ERROR (Status)) {
     goto error_handler;
   }
 
-  *Table = (SMBIOS_STRUCTURE*)&mArmDefaultType32;
+  *Table = (SMBIOS_STRUCTURE*)&mArmDefaultType7;
 
 error_handler:
   return Status;
 }
 
-/** The interface for the System Boot Table Generator.
+/** The interface for the CPU Cache devices in System Generator.
 */
 STATIC
 CONST
-SMBIOS_TABLE_GENERATOR DefaultType32Generator = {
+SMBIOS_TABLE_GENERATOR DefaultType7Generator = {
   // Generator ID
-  CREATE_STD_SMBIOS_TABLE_GEN_ID (EStdSmbiosTableIdType32),
+  CREATE_STD_SMBIOS_TABLE_GEN_ID (EStdSmbiosTableIdType07),
   // Generator Description
-  L"SMBIOS.STD.TYPE32.GENERATOR",
+  L"SMBIOS.STD.TYPE7.GENERATOR",
   // Type
-  32,
+  7,
   // Build Table function
-  BuildType32Table,
+  BuildType7Table,
   // Free Resource handle
   NULL
 };
 
-/** Register the Generator with the ACPI Table Factory.
+/** Register the Generator with the SMBIOS Table Factory.
 
   @param [in]  ImageHandle  The handle to the image.
   @param [in]  SystemTable  Pointer to the System Table.
@@ -179,19 +199,19 @@ SMBIOS_TABLE_GENERATOR DefaultType32Generator = {
 **/
 EFI_STATUS
 EFIAPI
-SmbiosDefaultType32LibConstructor (
+SmbiosDefaultType7LibConstructor (
   IN CONST EFI_HANDLE                ImageHandle,
   IN       EFI_SYSTEM_TABLE  * CONST SystemTable
   )
 {
   EFI_STATUS  Status;
-  Status = RegisterSmbiosTableGenerator (&DefaultType32Generator);
-  DEBUG ((DEBUG_INFO, "DefaultType32  : Register Generator. Status = %r\n", Status));
+  Status = RegisterSmbiosTableGenerator (&DefaultType7Generator);
+  DEBUG ((DEBUG_INFO, "DefaultType7  : Register Generator. Status = %r\n", Status));
   ASSERT_EFI_ERROR (Status);
   return Status;
 }
 
-/** Deregister the Generator from the ACPI Table Factory.
+/** Deregister the Generator from the SMBIOS Table Factory.
 
   @param [in]  ImageHandle  The handle to the image.
   @param [in]  SystemTable  Pointer to the System Table.
@@ -202,14 +222,14 @@ SmbiosDefaultType32LibConstructor (
 **/
 EFI_STATUS
 EFIAPI
-SmbiosDefaultType32LibDestructor (
+SmbiosDefaultType7LibDestructor (
   IN CONST EFI_HANDLE                ImageHandle,
   IN       EFI_SYSTEM_TABLE  * CONST SystemTable
   )
 {
   EFI_STATUS  Status;
-  Status = DeregisterSmbiosTableGenerator (&DefaultType32Generator);
-  DEBUG ((DEBUG_INFO, "DefaultType32  : Deregister Generator. Status = %r\n", Status));
+  Status = DeregisterSmbiosTableGenerator (&DefaultType7Generator);
+  DEBUG ((DEBUG_INFO, "DefaultType7  : Deregister Generator. Status = %r\n", Status));
   ASSERT_EFI_ERROR (Status);
   return Status;
 }

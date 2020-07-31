@@ -219,7 +219,7 @@ SmbiosDefaultType9LibConstructor (
 {
   EFI_STATUS  Status;
   Status = RegisterSmbiosTableGenerator (&DefaultType9Generator);
-  DEBUG ((DEBUG_ERROR, "DefaultType9  : Register Generator. Status = %r\n", Status));
+  DEBUG ((DEBUG_INFO, "DefaultType9  : Register Generator. Status = %r\n", Status));
   ASSERT_EFI_ERROR (Status);
   return Status;
 }

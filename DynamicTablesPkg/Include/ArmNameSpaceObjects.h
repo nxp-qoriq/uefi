@@ -56,6 +56,11 @@ typedef enum ArmObjectID {
   EArmObjDeviceHandleAcpi,             ///< 32 - Device Handle Acpi
   EArmObjDeviceHandlePci,              ///< 33 - Device Handle Pci
   EArmObjGenericInitiatorAffinityInfo, ///< 34 - Generic Initiator Affinity
+  EArmObjSystemBiosInfoType0,
+  EArmObjSystemInfoType1,
+  EArmObjSystemChassisInfoType3,
+  EArmObjProcessorAttrInfoType4,
+  EArmObjCpuCacheDeviceInfoType7,
   EArmObjSystemSlotType9,
   EArmObjMemorryArrayType16,
   EArmObjMemoryDeviceType17,
@@ -63,6 +68,119 @@ typedef enum ArmObjectID {
   EArmObjSystemBootType32,
   EArmObjMax
 } EARM_OBJECT_ID;
+
+/** A structure that describes the
+    Processor Cache (Type 7) table.
+
+    ID: EArmObjCpuCacheDeviceInfoType7
+*/
+typedef struct {
+  SMBIOS_TABLE_STRING       SocketDesignation;
+  UINT16                    CacheConfiguration;
+  UINT16                    MaximumCacheSize;
+  UINT16                    InstalledSize;
+  CACHE_SRAM_TYPE_DATA      SupportedSRAMType;
+  CACHE_SRAM_TYPE_DATA      CurrentSRAMType;
+  UINT8                     CacheSpeed;
+  UINT8                     ErrorCorrectionType;            ///< The enumeration value from CACHE_ERROR_TYPE_DATA.
+  UINT8                     SystemCacheType;                ///< The enumeration value from CACHE_TYPE_DATA.
+  UINT8                     Associativity;                  ///< The enumeration value from CACHE_ASSOCIATIVITY_DATA.
+  UINT32                    MaximumCacheSize2;
+  UINT32                    InstalledSize2;
+} CM_ARM_CPU_CACHE_DEVICE_TYPE7_INFO;
+
+/** A structure that describes the
+    Processor Info (Type 4) table.
+
+    ID: EArmObjProcessorAttrInfoType4
+*/
+typedef struct {
+  SMBIOS_TABLE_STRING   Socket;
+  UINT8                 ProcessorType;          ///< The enumeration value from PROCESSOR_TYPE_DATA.
+  UINT8                 ProcessorFamily;        ///< The enumeration value from PROCESSOR_FAMILY_DATA.
+  SMBIOS_TABLE_STRING   ProcessorManufacture;
+  PROCESSOR_ID_DATA     ProcessorId;
+  SMBIOS_TABLE_STRING   ProcessorVersion;
+  PROCESSOR_VOLTAGE     Voltage;
+  UINT16                ExternalClock;
+  UINT16                MaxSpeed;
+  UINT16                CurrentSpeed;
+  UINT8                 Status;
+  UINT8                 ProcessorUpgrade;      ///< The enumeration value from PROCESSOR_UPGRADE.
+  UINT16                L1CacheHandle;
+  UINT16                L2CacheHandle;
+  UINT16                L3CacheHandle;
+  SMBIOS_TABLE_STRING   SerialNumber;
+  SMBIOS_TABLE_STRING   AssetTag;
+  SMBIOS_TABLE_STRING   PartNumber;
+  UINT8                 CoreCount;
+  UINT8                 EnabledCoreCount;
+  UINT8                 ThreadCount;
+  UINT16                ProcessorCharacteristics;
+  UINT16                ProcessorFamily2;
+  UINT16                CoreCount2;
+  UINT16                EnabledCoreCount2;
+  UINT16                ThreadCount2;
+} CM_ARM_PROCESSOR_ATTR_TYPE4_INFO;
+
+/** A structure that describes the
+    System Info (Type 1) table.
+
+    ID: EArmObjSystemInfoType1
+*/
+typedef struct {
+  SMBIOS_TABLE_STRING     Manufacturer;
+  SMBIOS_TABLE_STRING     ProductName;
+  SMBIOS_TABLE_STRING     Version;
+  SMBIOS_TABLE_STRING     SerialNumber;
+  GUID                    Uuid;
+  UINT8                   WakeUpType;           ///< The enumeration value from MISC_SYSTEM_WAKEUP_TYPE.
+  SMBIOS_TABLE_STRING     SKUNumber;
+  SMBIOS_TABLE_STRING     Family;
+} CM_ARM_SYSTEM_TYPE1_INFO;
+
+/** A structure that describes the
+    System Chassis (Type 3) table.
+
+    ID: EArmObjSystemChassisInfoType3
+*/
+typedef struct {
+  SMBIOS_TABLE_STRING         Manufacturer;
+  UINT8                       Type;
+  SMBIOS_TABLE_STRING         Version;
+  SMBIOS_TABLE_STRING         SerialNumber;
+  SMBIOS_TABLE_STRING         AssetTag;
+  UINT8                       BootupState;            ///< The enumeration value from MISC_CHASSIS_STATE.
+  UINT8                       PowerSupplyState;       ///< The enumeration value from MISC_CHASSIS_STATE.
+  UINT8                       ThermalState;           ///< The enumeration value from MISC_CHASSIS_STATE.
+  UINT8                       SecurityStatus;         ///< The enumeration value from MISC_CHASSIS_SECURITY_STATE.
+  UINT8                       OemDefined[4];
+  UINT8                       Height;
+  UINT8                       NumberofPowerCords;
+  UINT8                       ContainedElementCount;
+  UINT8                       ContainedElementRecordLength;
+  CONTAINED_ELEMENT           ContainedElements[1];
+} CM_ARM_SYSTEM_CHASSIS_TYPE3_INFO;
+
+/** A structure that describes the
+    System Bios (Type 0) table.
+
+    ID: EArmObjSystemSlotType9
+*/
+typedef struct {
+  SMBIOS_TABLE_STRING       Vendor;
+  SMBIOS_TABLE_STRING       BiosVersion;
+  UINT16                    BiosSegment;
+  SMBIOS_TABLE_STRING       BiosReleaseDate;
+  UINT8                     BiosSize;
+  MISC_BIOS_CHARACTERISTICS BiosCharacteristics;
+  UINT8                     BIOSCharacteristicsExtensionBytes[2];
+  UINT8                     SystemBiosMajorRelease;
+  UINT8                     SystemBiosMinorRelease;
+  UINT8                     EmbeddedControllerFirmwareMajorRelease;
+  UINT8                     EmbeddedControllerFirmwareMinorRelease;
+  EXTENDED_BIOS_ROM_SIZE    ExtendedBiosSize;
+} CM_ARM_SYSTEM_BIOS_TYPE0_INFO;
 
 /** A structure that describes
     SMBIOS Type32 table.

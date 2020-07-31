@@ -34,6 +34,11 @@
       NULL|DynamicTablesPkg/Library/Acpi/Arm/AcpiSratLibArm/AcpiSratLibArm.inf
 
       # SMBIOS
+      NULL|DynamicTablesPkg/Library/Smbios/Arm/DefaultType0LibArm/DefaultType0LibArm.inf
+      NULL|DynamicTablesPkg/Library/Smbios/Arm/DefaultType1LibArm/DefaultType1LibArm.inf
+      NULL|DynamicTablesPkg/Library/Smbios/Arm/DefaultType3LibArm/DefaultType3LibArm.inf
+      NULL|DynamicTablesPkg/Library/Smbios/Arm/DefaultType4LibArm/DefaultType4LibArm.inf
+      NULL|DynamicTablesPkg/Library/Smbios/Arm/DefaultType7LibArm/DefaultType7LibArm.inf
       NULL|DynamicTablesPkg/Library/Smbios/Arm/DefaultType9LibArm/DefaultType9LibArm.inf
       NULL|DynamicTablesPkg/Library/Smbios/Arm/DefaultType16LibArm/DefaultType16LibArm.inf
       NULL|DynamicTablesPkg/Library/Smbios/Arm/DefaultType17LibArm/DefaultType17LibArm.inf
