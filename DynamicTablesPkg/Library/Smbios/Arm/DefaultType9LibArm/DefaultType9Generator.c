@@ -29,36 +29,10 @@
 #include <SmbiosTableHelper.h>
 
 /**
- * This array of strings is platfporm specific, Idea here is that
- * this need to be created (as of not hard coed) based on platform
- * dynamically here in this generator itself.
- * Note - TODO: 1.  Once we fetch all the information from CM and prepare
- *                  whole tamplete for type16 including default strings as
- *                  "DEFAULT_TYPE16_STRINGS"
- *              2.  Add this record using SMBIOS protocol.
- *              3.  Now if generators realize that fact that the record
- *                  need update w.r.t to strings then, get the record back
- *                  and update it.
- */
-#define DEFAULT_TYPE9_STRINGS           \
-  "PCIe-Slot1\0"                        \
-  "PCIe-Slot2\0"
-
-/**
  * Memory Device template to filled by CM's platform info
  */
-STATIC ARM_TYPE9 mArmDefaultType9 = {
-  {
-    { /* Header */
-      SMBIOS_TYPE_SYSTEM_SLOTS,        /* UINT8 Type */
-      sizeof (SMBIOS_TABLE_TYPE9),     /* UINT8 Length */
-      SMBIOS_HANDLE_PI_RESERVED        /* SMBIOS_HANDLE */
-    },
-  },
-  DEFAULT_TYPE9_STRINGS
-};
-
-#pragma pack()
+SMBIOS_TABLE_TYPE9 ** mArmDefaultType9;
+UINTN                 mArmTableCount;
 
 /** This macro expands to a function that retrieves system slots
     (Type 9) Information from the Configuration Manager.
@@ -68,6 +42,42 @@ GET_OBJECT_LIST (
   EArmObjSystemSlotType9,
   CM_ARM_SYSTEM_SLOT_TYPE9_INFO
   );
+
+/** Free any resources allocated for constructing Type9 table
+
+  @param [in]      This             Pointer to the table generator.
+  @param [in]      SmbiosTableInfo  Pointer to the SMBIOS Table Info.
+  @param [in]      CfgMgrProtocol   Pointer to the Configuration Manager
+  Protocol Interface.
+  @param [in, out] Table            Pointer to the SMBIOS Table.
+
+  @retval EFI_SUCCESS           The resources were freed successfully.
+  @retval EFI_INVALID_PARAMETER The table pointer is NULL or invalid.
+ **/
+STATIC
+EFI_STATUS
+FreeType9TableResources (
+    IN      CONST SMBIOS_TABLE_GENERATOR                  * CONST This,
+    IN      CONST CM_STD_OBJ_SMBIOS_TABLE_INFO            * CONST SmbiosTableInfo,
+    IN      CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL    * CONST CfgMgrProtocol,
+    IN OUT        SMBIOS_STRUCTURE                       ** CONST Table
+    )
+{
+  ASSERT (This != NULL);
+  ASSERT (SmbiosTableInfo != NULL);
+  ASSERT (CfgMgrProtocol != NULL);
+  ASSERT (SmbiosTableInfo->TableGeneratorId == This->GeneratorID);
+
+  if ((Table == NULL) || (*Table == NULL)) {
+    DEBUG ((DEBUG_ERROR, "ERROR: Invalid Table Pointer\n"));
+    ASSERT ((Table != NULL) && (*Table != NULL));
+    return EFI_INVALID_PARAMETER;
+  }
+
+  FreePool (*Table);
+  *Table = NULL;
+  return EFI_SUCCESS;
+}
 
 /** Updates the information in the Type 9 Table.
 
@@ -86,12 +96,15 @@ EFI_STATUS
 EFIAPI
 AddSystemSlotType9Info (
   IN  CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL  * CONST CfgMgrProtocol
-)
+  )
 {
   EFI_STATUS                          Status = EFI_SUCCESS;
   UINT32                              TotalObjCount;
   CHAR16                            * SlotDesignation;
   CM_ARM_SYSTEM_SLOT_TYPE9_INFO     * Type9Info;
+  UINT32                              Cntr;
+  UINT32                              Indx;
+  UINT32                              SlotDesignationStrLen;
 
   ASSERT (CfgMgrProtocol != NULL);
 
@@ -104,27 +117,83 @@ AddSystemSlotType9Info (
   if (EFI_ERROR (Status)) {
     DEBUG ((
           DEBUG_ERROR,
-          "ERROR: SMBIOS: Failed to get Type17 table. Status = %r\n",
+          "ERROR: SMBIOS: Failed to get Type9 table. Status = %r\n",
           Status
           ));
   }
 
-  mArmDefaultType9.Base.SlotDesignation      = Type9Info->SlotDesignation;
-  mArmDefaultType9.Base.SlotType             = Type9Info->SlotType;
-  mArmDefaultType9.Base.SlotDataBusWidth     = Type9Info->SlotDataBusWidth;
-  mArmDefaultType9.Base.CurrentUsage         = Type9Info->CurrentUsage;
-  mArmDefaultType9.Base.SlotLength           = Type9Info->SlotLength;
-  mArmDefaultType9.Base.SlotID               = Type9Info->SlotID;
-  mArmDefaultType9.Base.SlotCharacteristics1 = Type9Info->SlotCharacteristics1;
-  mArmDefaultType9.Base.SlotCharacteristics2 = Type9Info->SlotCharacteristics2;
-  mArmDefaultType9.Base.SegmentGroupNum      = Type9Info->SegmentGroupNum;
-  mArmDefaultType9.Base.BusNum               = Type9Info->BusNum;
-  mArmDefaultType9.Base.DevFuncNum           = Type9Info->DevFuncNum;
+  mArmTableCount  = TotalObjCount;
+  mArmDefaultType9 = (SMBIOS_TABLE_TYPE9 **) AllocateZeroPool (sizeof(SMBIOS_TABLE_TYPE9*) * mArmTableCount);
+  if (mArmDefaultType9 == NULL) {
+    Status = EFI_OUT_OF_RESOURCES;
+    DEBUG ((
+          DEBUG_ERROR,
+          "ERROR: SMBIOS: Failed to get Type9 table resources . Status = %r\n",
+          Status
+          ));
+    return Status;
+  }
+  for (Cntr = 1; Cntr <= TotalObjCount; Cntr++) {
+    Type9Info = NULL;
+    Indx = Cntr - 1;
+    Status = GetEArmObjSystemSlotType9 (
+        CfgMgrProtocol,
+        Cntr,
+        &Type9Info,
+        NULL
+        );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((
+            DEBUG_ERROR,
+            "ERROR: SMBIOS: Failed to get Type9 table at index %d. Status = %r\n",
+            Indx,
+            Status
+            ));
+    }
 
-  /* Update the default strings */
-  SlotDesignation = AllocateZeroPool ((sizeof (CHAR16)) * SMBIOS_STRING_MAX_LENGTH);
-  (void)UnicodeSPrint (SlotDesignation, SMBIOS_STRING_MAX_LENGTH - 1, L"PCIE-SLOT%d", Type9Info->SlotID);
-  UnicodeStrToAsciiStr(SlotDesignation, (CHAR8 *)&(mArmDefaultType9.Strings[0]));
+    SlotDesignation = AllocateZeroPool ((sizeof (CHAR16)) * SMBIOS_STRING_MAX_LENGTH);
+    switch (Type9Info->SlotDesignation)
+    {
+      case 1:
+        SlotDesignationStrLen =
+          UnicodeSPrint (SlotDesignation, SMBIOS_STRING_MAX_LENGTH - 1, L"Mini-Pcie", Type9Info->SlotDesignation);
+        break;
+      case 2:
+        SlotDesignationStrLen =
+          UnicodeSPrint (SlotDesignation, SMBIOS_STRING_MAX_LENGTH - 1, L"PCIe-Slot%d", (Type9Info->SlotDesignation-1));
+        break;
+      case 3:
+        SlotDesignationStrLen =
+          UnicodeSPrint (SlotDesignation, SMBIOS_STRING_MAX_LENGTH - 1, L"PCIe-Slot%d", (Type9Info->SlotDesignation-1));
+        break;
+      case 4:
+      default:
+        SlotDesignationStrLen =
+          UnicodeSPrint (SlotDesignation, SMBIOS_STRING_MAX_LENGTH - 1, L"PCIe M2_TYPE_E (WiFi)", Type9Info->SlotDesignation);
+        break;
+    }
+
+    *(mArmDefaultType9+Indx) = AllocateZeroPool(sizeof (SMBIOS_TABLE_TYPE9) + SlotDesignationStrLen + 1 + 1);
+
+    (*(mArmDefaultType9+Indx))->SlotDesignation      = 1;
+    (*(mArmDefaultType9+Indx))->SlotType             = Type9Info->SlotType;
+    (*(mArmDefaultType9+Indx))->SlotDataBusWidth     = Type9Info->SlotDataBusWidth;
+    (*(mArmDefaultType9+Indx))->CurrentUsage         = Type9Info->CurrentUsage;
+    (*(mArmDefaultType9+Indx))->SlotLength           = Type9Info->SlotLength;
+    (*(mArmDefaultType9+Indx))->SlotID               = Type9Info->SlotID;
+    (*(mArmDefaultType9+Indx))->SlotCharacteristics1 = Type9Info->SlotCharacteristics1;
+    (*(mArmDefaultType9+Indx))->SlotCharacteristics2 = Type9Info->SlotCharacteristics2;
+    (*(mArmDefaultType9+Indx))->SegmentGroupNum      = Type9Info->SegmentGroupNum;
+    (*(mArmDefaultType9+Indx))->BusNum               = Type9Info->BusNum;
+    (*(mArmDefaultType9+Indx))->DevFuncNum           = Type9Info->DevFuncNum;
+
+    (*(mArmDefaultType9+Indx))->Hdr.Type    = SMBIOS_TYPE_SYSTEM_SLOTS;
+    (*(mArmDefaultType9+Indx))->Hdr.Length  = sizeof (SMBIOS_TABLE_TYPE9);
+    (*(mArmDefaultType9+Indx))->Hdr.Handle  = SMBIOS_HANDLE_PI_RESERVED;
+
+    UnicodeStrToAsciiStr(SlotDesignation, (CHAR8 *)((*(mArmDefaultType9+Indx)) + 1));
+    FreePool(SlotDesignation);
+  }
 
   return Status;
 }
@@ -154,11 +223,12 @@ AddSystemSlotType9Info (
 STATIC
 EFI_STATUS
 EFIAPI
-BuildType9Table (
+BuildType9TableEx (
   IN  CONST SMBIOS_TABLE_GENERATOR                  *       This,
   IN        CM_STD_OBJ_SMBIOS_TABLE_INFO            * CONST SmbiosTableInfo,
   IN  CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL    * CONST CfgMgrProtocol,
-  OUT       SMBIOS_STRUCTURE                       **       Table
+  OUT       SMBIOS_STRUCTURE                      ***       Table,
+  OUT       UINTN                                   * CONST TableCount
   )
 {
   EFI_STATUS  Status;
@@ -177,7 +247,8 @@ BuildType9Table (
     goto error_handler;
   }
 
-  *Table = (SMBIOS_STRUCTURE*)&mArmDefaultType9;
+  *Table = (SMBIOS_STRUCTURE**)mArmDefaultType9;
+  *TableCount = mArmTableCount;
 
 error_handler:
   return Status;
@@ -195,9 +266,11 @@ SMBIOS_TABLE_GENERATOR DefaultType9Generator = {
   // Type
   9,
   // Build Table function
-  BuildType9Table,
+  NULL,
+  // Extended Build Table function
+  BuildType9TableEx,
   // Free Resource handle
-  NULL
+  FreeType9TableResources
 };
 
 /** Register the Generator with the SMBIOS Table Factory.

@@ -128,6 +128,30 @@ typedef struct ConfigurationManagerProtocol EDKII_CONFIGURATION_MANAGER_PROTOCOL
 typedef struct CmStdObjSmbiosTableInfo      CM_STD_OBJ_SMBIOS_TABLE_INFO;
 typedef struct SmbiosTableGenerator         SMBIOS_TABLE_GENERATOR;
 
+/** This function pointer describes an extended interface to build
+    SMBIOS Tables. The table generator can generate multiple
+    SMBIOS Tables and return a pointer to the list of SMBIOS tables.
+    The FreeTableResourcesEx() must be called to free any resources
+    that may have been allocated using this interface.
+
+  @param [in]  Generator       Pointer to the SMBIOS table generator.
+  @param [in]  SmbiosTableInfo Pointer to the SMBIOS table information.
+  @param [in]  CfgMgrProtocol  Pointer to the Configuration Manager
+                               Protocol interface.
+  @param [out] Table           Pointer to the generated SMBIOS table.
+  @param [out] TableCount      Number of generated ACPI table(s).
+
+  @return EFI_SUCCESS  If the table is generated successfully or other
+                       failure codes as returned by the generator.
+**/
+typedef EFI_STATUS (*SMBIOS_TABLE_GENERATOR_BUILD_TABLEEX) (
+  IN  CONST SMBIOS_TABLE_GENERATOR                *       Generator,
+  IN        CM_STD_OBJ_SMBIOS_TABLE_INFO          * CONST SmbiosTableInfo,
+  IN  CONST EDKII_CONFIGURATION_MANAGER_PROTOCOL  * CONST CfgMgrProtocol,
+  OUT       SMBIOS_STRUCTURE                    ***       Table,
+  OUT       UINTN                                 * CONST TableCount
+  );
+
 /** This function pointer describes the interface to SMBIOS table build
     functions provided by the SMBIOS table generator and called by the
     Table Manager to build an SMBIOS table.
@@ -184,6 +208,9 @@ typedef struct SmbiosTableGenerator {
 
   /// SMBIOS table build function pointer.
   SMBIOS_TABLE_GENERATOR_BUILD_TABLE       BuildSmbiosTable;
+
+  /// SMBIOS table Extended build function pointer.
+  SMBIOS_TABLE_GENERATOR_BUILD_TABLEEX     BuildSmbiosTableEx;
 
   /** The function to free any resources
       allocated for building the SMBIOS table.
