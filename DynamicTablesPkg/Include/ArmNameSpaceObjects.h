@@ -56,6 +56,7 @@ typedef enum ArmObjectID {
   EArmObjDeviceHandleAcpi,             ///< 32 - Device Handle Acpi
   EArmObjDeviceHandlePci,              ///< 33 - Device Handle Pci
   EArmObjGenericInitiatorAffinityInfo, ///< 34 - Generic Initiator Affinity
+  EArmObjSsdtFixupInfo,
   EArmObjSystemBiosInfoType0,
   EArmObjSystemInfoType1,
   EArmObjSystemChassisInfoType3,
@@ -68,6 +69,19 @@ typedef enum ArmObjectID {
   EArmObjSystemBootType32,
   EArmObjMax
 } EARM_OBJECT_ID;
+
+/** A structure that describes the
+    Info required for fixing table.
+
+    ID: EArmObjSsdtFixupInfo
+*/
+typedef struct {
+  // This is just a sample, template can be extended.
+  UINT32                    Flag;
+  UINT32                    MacId;
+  UINT32                    PhyId;
+  UINT32                    Interrupt;
+} CM_ARM_SSDT_FIXUP_INFO;
 
 /** A structure that describes the
     Processor Cache (Type 7) table.

@@ -78,6 +78,7 @@ typedef enum StdAcpiTableId {
   EStdAcpiTableIdIort,                          ///< IORT Generator
   EStdAcpiTableIdPptt,                          ///< PPTT Generator
   EStdAcpiTableIdSrat,                          ///< SRAT Generator
+  EStdAcpiTableIdSsdtFixup,
   EStdAcpiTableIdMax
 } ESTD_ACPI_TABLE_ID;
 

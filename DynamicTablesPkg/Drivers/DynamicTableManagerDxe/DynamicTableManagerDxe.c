@@ -555,6 +555,11 @@ BuildAndInstallSingleAcpiTable (
     goto exit_handler;
   }
 
+  // Return success, no need to install tables in case of DSDT fixup
+  if (AcpiTableInfo->TableGeneratorId == CREATE_STD_ACPI_TABLE_GEN_ID (EStdAcpiTableIdSsdtFixup)) {
+    return EFI_SUCCESS;
+  }
+
   // Dump ACPI Table Header
   DUMP_ACPI_TABLE_HEADER (AcpiTable);
 
