@@ -851,6 +851,10 @@ CoherentPciIoAllocateBuffer (
   EFI_ALLOCATE_TYPE                 AllocType;
   EFI_STATUS                        Status;
 
+  if (HostAddress == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
   if ((Attributes & ~(EFI_PCI_ATTRIBUTE_MEMORY_WRITE_COMBINE |
                       EFI_PCI_ATTRIBUTE_MEMORY_CACHED)) != 0) {
     return EFI_UNSUPPORTED;
