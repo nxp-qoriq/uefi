@@ -12,9 +12,9 @@
   INF_VERSION                    = 0x0001001A
   BASE_NAME                      = OpteeLib
   FILE_GUID                      = BCD50D08-9568-45B2-84DF-30AE0279AD46
-  MODULE_TYPE                    = DXE_RUNTIME_DRIVER
+  MODULE_TYPE                    = BASE
   VERSION_STRING                 = 1.0
-  LIBRARY_CLASS                  = OpteeLib|DXE_RUNTIME_DRIVER
+  LIBRARY_CLASS                  = OpteeLib
 
 [Sources]
   Optee.c
@@ -28,9 +28,3 @@
   ArmMmuLib
   ArmSmcLib
   BaseLib
-  DebugLib
-  DxeServicesTableLib
-  UefiBootServicesTableLib
-  UefiDriverEntryPoint
-  UefiRuntimeLib
-  UefiRuntimeServicesTableLib
