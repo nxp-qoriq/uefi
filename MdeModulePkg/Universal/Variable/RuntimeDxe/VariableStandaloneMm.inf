@@ -115,17 +115,15 @@
   ## SOMETIMES_PRODUCES   ## Variable:L"VarErrorFlag"
   gEdkiiVarErrorFlagGuid
 
-[Pcd]
+[FixedPcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableSize       ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableBase       ## SOMETIMES_CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableBase64     ## CONSUMES
-  gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableSize       ## CONSUMES
-  gEfiMdeModulePkgTokenSpaceGuid.PcdVariableStoreSize                ## CONSUMES
-
-[FixedPcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVariableSize                  ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxAuthVariableSize              ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxVolatileVariableSize          ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxHardwareErrorVariableSize     ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdVariableStoreSize                ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdHwErrStorageSize                 ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxUserNvVariableSpaceSize           ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdBoottimeReservedNvVariableSpaceSize  ## CONSUMES
