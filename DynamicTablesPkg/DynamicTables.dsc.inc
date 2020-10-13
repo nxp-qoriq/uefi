@@ -11,7 +11,6 @@
 
 [BuildOptions]
   *_*_*_ASL_FLAGS          = -tc -li -so
-  *_*_*_PLATFORM_FLAGS     = -I$(BIN_DIR)/Platform/NXP/$(DYNAMIC_ACPI_PLATFORM)/PlatformASLTablesLib/PlatformASLTablesLib/OUTPUT
 
 [LibraryClasses.common]
   TableHelperLib|DynamicTablesPkg/Library/Common/TableHelperLib/TableHelperLib.inf
@@ -34,6 +33,9 @@
       NULL|DynamicTablesPkg/Library/Acpi/Arm/AcpiSpcrLibArm/AcpiSpcrLibArm.inf
       NULL|DynamicTablesPkg/Library/Acpi/Arm/AcpiSratLibArm/AcpiSratLibArm.inf
 
+      # SSDT fixup
+      NULL|DynamicTablesPkg/Library/Acpi/Nxp/AcpiSsdtLib/AcpiSsdtLib.inf
+
       # SMBIOS
       NULL|DynamicTablesPkg/Library/Smbios/Arm/DefaultType0LibArm/DefaultType0LibArm.inf
       NULL|DynamicTablesPkg/Library/Smbios/Arm/DefaultType1LibArm/DefaultType1LibArm.inf
@@ -48,14 +50,6 @@
 
   }
 
-  # SSDT generator need reference to the platforms DSDT hex file
-  DynamicTablesPkg/Library/Acpi/Nxp/AcpiSsdtLib/AcpiSsdtLib.inf {
-    <LibraryClasses>
-      NULL|Platform/NXP/LX2160aRdbPkg/PlatformASLTablesLib/PlatformASLTablesLib.inf
-      NULL|Platform/NXP/LS1046aRdbPkg/PlatformASLTablesLib/PlatformASLTablesLib.inf
-      NULL|Platform/NXP/LS1046aFrwyPkg/PlatformASLTablesLib/PlatformASLTablesLib.inf
-  }
-
   #
   # Dynamic Tables Manager Dxe
   #
@@ -68,8 +62,3 @@
   #
   DynamicTablesPkg/Library/Common/AmlLib/AmlLib.inf
   #
-
-  # DSDT of different platforms
-  Platform/NXP/LX2160aRdbPkg/PlatformASLTablesLib/PlatformASLTablesLib.inf
-  Platform/NXP/LS1046aRdbPkg/PlatformASLTablesLib/PlatformASLTablesLib.inf
-  Platform/NXP/LS1046aFrwyPkg/PlatformASLTablesLib/PlatformASLTablesLib.inf
