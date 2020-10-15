@@ -319,7 +319,9 @@ BuildDbg2Table (
       (SerialPortInfo->PortSubtype !=
       EFI_ACPI_DBG2_PORT_SUBTYPE_SERIAL_ARM_SBSA_GENERIC_UART) &&
       (SerialPortInfo->PortSubtype !=
-      EFI_ACPI_DBG2_PORT_SUBTYPE_SERIAL_DCC)) {
+      EFI_ACPI_DBG2_PORT_SUBTYPE_SERIAL_DCC) &&
+      (SerialPortInfo->PortSubtype !=
+      EFI_ACPI_DBG2_PORT_SUBTYPE_SERIAL_16550_SUBSET_COMPATIBLE_WITH_MS_DBGP_SPEC)) {
     Status = EFI_INVALID_PARAMETER;
     DEBUG ((
       DEBUG_ERROR,
@@ -354,16 +356,20 @@ BuildDbg2Table (
     SerialPortInfo->PortSubtype;
 
   // Initialize the serial port
-  Status = SetupDebugUart (SerialPortInfo);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((
-      DEBUG_ERROR,
-      "ERROR: DBG2: Failed to configure debug serial port. Status = %r\n",
-      Status
-      ));
-    goto error_handler;
+  //HACK : No need to setup UART, if non standard or not SBSA compliant
+  // This need to be fixed, by OEM specific DBG2 generator in platform side.
+  if (SerialPortInfo->PortSubtype !=
+      EFI_ACPI_DBG2_PORT_SUBTYPE_SERIAL_16550_SUBSET_COMPATIBLE_WITH_MS_DBGP_SPEC) {
+    Status = SetupDebugUart (SerialPortInfo);
+    if (EFI_ERROR (Status)) {
+      DEBUG ((
+            DEBUG_ERROR,
+            "ERROR: DBG2: Failed to configure debug serial port. Status = %r\n",
+            Status
+            ));
+      goto error_handler;
+    }
   }
-
   *Table = (EFI_ACPI_DESCRIPTION_HEADER*)&AcpiDbg2;
 
 error_handler:
