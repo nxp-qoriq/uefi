@@ -838,7 +838,7 @@ AddNamedComponentNodes (
     NcNode->Node.Type = EFI_ACPI_IORT_TYPE_NAMED_COMP;
     NcNode->Node.Length =
       GetNamedComponentNodeSize (NodeList);
-    NcNode->Node.Revision = 2;
+    NcNode->Node.Revision = 0;
     NcNode->Node.Reserved = EFI_ACPI_RESERVED_DWORD;
     NcNode->Node.NumIdMappings = NodeList->IdMappingCount;
 
@@ -939,6 +939,8 @@ AddRootComplexNodes (
 
   ASSERT (Iort != NULL);
 
+  PcdSet64 (PcdDynamicIortTblRcNodeOffset, (UINT64)NodesStartOffset);
+
   RcNode = (EFI_ACPI_6_0_IO_REMAPPING_RC_NODE*)((UINT8*)Iort +
             NodesStartOffset);
 
@@ -946,7 +948,7 @@ AddRootComplexNodes (
     // Populate the node header
     RcNode->Node.Type = EFI_ACPI_IORT_TYPE_ROOT_COMPLEX;
     RcNode->Node.Length = GetRootComplexNodeSize (NodeList);
-    RcNode->Node.Revision = 1;
+    RcNode->Node.Revision = 0;
     RcNode->Node.Reserved = EFI_ACPI_RESERVED_DWORD;
     RcNode->Node.NumIdMappings = NodeList->IdMappingCount;
     RcNode->Node.IdReference = sizeof (EFI_ACPI_6_0_IO_REMAPPING_RC_NODE);
@@ -1095,6 +1097,8 @@ AddSmmuV1V2Nodes (
   EFI_ACPI_6_0_IO_REMAPPING_SMMU_INT  * PmuInterruptArray;
 
   ASSERT (Iort != NULL);
+
+  PcdSet64 (PcdDynamicIortTblSmmuNodeOffset, (UINT64)NodesStartOffset);
 
   SmmuNode = (EFI_ACPI_6_0_IO_REMAPPING_SMMU_NODE*)((UINT8*)Iort +
               NodesStartOffset);

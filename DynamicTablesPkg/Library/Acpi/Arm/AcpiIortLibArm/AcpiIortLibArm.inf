@@ -29,6 +29,8 @@
   BaseLib
 
 [Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDynamicIortTblRcNodeOffset
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDynamicIortTblSmmuNodeOffset
 
 [Protocols]
 

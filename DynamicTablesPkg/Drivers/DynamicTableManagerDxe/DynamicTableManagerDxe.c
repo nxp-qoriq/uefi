@@ -558,6 +558,18 @@ BuildAndInstallSingleAcpiTable (
   // Return success, no need to install tables in case of DSDT fixup
   if (AcpiTableInfo->TableGeneratorId == CREATE_STD_ACPI_TABLE_GEN_ID (EStdAcpiTableIdSsdtFixup)) {
     return EFI_SUCCESS;
+  } else if (AcpiTable->Signature == EFI_ACPI_6_2_IO_REMAPPING_TABLE_SIGNATURE) {
+    PcdSetBool (PcdDynamicIortTable, TRUE);
+    PcdSet64 (PcdDynamicIortTablePtr, (UINT64)AcpiTable);
+    return EFI_SUCCESS;
+  } else if (AcpiTable->Signature == EFI_ACPI_6_2_DIFFERENTIATED_SYSTEM_DESCRIPTION_TABLE_SIGNATURE) {
+    PcdSet64 (PcdDynamicDsdtTablePtr, (UINT64)AcpiTable);
+    return EFI_SUCCESS;
+  } else if (AcpiTable->Signature == EFI_ACPI_6_2_PCI_EXPRESS_MEMORY_MAPPED_CONFIGURATION_SPACE_BASE_ADDRESS_DESCRIPTION_TABLE_SIGNATURE) {
+    PcdSet64 (PcdDynamicMcfgTablePtr, (UINT64)AcpiTable);
+    return EFI_SUCCESS;
+  } else {
+    /* Rest all table can be installed */
   }
 
   // Dump ACPI Table Header

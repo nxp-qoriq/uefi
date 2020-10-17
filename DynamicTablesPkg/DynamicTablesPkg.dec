@@ -35,3 +35,10 @@
   # Maximum number of Custom DT Generators
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxCustomDTGenerators|1|UINT16|0xC0000003
 
+[PcdsDynamic.common]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDynamicIortTable|FALSE|BOOLEAN|0xC0000004
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDynamicIortTablePtr|0|UINT64|0xC0000005
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDynamicIortTblRcNodeOffset|0|UINT64|0xC0000006
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDynamicIortTblSmmuNodeOffset|0|UINT64|0xC0000007
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDynamicDsdtTablePtr|0|UINT64|0xC0000008
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDynamicMcfgTablePtr|0|UINT64|0xC0000009

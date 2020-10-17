@@ -42,6 +42,12 @@
 
   gEfiSmbiosProtocolGuid                        # PROTOCOL ALWAYS_CONSUMED
 
+[Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDynamicIortTable
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDynamicIortTablePtr
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDynamicDsdtTablePtr
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDynamicMcfgTablePtr
+
 [Depex]
   gEfiAcpiTableProtocolGuid AND
   gEdkiiConfigurationManagerProtocolGuid AND
