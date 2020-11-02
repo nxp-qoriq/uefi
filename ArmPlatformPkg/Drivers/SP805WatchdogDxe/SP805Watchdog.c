@@ -193,10 +193,8 @@ SP805RegisterHandler (
   by TimerPeriod.  If the timer period is updated, then the selected timer
   period is stored in EFI_TIMER.TimerPeriod, and EFI_SUCCESS is returned.  If
   the timer hardware is not programmable, then EFI_UNSUPPORTED is returned.
-  If an error occurs while attempting to update the timer period, then the
-  timer hardware will be put back in its state prior to this call, and
-  EFI_DEVICE_ERROR is returned.  If TimerPeriod is 0, then the timer interrupt
-  is disabled.  This is not the same as disabling the CPU's interrupts.
+  If TimerPeriod is 0, then the timer interrupt is disabled.
+  This is not the same as disabling the CPU's interrupts.
   Instead, it must either turn off the timer hardware, or it must adjust the
   interrupt controller so that a CPU interrupt is not generated when the timer
   interrupt fires.
@@ -212,7 +210,6 @@ SP805RegisterHandler (
 
   @retval EFI_SUCCESS           The timer period was changed.
   @retval EFI_UNSUPPORTED       The platform cannot change the period of the timer interrupt.
-  @retval EFI_DEVICE_ERROR      The timer period could not be changed due to a device error.
 
 **/
 STATIC
@@ -246,15 +243,9 @@ SP805SetTimerPeriod (
     Ticks64bit = MultU64x32 (TimerPeriod, PcdGet32 (PcdSP805WatchdogClockFrequencyInHz));
     Ticks64bit = DivU64x32 (Ticks64bit, 10 * 1000 * 1000);
 
-    // The registers in the SP805 are only 32 bits
-    if (Ticks64bit > MAX_UINT32) {
-      // We could load the watchdog with the maximum supported value but
-      // if a smaller value was requested, this could have the watchdog
-      // triggering before it was intended.
-      // Better generate an error to let the caller know.
-      Status = EFI_DEVICE_ERROR;
-      goto EXIT;
-    }
+    // The registers in the SP805 are only 32 bits, so load the watchdog
+    // with the maximum supported value if it is more than 32 bits.
+    Ticks64bit = (Ticks64bit > MAX_UINT32) ? MAX_UINT32 : Ticks64bit;
 
     // Update the watchdog with a 32-bit value.
     MmioWrite32 (SP805_WDOG_LOAD_REG, (UINT32)Ticks64bit);
@@ -265,7 +256,6 @@ SP805SetTimerPeriod (
 
   mTimerPeriod = TimerPeriod;
 
-EXIT:
   // Ensure the watchdog is locked before exiting.
   SP805Lock ();
   ASSERT_EFI_ERROR (Status);
