@@ -50,7 +50,7 @@ Requirements:
 
 /** A string representing the name of the debug port 1.
 */
-#define NAME_STR_PORT1                            "COM1"
+#define NAME_STR_PORT1                            "\\_SB.COM1"
 
 /** The length of the namespace string.
 */
