@@ -13,6 +13,7 @@
 #include <Library/AcpiLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PL011UartLib.h>
+#include <Library/SerialPortLib.h>
 #include <Protocol/AcpiTable.h>
 #include <Protocol/SerialIo.h>
 
@@ -358,8 +359,18 @@ BuildDbg2Table (
   // Initialize the serial port
   //HACK : No need to setup UART, if non standard or not SBSA compliant
   // This need to be fixed, by OEM specific DBG2 generator in platform side.
-  if (SerialPortInfo->PortSubtype !=
+  if (SerialPortInfo->PortSubtype ==
       EFI_ACPI_DBG2_PORT_SUBTYPE_SERIAL_16550_SUBSET_COMPATIBLE_WITH_MS_DBGP_SPEC) {
+    Status = SerialPortInitialize ();
+    if (EFI_ERROR (Status)) {
+      DEBUG ((
+            DEBUG_ERROR,
+            "ERROR: DBG2: Failed to configure debug serial port. Status = %r\n",
+            Status
+            ));
+      goto error_handler;
+    }
+  } else {
     Status = SetupDebugUart (SerialPortInfo);
     if (EFI_ERROR (Status)) {
       DEBUG ((
