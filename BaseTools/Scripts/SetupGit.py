@@ -49,6 +49,18 @@ UPSTREAMS = [
      'list': 'devel@edk2.groups.io', 'prefix': 'edk2-non-osi'}
     ]
 
+UPSTREAMS_1 = [
+    {'name': 'edk2',
+     'repo': 'ssh://git@bitbucket.sw.nxp.com/dnnpi/edk2.git',
+     'list': 'IDC-BSP-Platform-Team-2@nxp.com'},
+    {'name': 'edk2-platforms',
+     'repo': 'ssh://git@bitbucket.sw.nxp.com/dnnpi/edk2-platforms.git',
+     'list': 'IDC-BSP-Platform-Team-2@nxp.com', 'prefix': 'edk2-platforms'},
+    {'name': 'edk2-non-osi',
+     'repo': 'ssh://git@bitbucket.sw.nxp.com/dnnpi/edk2-non-osi.git',
+     'list': 'IDC-BSP-Platform-Team-2@nxp.com', 'prefix': 'edk2-non-osi'}
+    ]
+
 # The minimum version required for all of the below options to work
 MIN_GIT_VERSION = (1, 9, 0)
 
@@ -111,6 +123,11 @@ def get_upstream(url):
     for upstream in UPSTREAMS:
         if fuzzy_match_repo_url(upstream['repo'], url):
             return upstream
+
+    for upstream in UPSTREAMS_1:
+        if fuzzy_match_repo_url(upstream['repo'], url):
+            return upstream
+
     print("Unknown upstream '%s' - aborting!" % url)
     sys.exit(3)
 
